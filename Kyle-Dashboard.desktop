@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Kyle's Kicka*s Kareer
+Comment=Launch the job board dashboard
+Exec=bash -c 'cd "$(dirname "%k")" && bash start-dashboard.sh'
+Terminal=true
+Icon=utilities-terminal
+Categories=Utility;
