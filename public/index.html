@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyle's Job Board</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#e0e0e0;font-family:'Syne',sans-serif;min-height:100vh;}
+.app{max-width:820px;margin:0 auto;padding:24px 20px 60px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;border-bottom:1px solid #1e1e1e;padding-bottom:16px;}
+.brand{font-family:'IBM Plex Mono',monospace;font-size:15px;color:#fff;letter-spacing:-.5px;}
+.brand em{color:#22c55e;font-style:normal;}
+.scan-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#444;display:flex;align-items:center;gap:8px;}
+.scan-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:28px;}
+.stat{background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:13px 15px;}
+.stat-n{font-size:24px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;}
+.stat-l{font-size:11px;color:#555;margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+.sec-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+.nudge{background:#1a0e00;border:1px solid #3a2000;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:#f59e0b;font-family:'IBM Plex Mono',monospace;}
+.nudge-dot{width:6px;height:6px;border-radius:50%;background:#f59e0b;flex-shrink:0;}
+.nbtn{font-size:11px;padding:4px 12px;border-radius:5px;border:1px solid #3a2000;background:transparent;color:#f59e0b;cursor:pointer;font-family:'IBM Plex Mono',monospace;margin-left:auto;white-space:nowrap;}
+.nbtn:hover{background:#2a1500;}
+.job-card{background:#111;border:1px solid #1e1e1e;border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.job-card.hot{border-color:#166534;}
+.job-card.medium{border-color:#1e3a5f;}
+.job-card.warm{border-color:#3a2800;}
+.jc-header{padding:16px 18px;cursor:pointer;display:flex;align-items:flex-start;gap:14px;user-select:none;}
+.logo-sq{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;flex-shrink:0;}
+.jc-meta{flex:1;min-width:0;}
+.jc-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:3px;}
+.jc-co{font-size:12px;color:#888;margin-bottom:8px;}
+.jc-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.pill{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #222;color:#666;font-family:'IBM Plex Mono',monospace;}
+.pill.g{border-color:#166534;color:#22c55e;}
+.pill.b{border-color:#1e3a5f;color:#60a5fa;}
+.pill.y{border-color:#3a2800;color:#f59e0b;}
+.jc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.fit-ring{position:relative;width:54px;height:54px;}
+.fit-ring svg{transform:rotate(-90deg);}
+.fit-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;}
+.status-tag{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:4px;font-weight:500;}
+.tag-hot{background:#0a2a15;color:#22c55e;}
+.tag-strong{background:#0a1525;color:#60a5fa;}
+.tag-warm{background:#1a1200;color:#f59e0b;}
+.chevron{font-size:10px;color:#333;transition:transform .2s;margin-top:auto;}
+.chevron.open{transform:rotate(180deg);}
+.jc-body{border-top:1px solid #1a1a1a;padding:16px 18px;display:none;}
+.jc-body.open{display:block;}
+.why-box{border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;}
+.why-g{background:#0a1a0f;border-left:2px solid #22c55e;color:#86efac;}
+.why-b{background:#060e18;border-left:2px solid #60a5fa;color:#93c5fd;}
+.why-y{background:#130d00;border-left:2px solid #f59e0b;color:#fcd34d;}
+.co-blurb{font-size:12px;color:#666;line-height:1.6;padding:10px 12px;background:#141414;border-radius:8px;border:1px solid #1e1e1e;margin-bottom:14px;}
+.fit-meter-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.fit-bar-bg{flex:1;height:4px;background:#1e1e1e;border-radius:99px;overflow:hidden;}
+.fit-bar-fill{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.fit-pct-live{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;min-width:38px;text-align:right;}
+.gap-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:7px;padding:10px 12px;background:#141414;border-radius:8px;border:1px solid #1e1e1e;cursor:pointer;transition:all .15s;}
+.gap-item:hover{border-color:#2a2a2a;}
+.gap-cb{width:16px;height:16px;border-radius:4px;border:1px solid #333;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.gap-label{font-size:12px;color:#ccc;font-weight:500;margin-bottom:2px;}
+.gap-sub{font-size:11px;color:#555;line-height:1.4;}
+.gap-item.checked-g{border-color:#166534;background:#0a1a0f;}
+.gap-item.checked-b{border-color:#1e3a5f;background:#060e18;}
+.gap-item.checked-y{border-color:#3a2800;background:#130d00;}
+.cb-on-g{background:#22c55e;border-color:#22c55e;}
+.cb-on-b{background:#60a5fa;border-color:#60a5fa;}
+.cb-on-y{background:#f59e0b;border-color:#f59e0b;}
+.cb-on-g::after,.cb-on-b::after,.cb-on-y::after{content:'';display:block;width:9px;height:6px;border-left:1.5px solid #000;border-bottom:1.5px solid #000;transform:rotate(-45deg) translate(1px,-1px);}
+.resume-btn{font-size:12px;padding:7px 14px;border-radius:7px;border:1px solid #222;background:transparent;color:#888;cursor:pointer;font-family:'IBM Plex Mono',monospace;margin:10px 0;transition:all .15s;display:block;}
+.resume-btn:hover{background:#1a1a1a;color:#fff;}
+.resume-preview{border-radius:8px;padding:14px;font-size:11px;line-height:1.8;font-family:'IBM Plex Mono',monospace;margin-bottom:14px;display:none;white-space:pre-wrap;}
+.resume-preview.show{display:block;}
+.rp-g{background:#0a1a0f;border:1px solid #166534;color:#86efac;}
+.rp-b{background:#060e18;border:1px solid #1e3a5f;color:#93c5fd;}
+.rp-y{background:#0d0800;border:1px solid #3a2200;color:#fcd34d;}
+.contact-block{background:#141414;border:1px solid #1e1e1e;border-radius:10px;padding:14px;margin:14px 0;}
+.contact-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;font-family:'IBM Plex Mono',monospace;}
+.c-name{font-size:13px;font-weight:600;color:#fff;}
+.c-role{font-size:11px;color:#555;margin-top:2px;}
+.c-active{font-size:10px;font-family:'IBM Plex Mono',monospace;margin-left:auto;}
+.c-links{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.c-link{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid #222;color:#888;text-decoration:none;font-family:'IBM Plex Mono',monospace;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
+.c-link:hover{border-color:#333;color:#ccc;}
+.hunter-result{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:8px 10px;border-radius:6px;margin-top:6px;display:none;}
+.hunter-result.show{display:block;}
+.hunter-found{background:#0a1a0f;border:1px solid #166534;color:#86efac;}
+.hunter-miss{background:#1a0e0e;border:1px solid #3a1515;color:#f87171;}
+.mutual-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #1e3a5f;color:#60a5fa;text-decoration:none;font-family:'IBM Plex Mono',monospace;transition:all .15s;margin-top:4px;}
+.mutual-link:hover{background:#060e18;}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.abtn{font-size:12px;padding:7px 14px;border-radius:7px;border:1px solid #222;background:transparent;color:#aaa;cursor:pointer;font-family:'Syne',sans-serif;font-weight:500;transition:all .15s;}
+.abtn:hover{background:#1a1a1a;color:#fff;border-color:#333;}
+.abtn.g{border-color:#166534;color:#22c55e;}.abtn.g:hover{background:#0a1a0f;}
+.abtn.b{border-color:#1e3a5f;color:#60a5fa;}.abtn.b:hover{background:#060e18;}
+.abtn.y{border-color:#3a2800;color:#f59e0b;}.abtn.y:hover{background:#130d00;}
+.notes-area{width:100%;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;font-family:'IBM Plex Mono',monospace;resize:none;margin-top:12px;outline:none;transition:border-color .15s;}
+.notes-area:focus{border-color:#2a2a2a;color:#ccc;}
+.notes-area::placeholder{color:#333;}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid #333;border-top-color:#22c55e;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:28px;}
+.pipe-col{background:#141414;border:1px solid #1e1e1e;border-radius:10px;padding:10px 12px;}
+.pipe-head{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.pipe-n{font-size:10px;background:#1e1e1e;border-radius:99px;padding:1px 7px;color:#666;}
+.pipe-item{margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #1a1a1a;}
+.pipe-item:last-child{margin:0;padding:0;border:none;}
+.pipe-co{font-size:12px;color:#ccc;font-weight:500;}
+.pipe-sub{font-size:10px;color:#444;font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div class="brand">kyle's <em>job board</em></div>
+  <div class="scan-info"><div class="scan-dot"></div>last scan: today &middot; next: 5d</div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-n">23</div><div class="stat-l">companies tracked</div></div>
+  <div class="stat"><div class="stat-n">4</div><div class="stat-l">new this week</div></div>
+  <div class="stat"><div class="stat-n">3</div><div class="stat-l">resumes tailored</div></div>
+  <div class="stat"><div class="stat-n">1</div><div class="stat-l">interview booked</div></div>
+</div>
+
+<div class="sec-label">Pipeline</div>
+<div class="pipeline">
+  <div class="pipe-col">
+    <div class="pipe-head">Targeted <span class="pipe-n">23</span></div>
+    <div class="pipe-item"><div class="pipe-co">Kin</div><div class="pipe-sub">Coliving · Austin</div></div>
+    <div class="pipe-item"><div class="pipe-co">Common</div><div class="pipe-sub">Remote</div></div>
+    <div class="pipe-item"><div class="pipe-co">Outsite</div><div class="pipe-sub">Remote living</div></div>
+  </div>
+  <div class="pipe-col">
+    <div class="pipe-head">Contacted <span class="pipe-n">8</span></div>
+    <div class="pipe-item"><div class="pipe-co">Bungalow</div><div class="pipe-sub">DM 4d ago</div></div>
+    <div class="pipe-item"><div class="pipe-co">Node</div><div class="pipe-sub">Email 6d ago</div></div>
+    <div class="pipe-item"><div class="pipe-co">Quarters</div><div class="pipe-sub">Applied 3d ago</div></div>
+  </div>
+  <div class="pipe-col">
+    <div class="pipe-head">Replied <span class="pipe-n">4</span></div>
+    <div class="pipe-item"><div class="pipe-co">Sonder</div><div class="pipe-sub">Yesterday</div></div>
+    <div class="pipe-item"><div class="pipe-co">Treehouse</div><div class="pipe-sub">2d ago</div></div>
+  </div>
+  <div class="pipe-col">
+    <div class="pipe-head">In talks <span class="pipe-n">2</span></div>
+    <div class="pipe-item"><div class="pipe-co">Alive One</div><div class="pipe-sub">Call Thu 2pm</div></div>
+    <div class="pipe-item"><div class="pipe-co">WeLive</div><div class="pipe-sub">2nd call Fri</div></div>
+  </div>
+  <div class="pipe-col">
+    <div class="pipe-head">Offer <span class="pipe-n">0</span></div>
+    <div style="font-size:11px;color:#222;padding-top:6px;font-family:'IBM Plex Mono',monospace;">—</div>
+  </div>
+</div>
+
+<div class="nudge">
+  <div class="nudge-dot"></div>
+  Bungalow — no action in 6 days. Follow up before the window closes.
+  <button class="nbtn">Write follow-up ↗</button>
+</div>
+
+<div class="sec-label">Top matches this week</div>
+
+<!-- KIN -->
+<div class="job-card hot">
+  <div class="jc-header" onclick="toggle('kin')">
+    <div class="logo-sq" style="background:#0a1a0f;color:#22c55e;">KIN</div>
+    <div class="jc-meta">
+      <div class="jc-title">Head of Community Experience</div>
+      <div class="jc-co">Kin &middot; Austin, TX &middot; Just raised Series A</div>
+      <div class="jc-pills">
+        <span class="pill g">Austin</span><span class="pill">Full-time</span>
+        <span class="pill">$95–120k</span><span class="pill g">Actively hiring</span>
+        <span class="pill">Greenhouse &middot; 2d ago</span>
+      </div>
+    </div>
+    <div class="jc-right">
+      <div class="fit-ring">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#22c55e" stroke-width="4" stroke-dasharray="131.9" id="ring-kin" stroke-dashoffset="17" stroke-linecap="round"/>
+        </svg>
+        <div class="fit-num" style="color:#22c55e;" id="num-kin">87%</div>
+      </div>
+      <span class="status-tag tag-hot">hot match</span>
+      <span class="chevron" id="chev-kin">▼</span>
+    </div>
+  </div>
+  <div class="jc-body" id="body-kin">
+    <div class="why-box why-g">Why this fits Kyle: Kin just opened their 3rd Austin coliving house and is hiring their first dedicated community lead. Early-stage, on-the-ground role — Kyle's 8-bed coliving build from zero is directly relevant. Founder is ex-Airbnb, obsessed with belonging.</div>
+    <div class="co-blurb">Kin builds intentional residential communities in Austin. Founded 2021, ~18 people, Series A ($4.2M). They design the physical space, curate residents, and run ongoing programming. Growing from 3 to 8 houses in 2025. Tight-knit, collaborative, mission-first team.</div>
+    <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check boxes to include in tailored resume</div>
+    <div class="fit-meter-row">
+      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-kin" style="width:87%;background:#22c55e;"></div></div>
+      <span class="fit-pct-live" style="color:#22c55e;" id="pct-kin">87%</span>
+    </div>
+    <div class="gap-item checked-g" data-card="kin" data-pts="4" data-color="g" onclick="toggleGap(this)">
+      <div class="gap-cb cb-on-g"></div>
+      <div><div class="gap-label">Coliving property launch — 8-bed, demand from zero</div><div class="gap-sub">Already on resume · your core differentiator</div></div>
+    </div>
+    <div class="gap-item checked-g" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
+      <div class="gap-cb cb-on-g"></div>
+      <div><div class="gap-label">Community programming & resident experience</div><div class="gap-sub">Already on resume · directly matches JD language</div></div>
+    </div>
+    <div class="gap-item" data-card="kin" data-pts="4" data-color="g" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Resident onboarding process you designed</div><div class="gap-sub">Add if you built any welcome flow. Kin onboards every resident personally.</div></div>
+    </div>
+    <div class="gap-item" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Occupancy or retention metrics</div><div class="gap-sub">Time to full occupancy? Any number makes this concrete.</div></div>
+    </div>
+    <div class="gap-item" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Input on physical space design or layout</div><div class="gap-sub">Kin designs space + community. Any say in how the house was set up?</div></div>
+    </div>
+    <button class="resume-btn" id="rbtn-kin" onclick="toggleResume('kin')">&#9658; generate tailored resume</button>
+    <div class="resume-preview rp-g" id="resume-kin">KYLE [LAST NAME]
+Austin, TX · kyle@email.com · linkedin.com/in/kyle
+
+SUMMARY
+Community-focused operator with hands-on experience launching and running coliving properties from zero. Built resident demand, designed community programming, and managed day-to-day ops for an 8-bed coliving house.
+
+EXPERIENCE
+Coliving Property Operator · Independent · 2022–2024
+· Launched 8-bed coliving property from zero to full occupancy
+· Built demand through grassroots outreach and community referrals
+· Designed community programming and resident experience from scratch
+· [ADD: Resident onboarding flow if applicable]
+· [ADD: Occupancy timeline or retention metric]
+· [ADD: Physical space design input]
+
+WHY KIN: I'm drawn to Kin's approach of designing the whole experience — space, residents, programming — not just renting beds. That's what I built at small scale. I'd love to help build it at yours.</div>
+    <div class="contact-block">
+      <div class="contact-header">
+        <div class="av" style="background:#0a1a0f;color:#22c55e;">JM</div>
+        <div><div class="c-name">Jamie Mok</div><div class="c-role">Co-founder &amp; CEO &middot; Kin</div></div>
+        <div class="c-active" style="color:#22c55e;">active today</div>
+      </div>
+      <div class="c-links">
+        <a class="c-link" href="https://linkedin.com/in/jamiemok" target="_blank">linkedin ↗</a>
+        <span class="c-link" onclick="findEmail('Jamie','Mok','kin.com','kin')" id="hunter-btn-kin">find direct email ↗</span>
+      </div>
+      <div class="hunter-result" id="hunter-kin"></div>
+      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=Kin+coliving+Austin&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Check for mutual connections at Kin on LinkedIn ↗
+      </a>
+    </div>
+    <div class="actions">
+      <button class="abtn g">Draft DM to Jamie ↗</button>
+      <button class="abtn">Cover letter ↗</button>
+      <button class="abtn">Research Kin ↗</button>
+    </div>
+    <textarea class="notes-area" rows="2" placeholder="Add notes about Kin..."></textarea>
+  </div>
+</div>
+
+<!-- COMMON -->
+<div class="job-card medium">
+  <div class="jc-header" onclick="toggle('common')">
+    <div class="logo-sq" style="background:#0a1525;color:#60a5fa;">COM</div>
+    <div class="jc-meta">
+      <div class="jc-title">Product Growth Lead</div>
+      <div class="jc-co">Common &middot; Remote (US) &middot; Hiring now</div>
+      <div class="jc-pills">
+        <span class="pill">Remote</span><span class="pill">Full-time</span>
+        <span class="pill">$110–135k</span><span class="pill b">New &middot; 1d ago</span>
+      </div>
+    </div>
+    <div class="jc-right">
+      <div class="fit-ring">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#60a5fa" stroke-width="4" stroke-dasharray="131.9" id="ring-common" stroke-dashoffset="20" stroke-linecap="round"/>
+        </svg>
+        <div class="fit-num" style="color:#60a5fa;" id="num-common">85%</div>
+      </div>
+      <span class="status-tag tag-strong">strong fit</span>
+      <span class="chevron" id="chev-common">▼</span>
+    </div>
+  </div>
+  <div class="jc-body" id="body-common">
+    <div class="why-box why-b">Why this fits Kyle: Common is scaling coliving nationally and needs someone who's lived the ops side. Kyle's zero-to-one demand building maps directly — they need someone who can take a new market from empty to full.</div>
+    <div class="co-blurb">Common is one of the largest coliving operators in the US — 4,000+ beds across 14 cities. ~120 people, backed by $113M. They manage design, leasing, community, ops. Shifting focus to growth in 2025. Remote-friendly leadership team.</div>
+    <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check to include in tailored resume</div>
+    <div class="fit-meter-row">
+      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-common" style="width:85%;background:#60a5fa;"></div></div>
+      <span class="fit-pct-live" style="color:#60a5fa;" id="pct-common">85%</span>
+    </div>
+    <div class="gap-item checked-b" data-card="common" data-pts="5" data-color="b" onclick="toggleGap(this)">
+      <div class="gap-cb cb-on-b"></div>
+      <div><div class="gap-label">Demand generation from zero — coliving property</div><div class="gap-sub">Already on resume · your lead card</div></div>
+    </div>
+    <div class="gap-item checked-b" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
+      <div class="gap-cb cb-on-b"></div>
+      <div><div class="gap-label">Resident acquisition channels used</div><div class="gap-sub">What actually worked — social, referral, events?</div></div>
+    </div>
+    <div class="gap-item" data-card="common" data-pts="4" data-color="b" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Growth or marketing metrics</div><div class="gap-sub">Time to full occupancy, conversion rate — any number helps</div></div>
+    </div>
+    <div class="gap-item" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">New market or replication experience</div><div class="gap-sub">Common is expanding cities — any experience repeating something in a new context?</div></div>
+    </div>
+    <div class="gap-item" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Resident feedback loop — changing the product based on insights</div><div class="gap-sub">Did you gather feedback and act on it? Shows operator + product instinct.</div></div>
+    </div>
+    <button class="resume-btn" id="rbtn-common" onclick="toggleResume('common')">&#9658; generate tailored resume</button>
+    <div class="resume-preview rp-b" id="resume-common">KYLE [LAST NAME]
+Austin, TX · kyle@email.com · linkedin.com/in/kyle
+
+SUMMARY
+Operator and growth lead with direct experience taking a coliving property from zero to full occupancy. Built acquisition channels from scratch and iterated based on real resident feedback.
+
+EXPERIENCE
+Coliving Property Operator · Independent · 2022–2024
+· Built demand from zero — filled 8-bed coliving through [channels]
+· [ADD: Time-to-full-occupancy metric]
+· Gathered ongoing resident feedback and iterated on programming
+· [ADD: New market / replication experience if applicable]
+
+WHY COMMON: I've done at the smallest scale what Common does at the largest — take an empty house and turn it into somewhere people want to live and stay. I'd bring that operator instinct to your growth work.</div>
+    <div class="contact-block">
+      <div class="contact-header">
+        <div class="av" style="background:#0a1525;color:#60a5fa;">BH</div>
+        <div><div class="c-name">Brad Hargreaves</div><div class="c-role">Founder &middot; Common</div></div>
+        <div class="c-active" style="color:#555;">active 3d ago</div>
+      </div>
+      <div class="c-links">
+        <a class="c-link" href="https://linkedin.com/in/bradhargreaves" target="_blank">linkedin ↗</a>
+        <span class="c-link" onclick="findEmail('Brad','Hargreaves','common.com','common')" id="hunter-btn-common">find direct email ↗</span>
+      </div>
+      <div class="hunter-result" id="hunter-common"></div>
+      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=Common+coliving&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Check for mutual connections at Common on LinkedIn ↗
+      </a>
+    </div>
+    <div class="actions">
+      <button class="abtn b">Draft DM to Brad ↗</button>
+      <button class="abtn">Cover letter ↗</button>
+    </div>
+    <textarea class="notes-area" rows="2" placeholder="Add notes about Common..."></textarea>
+  </div>
+</div>
+
+<!-- WEWORK -->
+<div class="job-card warm">
+  <div class="jc-header" onclick="toggle('wework')">
+    <div class="logo-sq" style="background:#1a1200;color:#f59e0b;">WRK</div>
+    <div class="jc-meta">
+      <div class="jc-title">Community &amp; Operations Manager</div>
+      <div class="jc-co">WeWork Labs &middot; Austin, TX &middot; Hybrid</div>
+      <div class="jc-pills">
+        <span class="pill">Hybrid</span><span class="pill">$85–105k</span>
+        <span class="pill">Indeed</span><span class="pill y">Act soon — 9d old</span>
+      </div>
+    </div>
+    <div class="jc-right">
+      <div class="fit-ring">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
+          <circle cx="27" cy="27" r="21" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="131.9" id="ring-wework" stroke-dashoffset="26" stroke-linecap="round"/>
+        </svg>
+        <div class="fit-num" style="color:#f59e0b;" id="num-wework">80%</div>
+      </div>
+      <span class="status-tag tag-warm">good fit</span>
+      <span class="chevron" id="chev-wework">▼</span>
+    </div>
+  </div>
+  <div class="jc-body" id="body-wework">
+    <div class="why-box why-y">Why this fits Kyle: WeWork Labs is the innovation arm — startup feel, early-stage tenants, community programming. Half community building, half ops. More interesting than main WeWork and directly maps to what Kyle built.</div>
+    <div class="co-blurb">WeWork Labs is WeWork's startup-focused vertical — coworking designed for early-stage founders. Austin location has ~200 members. Community Manager runs all member programming, onboarding, and events. Reports to Head of Labs. Smaller, more intimate than the main brand.</div>
+    <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check to include in tailored resume</div>
+    <div class="fit-meter-row">
+      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-wework" style="width:80%;background:#f59e0b;"></div></div>
+      <span class="fit-pct-live" style="color:#f59e0b;" id="pct-wework">80%</span>
+    </div>
+    <div class="gap-item checked-y" data-card="wework" data-pts="4" data-color="y" onclick="toggleGap(this)">
+      <div class="gap-cb cb-on-y"></div>
+      <div><div class="gap-label">Coliving operations &amp; community management</div><div class="gap-sub">Already on resume · translates well to coworking</div></div>
+    </div>
+    <div class="gap-item" data-card="wework" data-pts="5" data-color="y" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Event planning or member programming</div><div class="gap-sub">Did you run events at your coliving house? Even informal ones count.</div></div>
+    </div>
+    <div class="gap-item" data-card="wework" data-pts="5" data-color="y" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Experience with startups or startup founders</div><div class="gap-sub">Labs members are all founders. Any startup context in your background?</div></div>
+    </div>
+    <div class="gap-item" data-card="wework" data-pts="3" data-color="y" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">Vendor or facility management</div><div class="gap-sub">Managed contractors or maintenance at your property?</div></div>
+    </div>
+    <div class="gap-item" data-card="wework" data-pts="3" data-color="y" onclick="toggleGap(this)">
+      <div class="gap-cb"></div>
+      <div><div class="gap-label">NPS or member satisfaction tracking</div><div class="gap-sub">WeWork measures NPS obsessively. Any satisfaction or feedback data?</div></div>
+    </div>
+    <button class="resume-btn" id="rbtn-wework" onclick="toggleResume('wework')">&#9658; generate tailored resume</button>
+    <div class="resume-preview rp-y" id="resume-wework">KYLE [LAST NAME]
+Austin, TX · kyle@email.com · linkedin.com/in/kyle
+
+SUMMARY
+Community operator with direct experience running a residential community from day one — programming, member experience, ops, and demand gen. Comfortable in early-stage environments where the playbook doesn't exist yet.
+
+EXPERIENCE
+Coliving Property Operator · Independent · 2022–2024
+· Managed all operations and community experience for 8-resident house
+· [ADD: Events and programming you ran]
+· [ADD: Vendor/maintenance management if applicable]
+· Built house culture and resident norms from scratch
+· [ADD: Startup/founder context if applicable]
+
+WHY WEWORK LABS: The Labs model — tight-knit founders, curated community, real programming — is the closest thing in coworking to what coliving tries to do. I'd bring an operator's instinct to the member experience.</div>
+    <div class="contact-block">
+      <div class="contact-header">
+        <div class="av" style="background:#1a1200;color:#f59e0b;">SL</div>
+        <div><div class="c-name">Sara Lin</div><div class="c-role">Head of Labs &middot; WeWork Austin</div></div>
+        <div class="c-active" style="color:#555;">active 1d ago</div>
+      </div>
+      <div class="c-links">
+        <a class="c-link" href="https://linkedin.com/in/saralin" target="_blank">linkedin ↗</a>
+        <span class="c-link" onclick="findEmail('Sara','Lin','wework.com','wework')" id="hunter-btn-wework">find direct email ↗</span>
+      </div>
+      <div class="hunter-result" id="hunter-wework"></div>
+      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=WeWork+Labs+Austin&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Check for mutual connections at WeWork Labs on LinkedIn ↗
+      </a>
+    </div>
+    <div class="actions">
+      <button class="abtn y">Draft DM to Sara ↗</button>
+      <button class="abtn">Cover letter ↗</button>
+    </div>
+    <textarea class="notes-area" rows="2" placeholder="Add notes about WeWork Labs..."></textarea>
+  </div>
+</div>
+
+</div>
+<script>
+const scores = {kin:87, common:85, wework:80};
+const C = 131.9;
+
+function toggle(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  chev.classList.toggle('open', !open);
+}
+
+function toggleGap(el) {
+  const card = el.dataset.card;
+  const pts = parseInt(el.dataset.pts);
+  const color = el.dataset.color;
+  const cb = el.querySelector('.gap-cb');
+  const isOn = cb.classList.contains('cb-on-' + color);
+
+  cb.classList.toggle('cb-on-' + color, !isOn);
+  el.classList.toggle('checked-' + color, !isOn);
+
+  scores[card] = Math.min(100, Math.max(0, scores[card] + (isOn ? -pts : pts)));
+  document.getElementById('pct-' + card).textContent = scores[card] + '%';
+  document.getElementById('bar-' + card).style.width = scores[card] + '%';
+  const offset = C * (1 - scores[card] / 100);
+  document.getElementById('ring-' + card).setAttribute('stroke-dashoffset', offset);
+  document.getElementById('num-' + card).textContent = scores[card] + '%';
+}
+
+function toggleResume(id) {
+  const r = document.getElementById('resume-' + id);
+  const btn = document.getElementById('rbtn-' + id);
+  const showing = r.classList.contains('show');
+  r.classList.toggle('show', !showing);
+  btn.textContent = showing ? '\u25B6 generate tailored resume' : '\u25BC hide resume';
+}
+
+async function findEmail(firstName, lastName, domain, id) {
+  const btn = document.getElementById('hunter-btn-' + id);
+  const result = document.getElementById('hunter-' + id);
+  btn.innerHTML = '<span class="spinner"></span> searching...';
+  result.className = 'hunter-result';
+  result.classList.add('show');
+  result.textContent = 'Searching Hunter.io...';
+  try {
+    const res = await fetch(`/api/find-email?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&domain=${encodeURIComponent(domain)}`);
+    const data = await res.json();
+    btn.textContent = 'find direct email ↗';
+    if (data.data && data.data.email) {
+      const conf = data.data.score ? ` (${data.data.score}% confidence)` : '';
+      result.textContent = '✓ ' + data.data.email + conf;
+      result.classList.add('hunter-found');
+    } else {
+      result.textContent = '✗ No direct email found — try LinkedIn or domain search';
+      result.classList.add('hunter-miss');
+    }
+  } catch(e) {
+    btn.textContent = 'find direct email ↗';
+    result.textContent = '✗ Could not reach Hunter API';
+    result.classList.add('hunter-miss');
+  }
+}
+</script>
+</body>
+</html>
