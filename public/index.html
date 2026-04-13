@@ -4,458 +4,1138 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kyle's Kicka*s Kareer</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg: #06060b;
+  --card: #0c0c14;
+  --card-border: rgba(255,255,255,0.04);
+  --card-hover: rgba(255,255,255,0.06);
+  --surface: #10101a;
+  --text: #e0e0e0;
+  --text-muted: #555;
+  --text-dim: #333;
+  --green: #22c55e;
+  --green-dim: #0a2a15;
+  --blue: #60a5fa;
+  --blue-dim: #0a1525;
+  --yellow: #f59e0b;
+  --yellow-dim: #1a1200;
+  --orange: #f97316;
+  --red: #ef4444;
+  --cyan: #22d3ee;
+  --purple: #a78bfa;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0d0d0d;color:#e0e0e0;font-family:'Syne',sans-serif;min-height:100vh;}
-.app{max-width:820px;margin:0 auto;padding:24px 20px 60px;}
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;border-bottom:1px solid #1e1e1e;padding-bottom:16px;}
-.brand{font-family:'IBM Plex Mono',monospace;font-size:15px;color:#fff;letter-spacing:-.5px;}
-.brand em{color:#22c55e;font-style:normal;}
-.scan-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#444;display:flex;align-items:center;gap:8px;}
-.scan-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:28px;}
-.stat{background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:13px 15px;}
-.stat-n{font-size:24px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;}
-.stat-l{font-size:11px;color:#555;margin-top:3px;font-family:'IBM Plex Mono',monospace;}
-.sec-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
-.nudge{background:#1a0e00;border:1px solid #3a2000;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:#f59e0b;font-family:'IBM Plex Mono',monospace;}
-.nudge-dot{width:6px;height:6px;border-radius:50%;background:#f59e0b;flex-shrink:0;}
-.nbtn{font-size:11px;padding:4px 12px;border-radius:5px;border:1px solid #3a2000;background:transparent;color:#f59e0b;cursor:pointer;font-family:'IBM Plex Mono',monospace;margin-left:auto;white-space:nowrap;}
-.nbtn:hover{background:#2a1500;}
-.job-card{background:#111;border:1px solid #1e1e1e;border-radius:12px;margin-bottom:14px;overflow:hidden;}
-.job-card.hot{border-color:#166534;}
-.job-card.medium{border-color:#1e3a5f;}
-.job-card.warm{border-color:#3a2800;}
-.jc-header{padding:16px 18px;cursor:pointer;display:flex;align-items:flex-start;gap:14px;user-select:none;}
-.logo-sq{width:42px;height:42px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;flex-shrink:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:3px;}
+
+/* === ANIMATED GRADIENT HEADER === */
+.header-wrap{
+  background: linear-gradient(135deg, #0a0a1a 0%, #0d1525 25%, #0a1a15 50%, #151020 75%, #0a0a1a 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+@keyframes gradientShift {
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+.topbar{max-width:900px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.brand{font-family:var(--mono);font-size:16px;color:#fff;letter-spacing:-.5px;font-weight:600;}
+.brand em{background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-style:normal;font-weight:600;}
+.header-right{display:flex;align-items:center;gap:16px;}
+.scan-info{font-family:var(--mono);font-size:10px;color:#444;display:flex;align-items:center;gap:6px;}
+.scan-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;box-shadow:0 0 8px var(--green);}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--green)}50%{opacity:.3;box-shadow:0 0 2px var(--green)}}
+.cmd-hint{font-family:var(--mono);font-size:10px;color:#333;padding:3px 10px;border:1px solid #1e1e2e;border-radius:5px;cursor:pointer;transition:all .2s;}
+.cmd-hint:hover{border-color:#333;color:#555;}
+.cmd-hint kbd{color:#555;font-family:var(--mono);}
+
+.app{max-width:900px;margin:0 auto;padding:24px 24px 80px;}
+
+/* === STAT CARDS WITH SPARKLINES === */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:32px;}
+.stat{
+  background: rgba(12,12,20,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border:1px solid var(--card-border);
+  border-radius:12px;
+  padding:16px 18px;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+.stat:hover{border-color:rgba(255,255,255,0.08);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3);}
+.stat-n{font-size:28px;font-weight:700;color:#fff;font-family:var(--mono);line-height:1;}
+.stat-l{font-size:10px;color:#444;margin-top:6px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;}
+.sparkline{position:absolute;bottom:0;right:0;opacity:.3;}
+.stat:hover .sparkline{opacity:.6;}
+
+/* === PIPELINE KANBAN === */
+.sec-label{font-family:var(--mono);font-size:10px;color:#444;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:32px;}
+.pipe-col{
+  background:rgba(12,12,20,0.6);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--card-border);
+  border-radius:12px;
+  padding:12px;
+  min-height:100px;
+  transition:all .2s;
+}
+.pipe-col.drag-over{border-color:var(--green);background:rgba(34,197,94,0.03);}
+.pipe-head{font-family:var(--mono);font-size:10px;color:#444;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.pipe-n{font-size:9px;background:rgba(255,255,255,0.04);border-radius:99px;padding:2px 8px;color:#555;font-family:var(--mono);}
+.pipe-item{
+  margin-bottom:6px;padding:8px 10px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.04);
+  border-radius:8px;
+  cursor:grab;
+  transition:all .2s;
+  font-size:12px;
+}
+.pipe-item:hover{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);}
+.pipe-item:active{cursor:grabbing;opacity:.6;}
+.pipe-co{font-size:11px;color:#ccc;font-weight:500;}
+.pipe-sub{font-size:9px;color:#444;font-family:var(--mono);margin-top:2px;}
+.pipe-empty{font-size:10px;color:#1e1e2e;font-family:var(--mono);padding:8px;text-align:center;}
+
+/* === JOB CARDS — GLASSMORPHISM === */
+.job-card{
+  background: rgba(12,12,20,0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+}
+.job-card:hover{
+  border-color: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.job-card.hot{border-color:rgba(34,197,94,0.15);}
+.job-card.hot:hover{border-color:rgba(34,197,94,0.3);box-shadow:0 8px 40px rgba(34,197,94,0.05);}
+.job-card.strong{border-color:rgba(96,165,250,0.15);}
+.job-card.strong:hover{border-color:rgba(96,165,250,0.3);box-shadow:0 8px 40px rgba(96,165,250,0.05);}
+.job-card.good{border-color:rgba(249,158,11,0.12);}
+.job-card.good:hover{border-color:rgba(249,158,11,0.25);box-shadow:0 8px 40px rgba(249,158,11,0.05);}
+
+.jc-header{padding:18px 20px;cursor:pointer;display:flex;align-items:flex-start;gap:14px;user-select:none;}
+.company-logo{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;flex-shrink:0;overflow:hidden;background:var(--surface);border:1px solid var(--card-border);}
+.company-logo img{width:100%;height:100%;object-fit:contain;padding:6px;filter:brightness(0.9);}
+.company-logo.no-img{font-size:11px;}
 .jc-meta{flex:1;min-width:0;}
-.jc-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:3px;}
-.jc-co{font-size:12px;color:#888;margin-bottom:8px;}
-.jc-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.pill{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid #222;color:#666;font-family:'IBM Plex Mono',monospace;}
-.pill.g{border-color:#166534;color:#22c55e;}
-.pill.b{border-color:#1e3a5f;color:#60a5fa;}
-.pill.y{border-color:#3a2800;color:#f59e0b;}
+.jc-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:4px;line-height:1.3;}
+.jc-co{font-size:12px;color:#666;margin-bottom:8px;}
+.jc-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.pill{font-size:9px;padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.06);color:#555;font-family:var(--mono);transition:all .2s;}
+.pill.g{border-color:rgba(34,197,94,0.2);color:var(--green);background:rgba(34,197,94,0.05);}
+.pill.b{border-color:rgba(96,165,250,0.2);color:var(--blue);background:rgba(96,165,250,0.05);}
+.pill.y{border-color:rgba(249,158,11,0.2);color:var(--yellow);background:rgba(249,158,11,0.05);}
+.pill.p{border-color:rgba(167,139,250,0.2);color:var(--purple);background:rgba(167,139,250,0.05);}
 .jc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+
+/* === ANIMATED FIT RING === */
 .fit-ring{position:relative;width:54px;height:54px;}
 .fit-ring svg{transform:rotate(-90deg);}
-.fit-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;}
-.status-tag{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:4px;font-weight:500;}
-.tag-hot{background:#0a2a15;color:#22c55e;}
-.tag-strong{background:#0a1525;color:#60a5fa;}
-.tag-warm{background:#1a1200;color:#f59e0b;}
-.chevron{font-size:10px;color:#333;transition:transform .2s;margin-top:auto;}
+.fit-ring .ring-bg{fill:none;stroke:rgba(255,255,255,0.04);stroke-width:4;}
+.fit-ring .ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);}
+.fit-ring .ring-glow{fill:none;stroke-width:6;stroke-linecap:round;opacity:0.15;filter:blur(3px);}
+.fit-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:600;}
+.status-tag{font-size:9px;font-family:var(--mono);padding:3px 8px;border-radius:5px;font-weight:500;letter-spacing:.02em;}
+.tag-hot{background:rgba(34,197,94,0.08);color:var(--green);border:1px solid rgba(34,197,94,0.15);}
+.tag-strong{background:rgba(96,165,250,0.08);color:var(--blue);border:1px solid rgba(96,165,250,0.15);}
+.tag-good{background:rgba(249,158,11,0.08);color:var(--yellow);border:1px solid rgba(249,158,11,0.15);}
+.chevron{font-size:9px;color:#222;transition:transform .3s cubic-bezier(.4,0,.2,1);margin-top:auto;}
 .chevron.open{transform:rotate(180deg);}
-.jc-body{border-top:1px solid #1a1a1a;padding:16px 18px;display:none;}
+
+/* === EXPANDED JOB BODY === */
+.jc-body{border-top:1px solid rgba(255,255,255,0.03);padding:20px;display:none;animation:slideDown .3s ease;}
 .jc-body.open{display:block;}
-.why-box{border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;}
-.why-g{background:#0a1a0f;border-left:2px solid #22c55e;color:#86efac;}
-.why-b{background:#060e18;border-left:2px solid #60a5fa;color:#93c5fd;}
-.why-y{background:#130d00;border-left:2px solid #f59e0b;color:#fcd34d;}
-.co-blurb{font-size:12px;color:#666;line-height:1.6;padding:10px 12px;background:#141414;border-radius:8px;border:1px solid #1e1e1e;margin-bottom:14px;}
-.fit-meter-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-.fit-bar-bg{flex:1;height:4px;background:#1e1e1e;border-radius:99px;overflow:hidden;}
-.fit-bar-fill{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
-.fit-pct-live{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;min-width:38px;text-align:right;}
-.gap-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:7px;padding:10px 12px;background:#141414;border-radius:8px;border:1px solid #1e1e1e;cursor:pointer;transition:all .15s;}
-.gap-item:hover{border-color:#2a2a2a;}
-.gap-cb{width:16px;height:16px;border-radius:4px;border:1px solid #333;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.why-box{border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:16px;font-size:12px;line-height:1.7;}
+.why-g{background:rgba(34,197,94,0.04);border-left:2px solid var(--green);color:#86efac;}
+.why-b{background:rgba(96,165,250,0.04);border-left:2px solid var(--blue);color:#93c5fd;}
+.why-y{background:rgba(249,158,11,0.04);border-left:2px solid var(--yellow);color:#fcd34d;}
+.co-blurb{font-size:12px;color:#555;line-height:1.7;padding:12px 14px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--card-border);margin-bottom:16px;}
+
+/* === FIT METER === */
+.fit-meter-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.fit-bar-bg{flex:1;height:3px;background:rgba(255,255,255,0.04);border-radius:99px;overflow:hidden;}
+.fit-bar-fill{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+.fit-pct-live{font-family:var(--mono);font-size:12px;font-weight:500;min-width:38px;text-align:right;}
+
+/* === CHECKBOXES === */
+.gap-item{
+  display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;
+  padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:10px;
+  border:1px solid var(--card-border);cursor:pointer;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+.gap-item:hover{border-color:rgba(255,255,255,0.08);transform:scale(1.005);}
+.gap-cb{
+  width:16px;height:16px;border-radius:5px;border:1px solid #2a2a3a;
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+}
 .gap-label{font-size:12px;color:#ccc;font-weight:500;margin-bottom:2px;}
-.gap-sub{font-size:11px;color:#555;line-height:1.4;}
-.gap-item.checked-g{border-color:#166534;background:#0a1a0f;}
-.gap-item.checked-b{border-color:#1e3a5f;background:#060e18;}
-.gap-item.checked-y{border-color:#3a2800;background:#130d00;}
-.cb-on-g{background:#22c55e;border-color:#22c55e;}
-.cb-on-b{background:#60a5fa;border-color:#60a5fa;}
-.cb-on-y{background:#f59e0b;border-color:#f59e0b;}
+.gap-sub{font-size:11px;color:#444;line-height:1.4;}
+.gap-item.checked-g{border-color:rgba(34,197,94,0.2);background:rgba(34,197,94,0.03);}
+.gap-item.checked-b{border-color:rgba(96,165,250,0.2);background:rgba(96,165,250,0.03);}
+.gap-item.checked-y{border-color:rgba(249,158,11,0.2);background:rgba(249,158,11,0.03);}
+.cb-on-g{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(34,197,94,0.3);}
+.cb-on-b{background:var(--blue);border-color:var(--blue);box-shadow:0 0 8px rgba(96,165,250,0.3);}
+.cb-on-y{background:var(--yellow);border-color:var(--yellow);box-shadow:0 0 8px rgba(249,158,11,0.3);}
 .cb-on-g::after,.cb-on-b::after,.cb-on-y::after{content:'';display:block;width:9px;height:6px;border-left:1.5px solid #000;border-bottom:1.5px solid #000;transform:rotate(-45deg) translate(1px,-1px);}
-.resume-btn{font-size:12px;padding:7px 14px;border-radius:7px;border:1px solid #222;background:transparent;color:#888;cursor:pointer;font-family:'IBM Plex Mono',monospace;margin:10px 0;transition:all .15s;display:block;}
-.resume-btn:hover{background:#1a1a1a;color:#fff;}
-.resume-preview{border-radius:8px;padding:14px;font-size:11px;line-height:1.8;font-family:'IBM Plex Mono',monospace;margin-bottom:14px;display:none;white-space:pre-wrap;}
-.resume-preview.show{display:block;}
-.rp-g{background:#0a1a0f;border:1px solid #166534;color:#86efac;}
-.rp-b{background:#060e18;border:1px solid #1e3a5f;color:#93c5fd;}
-.rp-y{background:#0d0800;border:1px solid #3a2200;color:#fcd34d;}
-.contact-block{background:#141414;border:1px solid #1e1e1e;border-radius:10px;padding:14px;margin:14px 0;}
+
+/* === TIMELINE === */
+.timeline{display:flex;align-items:center;gap:0;margin:16px 0;padding:12px 14px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--card-border);overflow-x:auto;}
+.tl-step{display:flex;align-items:center;gap:0;flex-shrink:0;}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:#1e1e2e;border:1.5px solid #2a2a3a;flex-shrink:0;transition:all .3s;}
+.tl-dot.active{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(34,197,94,0.4);}
+.tl-dot.active-b{background:var(--blue);border-color:var(--blue);box-shadow:0 0 8px rgba(96,165,250,0.4);}
+.tl-label{font-family:var(--mono);font-size:9px;color:#333;margin-left:6px;white-space:nowrap;}
+.tl-label.active{color:var(--green);}
+.tl-line{width:24px;height:1px;background:#1e1e2e;flex-shrink:0;margin:0 4px;}
+
+/* === CONTACT BLOCK === */
+.contact-block{background:rgba(255,255,255,0.02);border:1px solid var(--card-border);border-radius:12px;padding:14px;margin:16px 0;}
 .contact-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;font-family:'IBM Plex Mono',monospace;}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;font-family:var(--mono);}
 .c-name{font-size:13px;font-weight:600;color:#fff;}
-.c-role{font-size:11px;color:#555;margin-top:2px;}
-.c-active{font-size:10px;font-family:'IBM Plex Mono',monospace;margin-left:auto;}
-.c-links{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
-.c-link{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid #222;color:#888;text-decoration:none;font-family:'IBM Plex Mono',monospace;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
-.c-link:hover{border-color:#333;color:#ccc;}
-.hunter-result{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:8px 10px;border-radius:6px;margin-top:6px;display:none;}
+.c-role{font-size:10px;color:#444;margin-top:2px;}
+.c-links{display:flex;gap:6px;flex-wrap:wrap;}
+.c-link{font-size:10px;padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);color:#666;text-decoration:none;font-family:var(--mono);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .2s;}
+.c-link:hover{border-color:rgba(255,255,255,0.12);color:#aaa;background:rgba(255,255,255,0.02);}
+.hunter-result{font-size:11px;font-family:var(--mono);padding:8px 10px;border-radius:6px;margin-top:8px;display:none;}
 .hunter-result.show{display:block;}
-.hunter-found{background:#0a1a0f;border:1px solid #166534;color:#86efac;}
-.hunter-miss{background:#1a0e0e;border:1px solid #3a1515;color:#f87171;}
-.mutual-link{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid #1e3a5f;color:#60a5fa;text-decoration:none;font-family:'IBM Plex Mono',monospace;transition:all .15s;margin-top:4px;}
-.mutual-link:hover{background:#060e18;}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.abtn{font-size:12px;padding:7px 14px;border-radius:7px;border:1px solid #222;background:transparent;color:#aaa;cursor:pointer;font-family:'Syne',sans-serif;font-weight:500;transition:all .15s;}
-.abtn:hover{background:#1a1a1a;color:#fff;border-color:#333;}
-.abtn.g{border-color:#166534;color:#22c55e;}.abtn.g:hover{background:#0a1a0f;}
-.abtn.b{border-color:#1e3a5f;color:#60a5fa;}.abtn.b:hover{background:#060e18;}
-.abtn.y{border-color:#3a2800;color:#f59e0b;}.abtn.y:hover{background:#130d00;}
-.notes-area{width:100%;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;font-size:12px;color:#888;font-family:'IBM Plex Mono',monospace;resize:none;margin-top:12px;outline:none;transition:border-color .15s;}
-.notes-area:focus{border-color:#2a2a2a;color:#ccc;}
-.notes-area::placeholder{color:#333;}
-.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid #333;border-top-color:#22c55e;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
+.hunter-found{background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.15);color:#86efac;}
+.hunter-miss{background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);color:#f87171;}
+.mutual-link{display:inline-flex;align-items:center;gap:6px;font-size:10px;padding:6px 12px;border-radius:6px;border:1px solid rgba(96,165,250,0.15);color:var(--blue);text-decoration:none;font-family:var(--mono);transition:all .2s;margin-top:6px;}
+.mutual-link:hover{background:rgba(96,165,250,0.05);}
+
+/* === BUTTONS === */
+.resume-btn{font-size:11px;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#666;cursor:pointer;font-family:var(--mono);margin:12px 0;transition:all .2s;display:block;}
+.resume-btn:hover{background:rgba(255,255,255,0.03);color:#aaa;border-color:rgba(255,255,255,0.1);transform:translateX(2px);}
+.resume-preview{border-radius:10px;padding:16px;font-size:11px;line-height:1.8;font-family:var(--mono);margin-bottom:14px;display:none;white-space:pre-wrap;}
+.resume-preview.show{display:block;animation:slideDown .3s ease;}
+.rp-g{background:rgba(34,197,94,0.03);border:1px solid rgba(34,197,94,0.12);color:#86efac;}
+.rp-b{background:rgba(96,165,250,0.03);border:1px solid rgba(96,165,250,0.12);color:#93c5fd;}
+.rp-y{background:rgba(249,158,11,0.03);border:1px solid rgba(249,158,11,0.12);color:#fcd34d;}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.abtn{font-size:11px;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#888;cursor:pointer;font-family:var(--sans);font-weight:500;transition:all .2s cubic-bezier(.4,0,.2,1);}
+.abtn:hover{background:rgba(255,255,255,0.03);color:#fff;border-color:rgba(255,255,255,0.1);transform:translateY(-1px);}
+.abtn.g{border-color:rgba(34,197,94,0.2);color:var(--green);}.abtn.g:hover{background:rgba(34,197,94,0.05);}
+.abtn.b{border-color:rgba(96,165,250,0.2);color:var(--blue);}.abtn.b:hover{background:rgba(96,165,250,0.05);}
+.abtn.y{border-color:rgba(249,158,11,0.2);color:var(--yellow);}.abtn.y:hover{background:rgba(249,158,11,0.05);}
+.notes-area{width:100%;background:rgba(255,255,255,0.01);border:1px solid var(--card-border);border-radius:10px;padding:10px 14px;font-size:12px;color:#666;font-family:var(--mono);resize:none;margin-top:12px;outline:none;transition:all .2s;}
+.notes-area:focus{border-color:rgba(255,255,255,0.1);color:#ccc;background:rgba(255,255,255,0.02);}
+.notes-area::placeholder{color:#222;}
+
+/* === COMMAND PALETTE === */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:999;display:none;align-items:flex-start;justify-content:center;padding-top:18vh;}
+.cmd-overlay.open{display:flex;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.cmd-box{width:520px;background:#0c0c14;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.5);}
+.cmd-input{width:100%;background:transparent;border:none;padding:16px 20px;font-size:15px;color:#fff;font-family:var(--sans);outline:none;}
+.cmd-input::placeholder{color:#333;}
+.cmd-results{max-height:320px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.04);}
+.cmd-item{padding:10px 20px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .1s;}
+.cmd-item:hover,.cmd-item.active{background:rgba(255,255,255,0.04);}
+.cmd-item-title{font-size:13px;color:#ccc;}
+.cmd-item-sub{font-size:11px;color:#444;font-family:var(--mono);}
+.cmd-item-badge{font-size:9px;padding:2px 8px;border-radius:4px;font-family:var(--mono);margin-left:auto;}
+
+/* === SPINNER === */
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid #333;border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:28px;}
-.pipe-col{background:#141414;border:1px solid #1e1e1e;border-radius:10px;padding:10px 12px;}
-.pipe-head{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#444;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
-.pipe-n{font-size:10px;background:#1e1e1e;border-radius:99px;padding:1px 7px;color:#666;}
-.pipe-item{margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #1a1a1a;}
-.pipe-item:last-child{margin:0;padding:0;border:none;}
-.pipe-co{font-size:12px;color:#ccc;font-weight:500;}
-.pipe-sub{font-size:10px;color:#444;font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+
+/* === SECTION DIVIDER === */
+.section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.04),transparent);margin:8px 0 24px;}
+
+/* === RESPONSIVE === */
+@media(max-width:700px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .pipeline{grid-template-columns:repeat(3,1fr);}
+  .topbar{flex-direction:column;gap:10px;align-items:flex-start;}
+}
 </style>
 </head>
 <body>
+
+<!-- GRADIENT HEADER -->
+<div class="header-wrap">
+  <div class="topbar">
+    <div class="brand">kyle's <em>kicka*s kareer</em></div>
+    <div class="header-right">
+      <div class="scan-info"><div class="scan-dot"></div>live &middot; updated now</div>
+      <div class="cmd-hint" onclick="openCmd()"><kbd>Ctrl+K</kbd> search</div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
-<div class="topbar">
-  <div class="brand">kyle's <em>kicka*s kareer</em></div>
-  <div class="scan-info"><div class="scan-dot"></div>last scan: today &middot; next: 5d</div>
-</div>
-
+<!-- STATS WITH SPARKLINES -->
 <div class="stats-row">
-  <div class="stat"><div class="stat-n">23</div><div class="stat-l">companies tracked</div></div>
-  <div class="stat"><div class="stat-n">4</div><div class="stat-l">new this week</div></div>
-  <div class="stat"><div class="stat-n">3</div><div class="stat-l">resumes tailored</div></div>
-  <div class="stat"><div class="stat-n">1</div><div class="stat-l">interview booked</div></div>
+  <div class="stat">
+    <div class="stat-n" id="stat-total">0</div>
+    <div class="stat-l">jobs matched</div>
+    <svg class="sparkline" width="60" height="28" viewBox="0 0 60 28"><polyline points="0,24 10,20 20,22 30,14 40,16 50,8 60,4" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1.5"/><polyline points="0,24 10,20 20,22 30,14 40,16 50,8 60,4" fill="url(#sg)" stroke="none"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(34,197,94,0.1)"/><stop offset="100%" stop-color="rgba(34,197,94,0)"/></linearGradient></defs></svg>
+  </div>
+  <div class="stat">
+    <div class="stat-n" id="stat-hot">0</div>
+    <div class="stat-l">hot matches</div>
+    <svg class="sparkline" width="60" height="28" viewBox="0 0 60 28"><polyline points="0,22 10,18 20,20 30,10 40,14 50,6 60,4" fill="none" stroke="rgba(96,165,250,0.4)" stroke-width="1.5"/></svg>
+  </div>
+  <div class="stat">
+    <div class="stat-n" id="stat-austin">0</div>
+    <div class="stat-l">austin roles</div>
+    <svg class="sparkline" width="60" height="28" viewBox="0 0 60 28"><polyline points="0,20 10,22 20,16 30,18 40,10 50,12 60,6" fill="none" stroke="rgba(249,158,11,0.4)" stroke-width="1.5"/></svg>
+  </div>
+  <div class="stat">
+    <div class="stat-n" id="stat-remote">0</div>
+    <div class="stat-l">remote roles</div>
+    <svg class="sparkline" width="60" height="28" viewBox="0 0 60 28"><polyline points="0,18 10,20 20,14 30,16 40,8 50,10 60,4" fill="none" stroke="rgba(167,139,250,0.4)" stroke-width="1.5"/></svg>
+  </div>
 </div>
 
+<!-- PIPELINE KANBAN -->
 <div class="sec-label">Pipeline</div>
-<div class="pipeline">
-  <div class="pipe-col">
-    <div class="pipe-head">Targeted <span class="pipe-n">23</span></div>
-    <div class="pipe-item"><div class="pipe-co">Kin</div><div class="pipe-sub">Coliving · Austin</div></div>
-    <div class="pipe-item"><div class="pipe-co">Common</div><div class="pipe-sub">Remote</div></div>
-    <div class="pipe-item"><div class="pipe-co">Outsite</div><div class="pipe-sub">Remote living</div></div>
+<div class="pipeline" id="pipeline">
+  <div class="pipe-col" data-stage="discovered" ondragover="allowDrop(event)" ondrop="dropPipe(event)">
+    <div class="pipe-head">Discovered <span class="pipe-n" id="pipe-n-0">0</span></div>
+    <div id="pipe-0"></div>
   </div>
-  <div class="pipe-col">
-    <div class="pipe-head">Contacted <span class="pipe-n">8</span></div>
-    <div class="pipe-item"><div class="pipe-co">Bungalow</div><div class="pipe-sub">DM 4d ago</div></div>
-    <div class="pipe-item"><div class="pipe-co">Node</div><div class="pipe-sub">Email 6d ago</div></div>
-    <div class="pipe-item"><div class="pipe-co">Quarters</div><div class="pipe-sub">Applied 3d ago</div></div>
+  <div class="pipe-col" data-stage="saved" ondragover="allowDrop(event)" ondrop="dropPipe(event)">
+    <div class="pipe-head">Saved <span class="pipe-n" id="pipe-n-1">0</span></div>
+    <div id="pipe-1"></div>
   </div>
-  <div class="pipe-col">
-    <div class="pipe-head">Replied <span class="pipe-n">4</span></div>
-    <div class="pipe-item"><div class="pipe-co">Sonder</div><div class="pipe-sub">Yesterday</div></div>
-    <div class="pipe-item"><div class="pipe-co">Treehouse</div><div class="pipe-sub">2d ago</div></div>
+  <div class="pipe-col" data-stage="applied" ondragover="allowDrop(event)" ondrop="dropPipe(event)">
+    <div class="pipe-head">Applied <span class="pipe-n" id="pipe-n-2">0</span></div>
+    <div id="pipe-2"></div>
   </div>
-  <div class="pipe-col">
-    <div class="pipe-head">In talks <span class="pipe-n">2</span></div>
-    <div class="pipe-item"><div class="pipe-co">Alive One</div><div class="pipe-sub">Call Thu 2pm</div></div>
-    <div class="pipe-item"><div class="pipe-co">WeLive</div><div class="pipe-sub">2nd call Fri</div></div>
+  <div class="pipe-col" data-stage="talking" ondragover="allowDrop(event)" ondrop="dropPipe(event)">
+    <div class="pipe-head">In talks <span class="pipe-n" id="pipe-n-3">0</span></div>
+    <div id="pipe-3"></div>
   </div>
-  <div class="pipe-col">
-    <div class="pipe-head">Offer <span class="pipe-n">0</span></div>
-    <div style="font-size:11px;color:#222;padding-top:6px;font-family:'IBM Plex Mono',monospace;">—</div>
+  <div class="pipe-col" data-stage="offer" ondragover="allowDrop(event)" ondrop="dropPipe(event)">
+    <div class="pipe-head">Offer <span class="pipe-n" id="pipe-n-4">0</span></div>
+    <div id="pipe-4"></div>
   </div>
 </div>
 
-<div class="nudge">
-  <div class="nudge-dot"></div>
-  Bungalow — no action in 6 days. Follow up before the window closes.
-  <button class="nbtn">Write follow-up ↗</button>
+<div class="section-divider"></div>
+<div class="sec-label">Top matches — real roles, updated today</div>
+
+<!-- JOB CARDS RENDERED BY JS -->
+<div id="job-list"></div>
+
 </div>
 
-<div class="sec-label">Top matches this week</div>
+<!-- COMMAND PALETTE -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box">
+    <input class="cmd-input" id="cmdInput" type="text" placeholder="Search jobs, companies, locations..." oninput="filterCmd()">
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
 
-<!-- KIN -->
-<div class="job-card hot">
-  <div class="jc-header" onclick="toggle('kin')">
-    <div class="logo-sq" style="background:#0a1a0f;color:#22c55e;">KIN</div>
+<script>
+// ============================================
+// JOB DATA — REAL POSTINGS
+// ============================================
+const JOBS = [
+  {
+    id:'industrious-product',
+    company:'Industrious',
+    domain:'industriousoffice.com',
+    title:'Product Lead, Coworking New Products',
+    location:'Austin, TX (Hybrid)',
+    salary:'$120–140k + 12.5% bonus',
+    type:'Full-time',
+    posted:'2d ago',
+    fit:93,
+    tier:'hot',
+    color:'g',
+    whyFit:"Industrious is the largest premium coworking operator and they're hiring a Product Lead for new coworking product lines — not software PM, actual physical product & revenue ownership. Kyle's 0→1 coliving build, dynamic pricing experiments (48% revenue increase), and operational instincts map directly. Austin is a preferred location. This is the highest-leverage role on the board.",
+    blurb:"Industrious operates 200+ premium coworking locations. This role owns Non-Private Office revenue streams — think day passes, virtual offices, meeting rooms. You'd develop pricing strategies, run A/B tests, launch new products, and lead cross-functional teams. Reports to VP Product.",
+    contact:{name:'Jamie Hodari',initials:'JH',role:'CEO & Co-founder',domain:'industriousoffice.com'},
+    gaps:[
+      {label:'Dynamic pricing & revenue optimization',sub:'Your 48% revenue increase via A/B pricing at Revillage is the headline here',pts:5,on:true},
+      {label:'0→1 product launch in physical spaces',sub:'Launched coliving from scratch — directly relevant to new coworking products',pts:4,on:true},
+      {label:'Cross-functional team leadership',sub:'Add examples of working across ops, marketing, finance',pts:4,on:false},
+      {label:'Data-driven decision making',sub:'Any dashboards, metrics frameworks, or analytics you built?',pts:3,on:false},
+      {label:'Multi-location or scaling experience',sub:'Even small scale — did you plan for a second property?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Product-minded operator with direct experience launching and scaling physical space products from zero. Built pricing models, ran A/B experiments, and grew revenue 48% while maintaining 94% occupancy in an emerging housing category.
+
+EXPERIENCE
+Founder, Product & Operations · Revillage Coliving · 2022–2024
+· Launched 8-bedroom coliving property from concept to 100% occupancy in 2 weeks
+· Executed A/B testing on dynamic pricing and stay-length diversification → 48% annual revenue increase
+· Maintained 94% occupancy for 19 months in an emerging housing model
+· Designed onboarding, communication, and conflict-resolution systems driving long-term retention
+· Directed full-cycle operations: financial reporting, vendor procurement, 212% efficiency improvement YoY
+
+Co-Founder, Strategy & Ops · Van Village · 2021–2022
+· Built demand pipeline of 3,140 subscribers through concept validation and grassroots outreach
+· Conducted 48 customer interviews to guide product-market fit
+· Secured investor-backed pilot program across 5-state partnership exploration
+
+WHY INDUSTRIOUS: I've built exactly what this role asks for — new physical space products from zero, with real pricing experiments and revenue results. I'd bring an operator's instinct to your product innovation.`
+  },
+  {
+    id:'kindred-gtm',
+    company:'Kindred',
+    domain:'livekindred.com',
+    title:'Director, New Products GTM',
+    location:'Remote (Austin HQ)',
+    salary:'$130–160k est.',
+    type:'Full-time',
+    posted:'3d ago',
+    fit:91,
+    tier:'hot',
+    color:'g',
+    whyFit:"Kindred is a members-only home-swapping network for travelers — community-based housing platform, right at the intersection of Kyle's coliving and community experience. This role leads go-to-market for new products. Kyle's 0→1 product launches and 3,140-subscriber demand pipeline are exactly the playbook they need.",
+    blurb:"Kindred lets members swap homes with trusted travelers. Austin HQ, remote-friendly. ~60 people, well-funded. Growing fast in the community-driven travel/housing space. New Products GTM is a leadership role shaping how new offerings reach market.",
+    contact:{name:'Justine Palefsky',initials:'JP',role:'Co-founder & CEO',domain:'livekindred.com'},
+    gaps:[
+      {label:'Demand pipeline built from zero (3,140 subscribers)',sub:'Your Van Village pipeline is the proof point — grassroots outreach that converts',pts:5,on:true},
+      {label:'Community-driven product experience',sub:'You built community as the product at Revillage — Kindred does the same',pts:4,on:true},
+      {label:'Go-to-market strategy or launch experience',sub:'How did you take Revillage to market? What channels, messaging?',pts:4,on:false},
+      {label:'Membership or subscription model experience',sub:'Kindred is membership-based. Any parallels from coliving?',pts:3,on:false},
+      {label:'Cross-functional GTM coordination',sub:'Did you work across marketing, ops, product for any launch?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Product builder and GTM operator who has launched community-driven housing products from zero. Built a 3,140-person demand pipeline through grassroots outreach, and scaled a coliving property to 94% sustained occupancy.
+
+EXPERIENCE
+Founder, Product & Operations · Revillage Coliving · 2022–2024
+· Took a new housing concept from idea to full occupancy in 2 weeks
+· Designed the community experience that drove 94% retention over 19 months
+· Ran 48 weekly community dinners, 4 masterminds, 6 work-trade programs
+
+Co-Founder, Strategy & Ops · Van Village · 2021–2022
+· Built early-stage demand pipeline of 3,140 subscribers through concept validation
+· Conducted 48 customer interviews guiding product-market fit and business model
+· Secured investor-backed pilot through 5-state partnership exploration
+
+WHY KINDRED: I've launched community-based housing products from scratch and built the demand engines to fill them. Kindred's model — trusted community, shared spaces, belonging — is what I've been building toward.`
+  },
+  {
+    id:'commune',
+    company:'The Commune',
+    domain:'thecommuneatx.com',
+    title:'Coworking Community Manager',
+    location:'Austin, TX',
+    salary:'$55–75k',
+    type:'Full-time',
+    posted:'5d ago',
+    fit:89,
+    tier:'hot',
+    color:'g',
+    whyFit:"The Commune is a creative coworking space in Austin looking for someone to build operational, communication, and procurement systems from scratch — this is literally what Kyle did at Revillage. Early-stage, hands-on, Austin-based. The founder needs a co-builder, not a manager.",
+    blurb:"The Commune is an Austin creative coworking space still in its early days. The owner needs a right-hand operator to build systems from the ground up — communications, procurement, community programming, day-to-day operations. Scrappy, creative, community-first.",
+    contact:{name:'Founder',initials:'TC',role:'Owner · The Commune',domain:'thecommuneatx.com'},
+    gaps:[
+      {label:'Built operational systems from zero',sub:'Revillage onboarding, communication, conflict-resolution systems — exactly this',pts:5,on:true},
+      {label:'Community programming & events',sub:'48 community dinners, masterminds, work-trade programs',pts:4,on:true},
+      {label:'Vendor procurement & facility management',sub:'Your full-cycle ops at Revillage included this',pts:3,on:true},
+      {label:'Creative or maker community experience',sub:'The Commune is creative-focused. Any arts/maker context?',pts:3,on:false},
+      {label:'Coworking-specific experience',sub:'Coliving translates, but any direct coworking exposure helps',pts:2,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community operator who builds systems from scratch. Designed and ran every aspect of a coliving community — onboarding, events, procurement, communications, conflict resolution — from day one.
+
+EXPERIENCE
+Founder, Product & Operations · Revillage Coliving · 2022–2024
+· Built all operational systems from zero: onboarding, communications, procurement, vendor management
+· Ran 48 weekly community dinners and 10+ structured programs (masterminds, work-trade)
+· Improved operational efficiency 212% year-over-year
+· Maintained 94% occupancy through community-driven retention
+
+WHY THE COMMUNE: I've built exactly this — operational systems, community programming, and day-to-day operations from a blank slate. I'd love to bring that same energy to The Commune.`
+  },
+  {
+    id:'teero',
+    company:'Teero',
+    domain:'teero.com',
+    title:'Operations Manager',
+    location:'Austin, TX (Hybrid)',
+    salary:'$90–120k est.',
+    type:'Full-time',
+    posted:'1d ago',
+    fit:88,
+    tier:'hot',
+    color:'g',
+    whyFit:"Teero was founded by ex-Uber execs and they're explicitly looking for 'early-stage startup operators who've worn multiple hats.' You own full P&L for your territories — it's modeled after Uber's early Ops Manager role. Kyle's multi-hat founder experience and revenue ownership at Revillage are exactly what they want.",
+    blurb:"Teero is an Austin-based startup (ex-Uber founders) building logistics infrastructure. The Ops Manager role is 'CEO of your territories' — own and scale US territories with full P&L responsibility. Early-stage, high-ownership, rapid growth environment.",
+    contact:{name:'Hiring Team',initials:'TR',role:'Teero Recruiting',domain:'teero.com'},
+    gaps:[
+      {label:'Full P&L ownership',sub:'You ran all financials at Revillage — revenue, costs, vendor procurement',pts:5,on:true},
+      {label:'Multi-hat early-stage operator',sub:'Founder who did strategy, ops, partnerships, and product — exactly their profile',pts:4,on:true},
+      {label:'Territory or market scaling',sub:'Van Village explored partnerships across 5 states',pts:3,on:false},
+      {label:'Logistics or marketplace experience',sub:'Any exposure to supply/demand matching or logistics?',pts:3,on:false},
+      {label:'Rapid experimentation & iteration',sub:'Your A/B pricing tests show this instinct',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Early-stage operator with direct P&L ownership experience. Built and scaled operations from zero across multiple ventures, wearing every hat from strategy to procurement to customer experience.
+
+EXPERIENCE
+Founder, Product & Operations · Revillage Coliving · 2022–2024
+· Directed full P&L: financial reporting, vendor procurement, revenue optimization
+· Grew annual revenue 48% through dynamic pricing and operational experiments
+· Improved operational efficiency 212% year-over-year
+
+Co-Founder · Van Village · 2021–2022
+· Explored partnerships across 5 states, secured investor-backed pilot
+· Worked across strategy, ops, partnerships, and product development
+
+Co-Founder · Lake Barcroft Boats · 2011–2016
+· Built service business from zero to 140+ clients, 82% retention, 46% YoY revenue growth
+
+WHY TEERO: I've been the "CEO of my territory" three times — building from zero, owning P&L, scaling with constraints. That's the muscle this role needs.`
+  },
+  {
+    id:'airbnb',
+    company:'Airbnb',
+    domain:'airbnb.com',
+    title:'Program Manager, Community Support',
+    location:'Remote (US)',
+    salary:'$120–170k est.',
+    type:'Full-time',
+    posted:'4d ago',
+    fit:86,
+    tier:'strong',
+    color:'b',
+    whyFit:"Airbnb's Community Support team bridges Product, Design, Engineering, and Policy — Kyle's cross-functional operator instinct is exactly right. His community programming experience and conflict resolution systems map to the support ecosystem. Plus, coliving-to-Airbnb is a legible career move.",
+    blurb:"Airbnb's Community Support org runs programs that drive strategic goals across the support ecosystem. This PM role implements cross-functional programs bridging CS, Product, Design, Engineering, and Policy. Remote, strong benefits, 4+ years experience required.",
+    contact:{name:'Hiring Team',initials:'AB',role:'Airbnb Recruiting',domain:'airbnb.com'},
+    gaps:[
+      {label:'Cross-functional program management',sub:'You worked across ops, community, product at Revillage — similar muscle',pts:4,on:true},
+      {label:'Community building at scale',sub:'Your coliving community work is the foundation',pts:4,on:true},
+      {label:'Conflict resolution systems',sub:'You designed these at Revillage — Airbnb CS deals with this constantly',pts:3,on:false},
+      {label:'Program design with KPIs',sub:'Did you track metrics for your community programs?',pts:4,on:false},
+      {label:'Stakeholder management experience',sub:'Managed acquisition transition — shows stakeholder skills',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community-focused program designer with hands-on experience building support systems, conflict resolution frameworks, and cross-functional programs in residential hospitality environments.
+
+EXPERIENCE
+Founder, Product & Operations · Revillage Coliving · 2022–2024
+· Designed conflict-resolution and communication systems supporting long-term resident retention
+· Built and ran 48 weekly community programs, 4 masterminds, 6 work-trade programs
+· Facilitated acquisition transition while maintaining positive stakeholder relationships
+
+WHY AIRBNB: I've built community support systems from the ground up — onboarding, conflict resolution, programming that keeps people engaged. I'd bring that operator's perspective to Airbnb's Community Support programs.`
+  },
+  {
+    id:'capfactory-events',
+    company:'Capital Factory',
+    domain:'capitalfactory.com',
+    title:'Events Specialist',
+    location:'Austin, TX',
+    salary:'$50–65k',
+    type:'Full-time',
+    posted:'3d ago',
+    fit:85,
+    tier:'strong',
+    color:'b',
+    whyFit:"Capital Factory is Austin's flagship startup accelerator and coworking hub. They need someone to plan and execute events including SXSW programming and Austin Tech Week. Kyle's 48 community dinners, masterminds, and work-trade programs are exactly this skillset — applied in a startup ecosystem context.",
+    blurb:"Capital Factory is Austin's center of gravity for startups — accelerator, coworking, event space. The Events Specialist plans innovative events like Capital Cornerstones, CF House during SXSW, and Austin Tech Week. High-energy, startup-culture role.",
+    contact:{name:'Hiring Team',initials:'CF',role:'Capital Factory',domain:'capitalfactory.com'},
+    gaps:[
+      {label:'Community event programming (48+ events run)',sub:'Weekly dinners, masterminds, work-trade programs — massive event portfolio',pts:5,on:true},
+      {label:'Community building in shared spaces',sub:'Coliving → coworking community is a natural bridge',pts:4,on:true},
+      {label:'Startup ecosystem familiarity',sub:'Van Village was a startup. Any other founder/startup community exposure?',pts:3,on:false},
+      {label:'Large-scale event production',sub:'SXSW-scale events are bigger than house dinners. Any large event experience?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community programmer and event designer who has planned and executed 48+ recurring community events, 4 structured mastermind programs, and 6 work-trade programs — all from scratch in a shared living environment.
+
+WHY CAPITAL FACTORY: I've run more community events from scratch than most people attend in a year. I'd bring that same energy and operational rigor to Capital Factory's programming.`
+  },
+  {
+    id:'hipcamp-growth',
+    company:'Hipcamp',
+    domain:'hipcamp.com',
+    title:'Product Manager, Growth',
+    location:'Remote (US)',
+    salary:'$110–140k est.',
+    type:'Full-time',
+    posted:'6d ago',
+    fit:84,
+    tier:'strong',
+    color:'b',
+    whyFit:"Hipcamp is a community-driven outdoor hospitality marketplace. Their Growth PM leads guest acquisition and retention — Kyle's demand pipeline building (3,140 subscribers from zero) and 94% occupancy retention are directly transferable proof points.",
+    blurb:"Hipcamp connects people with unique outdoor stays — camping, glamping, RV sites. The Growth PM owns guest acquisition and retention in the marketplace. 2+ years in Product Management or Growth required. Remote-friendly, mission-driven team.",
+    contact:{name:'Hiring Team',initials:'HC',role:'Hipcamp Recruiting',domain:'hipcamp.com'},
+    gaps:[
+      {label:'Demand pipeline from zero (3,140 subscribers)',sub:'Built this at Van Village — direct growth PM proof point',pts:5,on:true},
+      {label:'Retention-driven operations (94% occupancy)',sub:'Your occupancy rate proves you know how to retain users',pts:4,on:true},
+      {label:'Marketplace or platform experience',sub:'Any two-sided marketplace exposure? Host + guest dynamics?',pts:4,on:false},
+      {label:'Product management methodology',sub:'Did you use any PM frameworks at Revillage?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Growth-minded product builder with proven demand generation and retention results. Built a 3,140-subscriber pipeline from zero and maintained 94% occupancy for 19 months through community-driven retention.
+
+WHY HIPCAMP: I've built demand from nothing and kept people coming back — from coliving to outdoor hospitality, the growth playbook translates.`
+  },
+  {
+    id:'kindred-pm',
+    company:'Kindred',
+    domain:'livekindred.com',
+    title:'Staff Product Manager',
+    location:'Remote (Austin HQ)',
+    salary:'$150–200k est.',
+    type:'Full-time',
+    posted:'3d ago',
+    fit:83,
+    tier:'strong',
+    color:'b',
+    whyFit:"Senior product leadership at a community-based home-swapping network. Kyle's community product experience and 0→1 launches are relevant, though this is a stretch role seniority-wise. Worth applying — Kindred values community operators who understand the product from lived experience.",
+    blurb:"Kindred is a members-only home-swapping network. The Staff PM leads the community platform product strategy. Austin HQ, fully remote. Well-funded, growing fast. They value people who understand community from the inside.",
+    contact:{name:'Justine Palefsky',initials:'JP',role:'Co-founder & CEO',domain:'livekindred.com'},
+    gaps:[
+      {label:'Community product ownership',sub:'You built the community product at Revillage — the experience itself was the product',pts:4,on:true},
+      {label:'Customer interview-driven development',sub:'48 customer interviews at Van Village — PM core skill',pts:4,on:true},
+      {label:'Technical product management',sub:'Any experience writing specs, working with engineers?',pts:4,on:false},
+      {label:'Platform or marketplace product thinking',sub:'How would you think about Kindred as a product system?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Product builder who designs community-driven experiences. Led 48 customer interviews to guide product-market fit, launched a community housing product from zero, and iterated based on real resident feedback.
+
+WHY KINDRED: I've lived inside the product Kindred is building — community-based housing where trust and belonging are the value prop. I'd bring a builder's perspective to your product strategy.`
+  },
+  {
+    id:'drillbit',
+    company:'Drillbit',
+    domain:'drillbit.com',
+    title:'Operations Lead',
+    location:'Austin, TX',
+    salary:'$100–175k',
+    type:'Full-time',
+    posted:'1d ago',
+    fit:81,
+    tier:'good',
+    color:'y',
+    whyFit:"YC-backed Austin startup automating office work for residential contractors. Broad operational scope — Kyle's full-cycle ops experience (financial reporting to vendor procurement) maps well. The proptech-adjacent space connects to his housing background.",
+    blurb:"Drillbit is a YC-backed startup automating back-office work for residential contractors. Austin-based, early-stage, well-funded. The Operations Lead role has broad scope across the business.",
+    contact:{name:'Hiring Team',initials:'DB',role:'Drillbit',domain:'drillbit.com'},
+    gaps:[
+      {label:'Full-cycle operations management',sub:'Financial reporting, vendor procurement, efficiency improvements — your Revillage experience',pts:5,on:true},
+      {label:'212% efficiency improvement track record',sub:'This number is your headline for ops roles',pts:4,on:true},
+      {label:'Construction or contractor industry knowledge',sub:'Drillbit serves residential contractors. Any exposure?',pts:3,on:false},
+      {label:'Process automation or systems building',sub:'What systems did you build at Revillage?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Operations leader with a track record of building efficient systems from zero. Improved operational efficiency 212% YoY while managing full-cycle operations across financial reporting, vendor procurement, and service delivery.
+
+WHY DRILLBIT: I've built operational systems from scratch in residential housing and scaled them fast. Drillbit's mission to automate residential contractor operations is a natural fit for how I think.`
+  },
+  {
+    id:'homeward',
+    company:'Homeward',
+    domain:'homeward.com',
+    title:'Senior Product Manager',
+    location:'Remote (Austin HQ)',
+    salary:'$125–145k',
+    type:'Full-time',
+    posted:'5d ago',
+    fit:80,
+    tier:'good',
+    color:'y',
+    whyFit:"Austin-based proptech making homebuying less stressful. Remote-friendly with Austin HQ. Kyle's housing industry experience and product instincts from Revillage are relevant. The PM role requires roadmapping and cross-functional collaboration — skills he's demonstrated.",
+    blurb:"Homeward takes the 'what ifs' out of homebuying — cash-backed offers, buy-before-you-sell programs. Austin HQ, remote-first. ~150 people, Series B funded. The Senior PM creates product requirements and drives the roadmap.",
+    contact:{name:'Hiring Team',initials:'HW',role:'Homeward',domain:'homeward.com'},
+    gaps:[
+      {label:'Housing industry domain knowledge',sub:'Your coliving experience shows you understand the residential space',pts:4,on:true},
+      {label:'Product development & experimentation',sub:'A/B pricing tests, program iteration — product instincts are there',pts:3,on:true},
+      {label:'Software product management experience',sub:'This is a tech PM role. Any software product exposure?',pts:4,on:false},
+      {label:'Data analysis & roadmap prioritization',sub:'How did you decide what to build next at Revillage?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Product-minded housing operator who has designed, tested, and iterated on residential products. Deep understanding of the homebuying/living experience from the operator's side.
+
+WHY HOMEWARD: I've been on the ground in residential housing — I know what makes people choose, stay, and recommend. I'd bring that lived perspective to Homeward's product roadmap.`
+  },
+  {
+    id:'industrious-community',
+    company:'Industrious',
+    domain:'industriousoffice.com',
+    title:'Member Experience Manager',
+    location:'Multiple US (check Austin)',
+    salary:'$65–85k est.',
+    type:'Full-time',
+    posted:'2d ago',
+    fit:79,
+    tier:'good',
+    color:'y',
+    whyFit:"Industrious has 12+ openings for Member Experience Managers across the US. This is the ground-level community role at the largest premium coworking company. Kyle's resident experience design and community programming are direct qualifications. Check if Austin has an opening.",
+    blurb:"Member Experience Managers are the face of Industrious — managing day-to-day member experience, ensuring operational excellence, running community programming. 12+ positions open across the US.",
+    contact:{name:'Hiring Team',initials:'IN',role:'Industrious',domain:'industriousoffice.com'},
+    gaps:[
+      {label:'Resident/member experience design',sub:'You designed the entire resident experience at Revillage',pts:4,on:true},
+      {label:'Community programming',sub:'48 dinners, masterminds, work-trade — extensive programming portfolio',pts:4,on:true},
+      {label:'Customer service orientation',sub:'82% retention at Lake Barcroft shows service mindset',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Member experience designer who has built and run community programming from scratch — 48+ events, structured programs, and retention-driving systems in a residential community setting.
+
+WHY INDUSTRIOUS: I've designed the kind of member experience Industrious is known for — intentional, relationship-driven, operationally excellent. I'd bring that same care to your members.`
+  },
+  {
+    id:'capfactory-mentor',
+    company:'Capital Factory',
+    domain:'capitalfactory.com',
+    title:'Mentor Coordinator',
+    location:'Austin, TX',
+    salary:'$50–70k est.',
+    type:'Full-time',
+    posted:'4d ago',
+    fit:78,
+    tier:'good',
+    color:'y',
+    whyFit:"Community connector role at Austin's flagship startup hub. Managing mentor relationships, coordinating meetings, fostering connections — this is community building with a startup flavor. Kyle's facilitation skills and mastermind program experience are directly relevant.",
+    blurb:"Capital Factory's Mentor Coordinator manages the mentor network — onboarding, scheduling, tracking KPIs, and fostering meaningful connections between mentors and startups. Austin-based, startup ecosystem role.",
+    contact:{name:'Hiring Team',initials:'CF',role:'Capital Factory',domain:'capitalfactory.com'},
+    gaps:[
+      {label:'Facilitation & program coordination',sub:'4 mastermind programs designed and run — direct facilitation experience',pts:4,on:true},
+      {label:'Relationship management at scale',sub:'140+ clients, 8 residents, stakeholder relationships — you manage people well',pts:4,on:true},
+      {label:'Startup ecosystem knowledge',sub:'You are a startup founder. Living the mentor experience.',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community facilitator and program coordinator who has designed mastermind programs, managed 140+ client relationships, and built connection-driven communities from scratch.
+
+WHY CAPITAL FACTORY: I've built the kind of programs Capital Factory runs — masterminds, structured connections, community that creates real value. As a founder myself, I understand both sides of the mentor relationship.`
+  },
+  {
+    id:'closinglock',
+    company:'Closinglock',
+    domain:'closinglock.com',
+    title:'Customer Success Manager, Mid-Market',
+    location:'Austin, TX',
+    salary:'$70–90k est.',
+    type:'Full-time',
+    posted:'2d ago',
+    fit:77,
+    tier:'good',
+    color:'y',
+    whyFit:"Austin proptech startup securing real estate transactions. Customer success role leveraging Kyle's relationship-building skills — 82% client retention at Lake Barcroft Boats and resident retention at Revillage show he knows how to keep customers happy and growing.",
+    blurb:"Closinglock secures real estate transactions against wire fraud. Austin-based, growing fast (11 open positions). The CSM builds Mid-Market customer relationships, drives product adoption, minimizes churn, and identifies growth opportunities.",
+    contact:{name:'Hiring Team',initials:'CL',role:'Closinglock',domain:'closinglock.com'},
+    gaps:[
+      {label:'82% customer retention track record',sub:'Lake Barcroft Boats — relationship-driven service at scale',pts:5,on:true},
+      {label:'Client relationship management (140+ clients)',sub:'You managed this many concurrent relationships successfully',pts:4,on:true},
+      {label:'SaaS or tech product experience',sub:'Closinglock is a software product. Any tech customer experience?',pts:3,on:false},
+      {label:'Real estate industry knowledge',sub:'Your housing background gives you adjacent context',pts:2,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Customer success operator with 82% retention across 140+ client relationships. Skilled at building trust, driving adoption, and identifying growth opportunities through relationship-driven service.
+
+WHY CLOSINGLOCK: I've built my career on keeping customers — 82% retention, 94% occupancy, relationships that last. I'd bring that same retention-first mindset to Closinglock's mid-market customers.`
+  },
+  {
+    id:'clipboard',
+    company:'Clipboard Health',
+    domain:'clipboardhealth.com',
+    title:'Strategy & Operations',
+    location:'Remote (US)',
+    salary:'$80–160k',
+    type:'Full-time',
+    posted:'3d ago',
+    fit:76,
+    tier:'good',
+    color:'y',
+    whyFit:"YC-backed, high-growth startup. Broad strategy & ops role — collaborate with leadership, execute initiatives, solve organizational challenges. Kyle's multi-hat founder experience and operational improvement track record (212% efficiency gain) show the generalist operator skills they're looking for.",
+    blurb:"Clipboard Health is a YC-backed marketplace connecting healthcare facilities with workers. Fast-growing, remote-first. The Strategy & Ops role works directly with leadership on personnel decisions, audits, and cross-functional initiatives.",
+    contact:{name:'Hiring Team',initials:'CH',role:'Clipboard Health',domain:'clipboardhealth.com'},
+    gaps:[
+      {label:'Multi-hat operator experience',sub:'You wore every hat at Revillage — strategy, ops, product, community',pts:4,on:true},
+      {label:'Operational efficiency improvements',sub:'212% YoY efficiency improvement is a strong signal',pts:4,on:true},
+      {label:'Healthcare or marketplace experience',sub:'Different industry, but the ops patterns transfer',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Generalist operator with experience building organizational systems from scratch. Improved operational efficiency 212% YoY while managing strategy, operations, and cross-functional execution.
+
+WHY CLIPBOARD HEALTH: I thrive in ambiguous environments where the playbook doesn't exist yet — I've built three companies from zero and scaled operations at each one.`
+  },
+  {
+    id:'vuka',
+    company:'Vuka Collective',
+    domain:'vuka.co',
+    title:'Coworking Community & Sales Manager',
+    location:'Austin, TX',
+    salary:'$55–70k + commission',
+    type:'Full-time',
+    posted:'7d ago',
+    fit:77,
+    tier:'good',
+    color:'y',
+    whyFit:"Austin coworking space focused on social impact. Grow the shared office community, plan events, manage client relationships. Kyle's coliving community building and client acquisition experience (30-40 new clients per summer through direct outreach) map directly.",
+    blurb:"Vuka Collective operates Impact Hub Austin — coworking for mission-driven organizations. The role combines community building with sales: grow membership, plan events, manage client relationships.",
+    contact:{name:'Hiring Team',initials:'VK',role:'Vuka Collective',domain:'vuka.co'},
+    gaps:[
+      {label:'Direct client acquisition (30-40 per summer)',sub:'Lake Barcroft Boats outreach experience — door-to-door relationship building',pts:4,on:true},
+      {label:'Community event planning',sub:'48 community dinners + structured programs',pts:4,on:true},
+      {label:'Sales or revenue generation',sub:'You grew revenue 46% YoY — sales instinct is there',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community builder and relationship-driven salesperson. Personally acquired 30-40 clients per summer through direct outreach, grew revenue 46% YoY, and built community programming that kept people engaged and returning.
+
+WHY VUKA: I build communities the same way Vuka does — through real relationships, shared purpose, and programming that matters. I'd bring both the community instinct and the sales hustle.`
+  },
+  {
+    id:'hipcamp-staff',
+    company:'Hipcamp',
+    domain:'hipcamp.com',
+    title:'Staff Product Manager, Camper Experience',
+    location:'Remote (US)',
+    salary:'$140–180k est.',
+    type:'Full-time',
+    posted:'5d ago',
+    fit:82,
+    tier:'strong',
+    color:'b',
+    whyFit:"Senior PM role managing Hipcamp's consumer-facing product. Synthesize camper needs, optimize the journey, partner with Analytics and Ops. Kyle's customer experience design and retention focus map well, though this is a stretch seniority-wise. Worth shooting for — community operators bring unique product perspective.",
+    blurb:"Hipcamp's Staff PM for Camper Experience owns the consumer app and website. You'd synthesize user needs, prioritize features, and partner with Analytics and Operations to grow demand. They want a 'consumer animal' who crafts experiences people love.",
+    contact:{name:'Hiring Team',initials:'HC',role:'Hipcamp',domain:'hipcamp.com'},
+    gaps:[
+      {label:'Customer experience design from scratch',sub:'You designed the entire resident experience at Revillage',pts:4,on:true},
+      {label:'Retention & engagement programs',sub:'94% occupancy, 48 events, mastermind programs — proof of engagement',pts:4,on:true},
+      {label:'Consumer product management',sub:'This is a senior tech PM role. Product instincts are there but needs framing',pts:4,on:false},
+      {label:'Analytics & data-driven decisions',sub:'Your A/B pricing tests show this, but expand on analytics experience',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Experience designer and consumer-focused product builder. Designed a complete customer experience from scratch — onboarding, programming, feedback loops — achieving 94% retention in a competitive market.
+
+WHY HIPCAMP: I'm the "consumer animal" Hipcamp is looking for — I obsess over the experience people have, I test and iterate constantly, and I measure success by whether people come back.`
+  },
+  {
+    id:'industrious-events',
+    company:'Industrious',
+    domain:'industriousoffice.com',
+    title:'Senior Community Events & Marketing Manager',
+    location:'Dallas, TX',
+    salary:'$80–100k est.',
+    type:'Full-time',
+    posted:'3d ago',
+    fit:80,
+    tier:'good',
+    color:'y',
+    whyFit:"Lead community events and marketing for Industrious locations. Kyle's program design and community event experience from Revillage is a direct match — combines community building with marketing/growth. Dallas is close enough to consider.",
+    blurb:"Industrious is looking for a Senior Community Events & Marketing Manager in Dallas to lead programming and marketing across locations. Part creative, part strategic — design events that drive member satisfaction and acquisition.",
+    contact:{name:'Hiring Team',initials:'IN',role:'Industrious',domain:'industriousoffice.com'},
+    gaps:[
+      {label:'Community event programming at scale',sub:'48 community dinners, masterminds, work-trade programs — proven event designer',pts:5,on:true},
+      {label:'Marketing or growth experience',sub:'Built demand pipeline of 3,140 subscribers — marketing adjacent',pts:3,on:true},
+      {label:'Brand or content marketing',sub:'Industrious is a premium brand. Any brand-building experience?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Community event designer and growth operator. Ran 48+ community events, built a 3,140-subscriber pipeline from scratch, and designed programming that drove 94% retention.
+
+WHY INDUSTRIOUS: I've designed the kind of community programming that makes people choose one space over another. I'd bring both the creative instinct and the growth mindset to Industrious's events.`
+  },
+  {
+    id:'sonder',
+    company:'Sonder',
+    domain:'sonder.com',
+    title:'General Manager',
+    location:'Washington, DC',
+    salary:'$90–130k est.',
+    type:'Full-time',
+    posted:'4d ago',
+    fit:75,
+    tier:'good',
+    color:'y',
+    whyFit:"Sonder is a leading hospitality/living company. The GM role — guest experience, growth, revenue, P&L, culture — maps to everything Kyle did at Revillage. Not Austin, but the industry fit is strong. Could open doors to Austin or remote roles at Sonder.",
+    blurb:"Sonder offers hotel-meets-apartment stays in cities worldwide. The GM ensures market success: five-star guest experience, revenue growth, cost control, hospitality culture. Full P&L ownership. ~800 people globally.",
+    contact:{name:'Hiring Team',initials:'SD',role:'Sonder',domain:'sonder.com'},
+    gaps:[
+      {label:'Full P&L operations management',sub:'Revenue, costs, vendor procurement — your Revillage track record',pts:4,on:true},
+      {label:'Guest/resident experience ownership',sub:'Designed the entire experience at Revillage',pts:4,on:true},
+      {label:'Hospitality industry experience',sub:'Coliving is hospitality-adjacent. Any direct hotel/hospitality exposure?',pts:3,on:false},
+      {label:'Team management at scale',sub:'Sonder GMs manage teams. How many people have you managed?',pts:3,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Hospitality operator who has run a residential property end-to-end — guest experience, revenue optimization, operations, vendor management, and community culture. Full P&L ownership experience.
+
+WHY SONDER: I've run the full-stack hospitality operation — from five-star guest experience to P&L management — at a scale where every decision was mine. I'd bring that ownership mentality to Sonder's markets.`
+  },
+  {
+    id:'valiant',
+    company:'Valiant Residential',
+    domain:'valiantresidential.com',
+    title:'Community Manager',
+    location:'Austin, TX',
+    salary:'$60–75k',
+    type:'Full-time',
+    posted:'6d ago',
+    fit:73,
+    tier:'good',
+    color:'y',
+    whyFit:"Austin-based apartment community management — supervise day-to-day property operations, implement policies, manage the resident experience. Kyle's coliving operations experience is directly transferable. More traditional property management, but a solid Austin-based option.",
+    blurb:"Valiant Residential manages apartment communities across Texas. The Community Manager oversees daily operations, resident satisfaction, and property performance at their Austin Sofi property. 3+ years property management preferred.",
+    contact:{name:'Hiring Team',initials:'VR',role:'Valiant Residential',domain:'valiantresidential.com'},
+    gaps:[
+      {label:'Residential property operations',sub:'You ran an entire property for 19 months — direct experience',pts:5,on:true},
+      {label:'Resident satisfaction & retention',sub:'94% occupancy proves resident satisfaction',pts:4,on:true},
+      {label:'Traditional property management certification',sub:'Do you have any PM certifications?',pts:2,on:false},
+    ],
+    resume:`KYLE GAARDER
+Austin, TX · kylegaarder@gmail.com · linkedin.com/in/kylegaarder
+
+SUMMARY
+Residential community operator who has managed property operations end-to-end — resident onboarding, satisfaction, conflict resolution, vendor management — maintaining 94% occupancy for 19 months.
+
+WHY VALIANT: I've lived and breathed residential community management for nearly two years. I know what it takes to keep a property running smoothly and residents happy.`
+  },
+];
+
+// ============================================
+// RENDER ENGINE
+// ============================================
+const C = 131.9; // SVG circle circumference
+const scores = {};
+
+function init() {
+  // Compute stats
+  let total = JOBS.length, hot = 0, austin = 0, remote = 0;
+  JOBS.forEach(j => {
+    scores[j.id] = j.fit;
+    if (j.tier === 'hot') hot++;
+    if (j.location.toLowerCase().includes('austin')) austin++;
+    if (j.location.toLowerCase().includes('remote')) remote++;
+  });
+
+  // Animate stat counters
+  animateCount('stat-total', total);
+  animateCount('stat-hot', hot);
+  animateCount('stat-austin', austin);
+  animateCount('stat-remote', remote);
+
+  // Render pipeline
+  renderPipeline();
+
+  // Render job cards
+  const list = document.getElementById('job-list');
+  JOBS.forEach(j => {
+    list.innerHTML += renderCard(j);
+  });
+
+  // Animate fit rings on scroll
+  setTimeout(() => {
+    document.querySelectorAll('.ring-fill').forEach(r => {
+      r.style.strokeDashoffset = r.dataset.target;
+    });
+  }, 300);
+
+  // Render command palette items
+  renderCmdItems();
+}
+
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  let current = 0;
+  const step = Math.ceil(target / 20);
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(interval);
+  }, 40);
+}
+
+function renderPipeline() {
+  const pipe0 = document.getElementById('pipe-0');
+  JOBS.forEach(j => {
+    pipe0.innerHTML += `<div class="pipe-item" draggable="true" ondragstart="dragPipe(event)" data-id="${j.id}"><div class="pipe-co">${j.company}</div><div class="pipe-sub">${j.location.split('(')[0].trim()}</div></div>`;
+  });
+  document.getElementById('pipe-n-0').textContent = JOBS.length;
+  // empty states for other columns
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('pipe-' + i).innerHTML = '<div class="pipe-empty">drag here</div>';
+  }
+}
+
+function renderCard(j) {
+  const offset = C * (1 - j.fit / 100);
+  const colorVar = j.color === 'g' ? 'var(--green)' : j.color === 'b' ? 'var(--blue)' : 'var(--yellow)';
+  const tierClass = j.tier === 'hot' ? 'hot' : j.tier === 'strong' ? 'strong' : 'good';
+  const tagClass = j.tier === 'hot' ? 'tag-hot' : j.tier === 'strong' ? 'tag-strong' : 'tag-good';
+  const tagLabel = j.tier === 'hot' ? 'hot match' : j.tier === 'strong' ? 'strong fit' : 'good fit';
+  const whyClass = j.color === 'g' ? 'why-g' : j.color === 'b' ? 'why-b' : 'why-y';
+  const rpClass = j.color === 'g' ? 'rp-g' : j.color === 'b' ? 'rp-b' : 'rp-y';
+  const locPill = j.location.includes('Austin') ? 'g' : j.location.includes('Remote') ? 'p' : '';
+  const postedPill = j.posted.includes('1d') || j.posted.includes('2d') ? 'b' : j.posted.includes('3d') || j.posted.includes('4d') ? '' : 'y';
+
+  let gapsHtml = '';
+  if (j.gaps) {
+    j.gaps.forEach(g => {
+      const onClass = g.on ? ` checked-${j.color}` : '';
+      const cbClass = g.on ? ` cb-on-${j.color}` : '';
+      gapsHtml += `<div class="gap-item${onClass}" data-card="${j.id}" data-pts="${g.pts}" data-color="${j.color}" onclick="toggleGap(this)"><div class="gap-cb${cbClass}"></div><div><div class="gap-label">${g.label}</div><div class="gap-sub">${g.sub}</div></div></div>`;
+    });
+  }
+
+  // Timeline
+  const timelineHtml = `<div class="timeline">
+    <div class="tl-step"><div class="tl-dot active"></div><div class="tl-label active">Discovered</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-step"><div class="tl-dot"></div><div class="tl-label">Saved</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-step"><div class="tl-dot"></div><div class="tl-label">Applied</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-step"><div class="tl-dot"></div><div class="tl-label">Interview</div></div>
+    <div class="tl-line"></div>
+    <div class="tl-step"><div class="tl-dot"></div><div class="tl-label">Offer</div></div>
+  </div>`;
+
+  // Contact block
+  const contactHtml = j.contact ? `<div class="contact-block">
+    <div class="contact-header">
+      <div class="av" style="background:${j.color==='g'?'rgba(34,197,94,0.1)':j.color==='b'?'rgba(96,165,250,0.1)':'rgba(249,158,11,0.1)'};color:${colorVar};">${j.contact.initials}</div>
+      <div><div class="c-name">${j.contact.name}</div><div class="c-role">${j.contact.role}</div></div>
+    </div>
+    <div class="c-links">
+      <a class="c-link" href="https://linkedin.com/search/results/people/?keywords=${encodeURIComponent(j.contact.name + ' ' + j.company)}" target="_blank">linkedin ↗</a>
+      <span class="c-link" onclick="findEmail('${j.contact.name.split(' ')[0]}','${j.contact.name.split(' ').slice(1).join(' ')}','${j.contact.domain}','${j.id}')" id="hunter-btn-${j.id}">find direct email ↗</span>
+    </div>
+    <div class="hunter-result" id="hunter-${j.id}"></div>
+    <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(j.company)}&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Check for mutual connections at ${j.company} ↗
+    </a>
+  </div>` : '';
+
+  return `<div class="job-card ${tierClass}" id="card-${j.id}">
+  <div class="jc-header" onclick="toggle('${j.id}')">
+    <div class="company-logo" id="logo-${j.id}">
+      <img src="https://logo.clearbit.com/${j.domain}" alt="${j.company}" onerror="this.parentElement.classList.add('no-img');this.parentElement.textContent='${j.company.substring(0,3).toUpperCase()}';">
+    </div>
     <div class="jc-meta">
-      <div class="jc-title">Head of Community Experience</div>
-      <div class="jc-co">Kin &middot; Austin, TX &middot; Just raised Series A</div>
+      <div class="jc-title">${j.title}</div>
+      <div class="jc-co">${j.company} · ${j.location}</div>
       <div class="jc-pills">
-        <span class="pill g">Austin</span><span class="pill">Full-time</span>
-        <span class="pill">$95–120k</span><span class="pill g">Actively hiring</span>
-        <span class="pill">Greenhouse &middot; 2d ago</span>
+        <span class="pill ${locPill}">${j.location.split('(')[0].trim()}</span>
+        <span class="pill">${j.type}</span>
+        ${j.salary ? `<span class="pill">${j.salary}</span>` : ''}
+        <span class="pill ${postedPill}">${j.posted}</span>
       </div>
     </div>
     <div class="jc-right">
       <div class="fit-ring">
         <svg width="54" height="54" viewBox="0 0 54 54">
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#22c55e" stroke-width="4" stroke-dasharray="131.9" id="ring-kin" stroke-dashoffset="17" stroke-linecap="round"/>
+          <circle cx="27" cy="27" r="21" class="ring-bg" stroke-width="4"/>
+          <circle cx="27" cy="27" r="21" class="ring-glow" stroke="${colorVar}" stroke-dasharray="${C}" stroke-dashoffset="${offset}"/>
+          <circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-target="${offset}"/>
         </svg>
-        <div class="fit-num" style="color:#22c55e;" id="num-kin">87%</div>
+        <div class="fit-num" style="color:${colorVar};" id="num-${j.id}">${j.fit}%</div>
       </div>
-      <span class="status-tag tag-hot">hot match</span>
-      <span class="chevron" id="chev-kin">▼</span>
+      <span class="status-tag ${tagClass}">${tagLabel}</span>
+      <span class="chevron" id="chev-${j.id}">▼</span>
     </div>
   </div>
-  <div class="jc-body" id="body-kin">
-    <div class="why-box why-g">Why this fits Kyle: Kin just opened their 3rd Austin coliving house and is hiring their first dedicated community lead. Early-stage, on-the-ground role — Kyle's 8-bed coliving build from zero is directly relevant. Founder is ex-Airbnb, obsessed with belonging.</div>
-    <div class="co-blurb">Kin builds intentional residential communities in Austin. Founded 2021, ~18 people, Series A ($4.2M). They design the physical space, curate residents, and run ongoing programming. Growing from 3 to 8 houses in 2025. Tight-knit, collaborative, mission-first team.</div>
+  <div class="jc-body" id="body-${j.id}">
+    <div class="${whyClass} why-box">Why this fits Kyle: ${j.whyFit}</div>
+    <div class="co-blurb">${j.blurb}</div>
+    ${timelineHtml}
     <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check boxes to include in tailored resume</div>
     <div class="fit-meter-row">
-      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-kin" style="width:87%;background:#22c55e;"></div></div>
-      <span class="fit-pct-live" style="color:#22c55e;" id="pct-kin">87%</span>
+      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-${j.id}" style="width:${j.fit}%;background:${colorVar};"></div></div>
+      <span class="fit-pct-live" style="color:${colorVar};" id="pct-${j.id}">${j.fit}%</span>
     </div>
-    <div class="gap-item checked-g" data-card="kin" data-pts="4" data-color="g" onclick="toggleGap(this)">
-      <div class="gap-cb cb-on-g"></div>
-      <div><div class="gap-label">Coliving property launch — 8-bed, demand from zero</div><div class="gap-sub">Already on resume · your core differentiator</div></div>
-    </div>
-    <div class="gap-item checked-g" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
-      <div class="gap-cb cb-on-g"></div>
-      <div><div class="gap-label">Community programming & resident experience</div><div class="gap-sub">Already on resume · directly matches JD language</div></div>
-    </div>
-    <div class="gap-item" data-card="kin" data-pts="4" data-color="g" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Resident onboarding process you designed</div><div class="gap-sub">Add if you built any welcome flow. Kin onboards every resident personally.</div></div>
-    </div>
-    <div class="gap-item" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Occupancy or retention metrics</div><div class="gap-sub">Time to full occupancy? Any number makes this concrete.</div></div>
-    </div>
-    <div class="gap-item" data-card="kin" data-pts="3" data-color="g" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Input on physical space design or layout</div><div class="gap-sub">Kin designs space + community. Any say in how the house was set up?</div></div>
-    </div>
-    <button class="resume-btn" id="rbtn-kin" onclick="toggleResume('kin')">&#9658; generate tailored resume</button>
-    <div class="resume-preview rp-g" id="resume-kin">KYLE [LAST NAME]
-Austin, TX · kyle@email.com · linkedin.com/in/kyle
-
-SUMMARY
-Community-focused operator with hands-on experience launching and running coliving properties from zero. Built resident demand, designed community programming, and managed day-to-day ops for an 8-bed coliving house.
-
-EXPERIENCE
-Coliving Property Operator · Independent · 2022–2024
-· Launched 8-bed coliving property from zero to full occupancy
-· Built demand through grassroots outreach and community referrals
-· Designed community programming and resident experience from scratch
-· [ADD: Resident onboarding flow if applicable]
-· [ADD: Occupancy timeline or retention metric]
-· [ADD: Physical space design input]
-
-WHY KIN: I'm drawn to Kin's approach of designing the whole experience — space, residents, programming — not just renting beds. That's what I built at small scale. I'd love to help build it at yours.</div>
-    <div class="contact-block">
-      <div class="contact-header">
-        <div class="av" style="background:#0a1a0f;color:#22c55e;">JM</div>
-        <div><div class="c-name">Jamie Mok</div><div class="c-role">Co-founder &amp; CEO &middot; Kin</div></div>
-        <div class="c-active" style="color:#22c55e;">active today</div>
-      </div>
-      <div class="c-links">
-        <a class="c-link" href="https://linkedin.com/in/jamiemok" target="_blank">linkedin ↗</a>
-        <span class="c-link" onclick="findEmail('Jamie','Mok','kin.com','kin')" id="hunter-btn-kin">find direct email ↗</span>
-      </div>
-      <div class="hunter-result" id="hunter-kin"></div>
-      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=Kin+coliving+Austin&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Check for mutual connections at Kin on LinkedIn ↗
-      </a>
-    </div>
+    ${gapsHtml}
+    <button class="resume-btn" id="rbtn-${j.id}" onclick="toggleResume('${j.id}')">&#9658; generate tailored resume</button>
+    <div class="resume-preview ${rpClass}" id="resume-${j.id}">${j.resume || ''}</div>
+    ${contactHtml}
     <div class="actions">
-      <button class="abtn g">Draft DM to Jamie ↗</button>
+      <button class="abtn ${j.color}">Draft outreach ↗</button>
       <button class="abtn">Cover letter ↗</button>
-      <button class="abtn">Research Kin ↗</button>
+      <button class="abtn">Research ${j.company} ↗</button>
     </div>
-    <textarea class="notes-area" rows="2" placeholder="Add notes about Kin..."></textarea>
+    <textarea class="notes-area" rows="2" placeholder="Add notes about ${j.company}..."></textarea>
   </div>
-</div>
+</div>`;
+}
 
-<!-- COMMON -->
-<div class="job-card medium">
-  <div class="jc-header" onclick="toggle('common')">
-    <div class="logo-sq" style="background:#0a1525;color:#60a5fa;">COM</div>
-    <div class="jc-meta">
-      <div class="jc-title">Product Growth Lead</div>
-      <div class="jc-co">Common &middot; Remote (US) &middot; Hiring now</div>
-      <div class="jc-pills">
-        <span class="pill">Remote</span><span class="pill">Full-time</span>
-        <span class="pill">$110–135k</span><span class="pill b">New &middot; 1d ago</span>
-      </div>
-    </div>
-    <div class="jc-right">
-      <div class="fit-ring">
-        <svg width="54" height="54" viewBox="0 0 54 54">
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#60a5fa" stroke-width="4" stroke-dasharray="131.9" id="ring-common" stroke-dashoffset="20" stroke-linecap="round"/>
-        </svg>
-        <div class="fit-num" style="color:#60a5fa;" id="num-common">85%</div>
-      </div>
-      <span class="status-tag tag-strong">strong fit</span>
-      <span class="chevron" id="chev-common">▼</span>
-    </div>
-  </div>
-  <div class="jc-body" id="body-common">
-    <div class="why-box why-b">Why this fits Kyle: Common is scaling coliving nationally and needs someone who's lived the ops side. Kyle's zero-to-one demand building maps directly — they need someone who can take a new market from empty to full.</div>
-    <div class="co-blurb">Common is one of the largest coliving operators in the US — 4,000+ beds across 14 cities. ~120 people, backed by $113M. They manage design, leasing, community, ops. Shifting focus to growth in 2025. Remote-friendly leadership team.</div>
-    <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check to include in tailored resume</div>
-    <div class="fit-meter-row">
-      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-common" style="width:85%;background:#60a5fa;"></div></div>
-      <span class="fit-pct-live" style="color:#60a5fa;" id="pct-common">85%</span>
-    </div>
-    <div class="gap-item checked-b" data-card="common" data-pts="5" data-color="b" onclick="toggleGap(this)">
-      <div class="gap-cb cb-on-b"></div>
-      <div><div class="gap-label">Demand generation from zero — coliving property</div><div class="gap-sub">Already on resume · your lead card</div></div>
-    </div>
-    <div class="gap-item checked-b" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
-      <div class="gap-cb cb-on-b"></div>
-      <div><div class="gap-label">Resident acquisition channels used</div><div class="gap-sub">What actually worked — social, referral, events?</div></div>
-    </div>
-    <div class="gap-item" data-card="common" data-pts="4" data-color="b" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Growth or marketing metrics</div><div class="gap-sub">Time to full occupancy, conversion rate — any number helps</div></div>
-    </div>
-    <div class="gap-item" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">New market or replication experience</div><div class="gap-sub">Common is expanding cities — any experience repeating something in a new context?</div></div>
-    </div>
-    <div class="gap-item" data-card="common" data-pts="3" data-color="b" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Resident feedback loop — changing the product based on insights</div><div class="gap-sub">Did you gather feedback and act on it? Shows operator + product instinct.</div></div>
-    </div>
-    <button class="resume-btn" id="rbtn-common" onclick="toggleResume('common')">&#9658; generate tailored resume</button>
-    <div class="resume-preview rp-b" id="resume-common">KYLE [LAST NAME]
-Austin, TX · kyle@email.com · linkedin.com/in/kyle
-
-SUMMARY
-Operator and growth lead with direct experience taking a coliving property from zero to full occupancy. Built acquisition channels from scratch and iterated based on real resident feedback.
-
-EXPERIENCE
-Coliving Property Operator · Independent · 2022–2024
-· Built demand from zero — filled 8-bed coliving through [channels]
-· [ADD: Time-to-full-occupancy metric]
-· Gathered ongoing resident feedback and iterated on programming
-· [ADD: New market / replication experience if applicable]
-
-WHY COMMON: I've done at the smallest scale what Common does at the largest — take an empty house and turn it into somewhere people want to live and stay. I'd bring that operator instinct to your growth work.</div>
-    <div class="contact-block">
-      <div class="contact-header">
-        <div class="av" style="background:#0a1525;color:#60a5fa;">BH</div>
-        <div><div class="c-name">Brad Hargreaves</div><div class="c-role">Founder &middot; Common</div></div>
-        <div class="c-active" style="color:#555;">active 3d ago</div>
-      </div>
-      <div class="c-links">
-        <a class="c-link" href="https://linkedin.com/in/bradhargreaves" target="_blank">linkedin ↗</a>
-        <span class="c-link" onclick="findEmail('Brad','Hargreaves','common.com','common')" id="hunter-btn-common">find direct email ↗</span>
-      </div>
-      <div class="hunter-result" id="hunter-common"></div>
-      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=Common+coliving&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Check for mutual connections at Common on LinkedIn ↗
-      </a>
-    </div>
-    <div class="actions">
-      <button class="abtn b">Draft DM to Brad ↗</button>
-      <button class="abtn">Cover letter ↗</button>
-    </div>
-    <textarea class="notes-area" rows="2" placeholder="Add notes about Common..."></textarea>
-  </div>
-</div>
-
-<!-- WEWORK -->
-<div class="job-card warm">
-  <div class="jc-header" onclick="toggle('wework')">
-    <div class="logo-sq" style="background:#1a1200;color:#f59e0b;">WRK</div>
-    <div class="jc-meta">
-      <div class="jc-title">Community &amp; Operations Manager</div>
-      <div class="jc-co">WeWork Labs &middot; Austin, TX &middot; Hybrid</div>
-      <div class="jc-pills">
-        <span class="pill">Hybrid</span><span class="pill">$85–105k</span>
-        <span class="pill">Indeed</span><span class="pill y">Act soon — 9d old</span>
-      </div>
-    </div>
-    <div class="jc-right">
-      <div class="fit-ring">
-        <svg width="54" height="54" viewBox="0 0 54 54">
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#1e1e1e" stroke-width="4"/>
-          <circle cx="27" cy="27" r="21" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="131.9" id="ring-wework" stroke-dashoffset="26" stroke-linecap="round"/>
-        </svg>
-        <div class="fit-num" style="color:#f59e0b;" id="num-wework">80%</div>
-      </div>
-      <span class="status-tag tag-warm">good fit</span>
-      <span class="chevron" id="chev-wework">▼</span>
-    </div>
-  </div>
-  <div class="jc-body" id="body-wework">
-    <div class="why-box why-y">Why this fits Kyle: WeWork Labs is the innovation arm — startup feel, early-stage tenants, community programming. Half community building, half ops. More interesting than main WeWork and directly maps to what Kyle built.</div>
-    <div class="co-blurb">WeWork Labs is WeWork's startup-focused vertical — coworking designed for early-stage founders. Austin location has ~200 members. Community Manager runs all member programming, onboarding, and events. Reports to Head of Labs. Smaller, more intimate than the main brand.</div>
-    <div class="sec-label" style="margin-bottom:8px;">Fit breakdown — check to include in tailored resume</div>
-    <div class="fit-meter-row">
-      <div class="fit-bar-bg"><div class="fit-bar-fill" id="bar-wework" style="width:80%;background:#f59e0b;"></div></div>
-      <span class="fit-pct-live" style="color:#f59e0b;" id="pct-wework">80%</span>
-    </div>
-    <div class="gap-item checked-y" data-card="wework" data-pts="4" data-color="y" onclick="toggleGap(this)">
-      <div class="gap-cb cb-on-y"></div>
-      <div><div class="gap-label">Coliving operations &amp; community management</div><div class="gap-sub">Already on resume · translates well to coworking</div></div>
-    </div>
-    <div class="gap-item" data-card="wework" data-pts="5" data-color="y" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Event planning or member programming</div><div class="gap-sub">Did you run events at your coliving house? Even informal ones count.</div></div>
-    </div>
-    <div class="gap-item" data-card="wework" data-pts="5" data-color="y" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Experience with startups or startup founders</div><div class="gap-sub">Labs members are all founders. Any startup context in your background?</div></div>
-    </div>
-    <div class="gap-item" data-card="wework" data-pts="3" data-color="y" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">Vendor or facility management</div><div class="gap-sub">Managed contractors or maintenance at your property?</div></div>
-    </div>
-    <div class="gap-item" data-card="wework" data-pts="3" data-color="y" onclick="toggleGap(this)">
-      <div class="gap-cb"></div>
-      <div><div class="gap-label">NPS or member satisfaction tracking</div><div class="gap-sub">WeWork measures NPS obsessively. Any satisfaction or feedback data?</div></div>
-    </div>
-    <button class="resume-btn" id="rbtn-wework" onclick="toggleResume('wework')">&#9658; generate tailored resume</button>
-    <div class="resume-preview rp-y" id="resume-wework">KYLE [LAST NAME]
-Austin, TX · kyle@email.com · linkedin.com/in/kyle
-
-SUMMARY
-Community operator with direct experience running a residential community from day one — programming, member experience, ops, and demand gen. Comfortable in early-stage environments where the playbook doesn't exist yet.
-
-EXPERIENCE
-Coliving Property Operator · Independent · 2022–2024
-· Managed all operations and community experience for 8-resident house
-· [ADD: Events and programming you ran]
-· [ADD: Vendor/maintenance management if applicable]
-· Built house culture and resident norms from scratch
-· [ADD: Startup/founder context if applicable]
-
-WHY WEWORK LABS: The Labs model — tight-knit founders, curated community, real programming — is the closest thing in coworking to what coliving tries to do. I'd bring an operator's instinct to the member experience.</div>
-    <div class="contact-block">
-      <div class="contact-header">
-        <div class="av" style="background:#1a1200;color:#f59e0b;">SL</div>
-        <div><div class="c-name">Sara Lin</div><div class="c-role">Head of Labs &middot; WeWork Austin</div></div>
-        <div class="c-active" style="color:#555;">active 1d ago</div>
-      </div>
-      <div class="c-links">
-        <a class="c-link" href="https://linkedin.com/in/saralin" target="_blank">linkedin ↗</a>
-        <span class="c-link" onclick="findEmail('Sara','Lin','wework.com','wework')" id="hunter-btn-wework">find direct email ↗</span>
-      </div>
-      <div class="hunter-result" id="hunter-wework"></div>
-      <a class="mutual-link" href="https://www.linkedin.com/search/results/people/?keywords=WeWork+Labs+Austin&network=%5B%22F%22%2C%22S%22%5D" target="_blank">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Check for mutual connections at WeWork Labs on LinkedIn ↗
-      </a>
-    </div>
-    <div class="actions">
-      <button class="abtn y">Draft DM to Sara ↗</button>
-      <button class="abtn">Cover letter ↗</button>
-    </div>
-    <textarea class="notes-area" rows="2" placeholder="Add notes about WeWork Labs..."></textarea>
-  </div>
-</div>
-
-</div>
-<script>
-const scores = {kin:87, common:85, wework:80};
-const C = 131.9;
-
+// ============================================
+// INTERACTIONS
+// ============================================
 function toggle(id) {
   const body = document.getElementById('body-' + id);
   const chev = document.getElementById('chev-' + id);
-  const open = body.classList.contains('open');
-  body.classList.toggle('open', !open);
-  chev.classList.toggle('open', !open);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
 }
 
 function toggleGap(el) {
@@ -468,12 +1148,18 @@ function toggleGap(el) {
   cb.classList.toggle('cb-on-' + color, !isOn);
   el.classList.toggle('checked-' + color, !isOn);
 
+  // Bounce animation
+  cb.style.transform = 'scale(1.3)';
+  setTimeout(() => cb.style.transform = 'scale(1)', 150);
+
   scores[card] = Math.min(100, Math.max(0, scores[card] + (isOn ? -pts : pts)));
-  document.getElementById('pct-' + card).textContent = scores[card] + '%';
-  document.getElementById('bar-' + card).style.width = scores[card] + '%';
-  const offset = C * (1 - scores[card] / 100);
-  document.getElementById('ring-' + card).setAttribute('stroke-dashoffset', offset);
-  document.getElementById('num-' + card).textContent = scores[card] + '%';
+  const pct = scores[card];
+  document.getElementById('pct-' + card).textContent = pct + '%';
+  document.getElementById('bar-' + card).style.width = pct + '%';
+  const offset = C * (1 - pct / 100);
+  const rings = document.querySelectorAll(`#card-${card} .ring-fill, #card-${card} .ring-glow`);
+  rings.forEach(r => r.setAttribute('stroke-dashoffset', offset));
+  document.getElementById('num-' + card).textContent = pct + '%';
 }
 
 function toggleResume(id) {
@@ -481,15 +1167,14 @@ function toggleResume(id) {
   const btn = document.getElementById('rbtn-' + id);
   const showing = r.classList.contains('show');
   r.classList.toggle('show', !showing);
-  btn.textContent = showing ? '\u25B6 generate tailored resume' : '\u25BC hide resume';
+  btn.innerHTML = showing ? '&#9658; generate tailored resume' : '&#9660; hide resume';
 }
 
 async function findEmail(firstName, lastName, domain, id) {
   const btn = document.getElementById('hunter-btn-' + id);
   const result = document.getElementById('hunter-' + id);
   btn.innerHTML = '<span class="spinner"></span> searching...';
-  result.className = 'hunter-result';
-  result.classList.add('show');
+  result.className = 'hunter-result show';
   result.textContent = 'Searching Hunter.io...';
   try {
     const res = await fetch(`/api/find-email?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&domain=${encodeURIComponent(domain)}`);
@@ -497,18 +1182,96 @@ async function findEmail(firstName, lastName, domain, id) {
     btn.textContent = 'find direct email ↗';
     if (data.data && data.data.email) {
       const conf = data.data.score ? ` (${data.data.score}% confidence)` : '';
-      result.textContent = '✓ ' + data.data.email + conf;
+      result.textContent = '\u2713 ' + data.data.email + conf;
       result.classList.add('hunter-found');
     } else {
-      result.textContent = '✗ No direct email found — try LinkedIn or domain search';
+      result.textContent = '\u2717 No direct email found — try domain search or LinkedIn';
       result.classList.add('hunter-miss');
     }
   } catch(e) {
     btn.textContent = 'find direct email ↗';
-    result.textContent = '✗ Could not reach Hunter API';
+    result.textContent = '\u2717 Could not reach Hunter API';
     result.classList.add('hunter-miss');
   }
 }
+
+// ============================================
+// PIPELINE DRAG & DROP
+// ============================================
+function dragPipe(e) {
+  e.dataTransfer.setData('text/plain', e.target.dataset.id);
+  e.target.style.opacity = '0.4';
+  setTimeout(() => e.target.style.opacity = '1', 0);
+}
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function dropPipe(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const id = e.dataTransfer.getData('text/plain');
+  const item = document.querySelector(`.pipe-item[data-id="${id}"]`);
+  if (!item) return;
+  const target = e.currentTarget.querySelector('[id^="pipe-"]');
+  // Remove "drag here" placeholder
+  const empty = target.querySelector('.pipe-empty');
+  if (empty) empty.remove();
+  target.appendChild(item);
+  // Update counts
+  updatePipeCounts();
+}
+document.querySelectorAll('.pipe-col').forEach(col => {
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+});
+function updatePipeCounts() {
+  for (let i = 0; i <= 4; i++) {
+    const container = document.getElementById('pipe-' + i);
+    const count = container.querySelectorAll('.pipe-item').length;
+    document.getElementById('pipe-n-' + i).textContent = count;
+    if (count === 0 && !container.querySelector('.pipe-empty')) {
+      container.innerHTML = '<div class="pipe-empty">drag here</div>';
+    }
+  }
+}
+
+// ============================================
+// COMMAND PALETTE (Ctrl+K)
+// ============================================
+function openCmd() {
+  document.getElementById('cmdOverlay').classList.add('open');
+  document.getElementById('cmdInput').value = '';
+  document.getElementById('cmdInput').focus();
+  filterCmd();
+}
+function closeCmd() {
+  document.getElementById('cmdOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openCmd(); }
+  if (e.key === 'Escape') closeCmd();
+});
+
+function renderCmdItems() { filterCmd(); }
+
+function filterCmd() {
+  const q = document.getElementById('cmdInput').value.toLowerCase();
+  const results = document.getElementById('cmdResults');
+  results.innerHTML = '';
+  const filtered = JOBS.filter(j =>
+    !q || j.company.toLowerCase().includes(q) || j.title.toLowerCase().includes(q) || j.location.toLowerCase().includes(q)
+  ).slice(0, 10);
+  filtered.forEach(j => {
+    const colorVar = j.color === 'g' ? 'var(--green)' : j.color === 'b' ? 'var(--blue)' : 'var(--yellow)';
+    results.innerHTML += `<div class="cmd-item" onclick="closeCmd();document.getElementById('card-${j.id}').scrollIntoView({behavior:'smooth',block:'center'});toggle('${j.id}')">
+      <div><div class="cmd-item-title">${j.title}</div><div class="cmd-item-sub">${j.company} · ${j.location}</div></div>
+      <span class="cmd-item-badge" style="color:${colorVar};border:1px solid currentColor;">${j.fit}%</span>
+    </div>`;
+  });
+}
+
+// Initialize
+window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
