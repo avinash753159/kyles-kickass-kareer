@@ -18,6 +18,7 @@ JOBS = {
     "industrious-product": {
         "file": "Kyle_Resume_Industrious_Product.pdf",
         "subtitle": "Product Leader | Physical Space Innovation | Revenue & Pricing",
+        "value_add": "For Industrious: I bring direct experience launching and scaling physical space products from zero to full occupancy, with proven A/B pricing that drove 48% revenue growth.",
         "summary": (
             "Product-minded operator with direct experience launching and scaling "
             "physical space products from zero. Built pricing models, ran A/B "
@@ -69,6 +70,7 @@ JOBS = {
     "kindred-gtm": {
         "file": "Kyle_Resume_Kindred_GTM.pdf",
         "subtitle": "GTM Leader | New Products | Community & Network Growth",
+        "value_add": "For Kindred: I build trust-based networks from scratch \u2014 activation systems, referral loops, and community-driven growth that converts engagement into durable retention.",
         "summary": (
             "GTM operator and product builder with a track record of 0-1 "
             "product launches and community-driven network growth. I build "
@@ -121,6 +123,7 @@ JOBS = {
     "commune": {
         "file": "Kyle_Resume_Commune.pdf",
         "subtitle": "Community Operator | Systems Builder | Programming & Events",
+        "value_add": "For Commune: I build community operations from zero \u2014 onboarding, programming, and retention systems that kept 94% occupancy for 19 straight months.",
         "summary": (
             "Community operator who builds systems from scratch. Designed and ran "
             "every aspect of a coliving community from day one - onboarding, "
@@ -172,6 +175,7 @@ JOBS = {
     "teero": {
         "file": "Kyle_Resume_Teero.pdf",
         "subtitle": "Operations Leader | P&L Ownership | Multi-Hat Startup Operator",
+        "value_add": "For Teero: I thrive as the multi-hat operator who owns the full P&L \u2014 three 0-1 company builds, 48% revenue growth, and 212% efficiency gains.",
         "summary": (
             "Early-stage operator with full P&L ownership experience. Built and "
             "scaled operations from zero across multiple ventures - managing "
@@ -222,6 +226,7 @@ JOBS = {
     "airbnb": {
         "file": "Kyle_Resume_Airbnb.pdf",
         "subtitle": "Program Manager | Community Support | Cross-Functional Ops",
+        "value_add": "For Airbnb: I bring deep host-guest empathy from running a coliving property \u2014 48 community programs, conflict resolution systems, and 94% retention.",
         "summary": (
             "Community-focused program designer with hands-on experience building "
             "support systems, conflict resolution frameworks, and cross-functional "
@@ -272,6 +277,7 @@ JOBS = {
     "capfactory-events": {
         "file": "Kyle_Resume_CapFactory_Events.pdf",
         "subtitle": "Events & Community Leader | Programming | Shared Spaces",
+        "value_add": "For Capital Factory: I design programming that makes people choose one space over another \u2014 48+ events, masterminds, and work-trade programs built from scratch.",
         "summary": (
             "Community programmer and event designer with a portfolio of 48+ "
             "recurring events, 4 mastermind programs, and 6 work-trade initiatives "
@@ -322,6 +328,7 @@ JOBS = {
     "hipcamp-growth": {
         "file": "Kyle_Resume_Hipcamp_Growth.pdf",
         "subtitle": "Growth Product Manager | Demand Generation | Retention",
+        "value_add": "For Hipcamp: I turn early-stage products into growth engines \u2014 3,140-subscriber pipeline from zero and 94% retention sustained for 19 months.",
         "summary": (
             "Growth-minded builder with proven demand generation and retention "
             "results. Built a 3,140-subscriber pipeline from zero through "
@@ -372,6 +379,7 @@ JOBS = {
     "kindred-pm": {
         "file": "Kyle_Resume_Kindred_PM.pdf",
         "subtitle": "Product Manager | Community Platforms | Customer Discovery",
+        "value_add": "For Kindred: I build community products where trust is the core value \u2014 48 customer interviews, 0-1 product launch, and rapid iteration from real user feedback.",
         "summary": (
             "Product builder who designs community-driven experiences from "
             "scratch. Conducted 48 customer interviews, launched a coliving "
@@ -422,6 +430,7 @@ JOBS = {
     "hipcamp-staff": {
         "file": "Kyle_Resume_Hipcamp_Staff.pdf",
         "subtitle": "Senior Product Manager | Consumer Experience | Retention",
+        "value_add": "For Hipcamp: I obsess over experience and measure success by whether people come back \u2014 94% retention for 19 months through end-to-end experience design.",
         "summary": (
             "Experience designer who builds complete customer journeys from "
             "scratch. Designed the entire resident experience at a coliving "
@@ -471,6 +480,7 @@ JOBS = {
     "drillbit": {
         "file": "Kyle_Resume_Drillbit.pdf",
         "subtitle": "Operations Leader | Systems & Efficiency | Full-Cycle Ops",
+        "value_add": "For Drillbit: I build operational infrastructure from zero \u2014 212% efficiency gains, full-cycle ops ownership, and three companies built from scratch.",
         "summary": (
             "Operations leader building efficient systems from zero. Achieved "
             "212% efficiency improvement YoY through systematic process design. "
@@ -521,6 +531,7 @@ JOBS = {
     "homeward": {
         "file": "Kyle_Resume_Homeward.pdf",
         "subtitle": "Product Manager | Housing Innovation | Experimentation",
+        "value_add": "For Homeward: I bring hands-on housing product experience \u2014 launched a residential product from zero, ran pricing experiments, and built retention systems that worked.",
         "summary": (
             "Product-minded housing operator who has designed, tested, and "
             "iterated on residential products. I bring hands-on experience "
@@ -571,6 +582,7 @@ JOBS = {
     "industrious-mem": {
         "file": "Kyle_Resume_Industrious_MEM.pdf",
         "subtitle": "Member Experience Designer | Community Programming | Ops",
+        "value_add": "For Industrious: I design intentional member experiences in shared spaces \u2014 48 weekly events, onboarding systems, and retention that sustained 94% occupancy.",
         "summary": (
             "Member experience designer who builds community programming from "
             "scratch. Designed and ran the complete resident experience at a "
@@ -621,6 +633,7 @@ JOBS = {
     "capfactory-mentor": {
         "file": "Kyle_Resume_CapFactory_Mentor.pdf",
         "subtitle": "Community Facilitator | Relationship Management | Programs",
+        "value_add": "For Capital Factory: I foster meaningful relationships at scale \u2014 4 mastermind programs, 140+ client relationships, and connection-driven programs built from scratch.",
         "summary": (
             "Community facilitator who has designed masterminds, managed 140+ "
             "client relationships, and built connection-driven programs from "
@@ -670,6 +683,7 @@ JOBS = {
     "closinglock": {
         "file": "Kyle_Resume_Closinglock.pdf",
         "subtitle": "Customer Success Leader | Retention & Relationships | Growth",
+        "value_add": "For Closinglock: I keep customers \u2014 82% retention across 140+ client relationships through proactive engagement, systematic onboarding, and relationship-driven service.",
         "summary": (
             "Customer success leader with 82% retention across 140+ client "
             "relationships. I build my career on keeping customers - through "
@@ -719,6 +733,7 @@ JOBS = {
     "vuka": {
         "file": "Kyle_Resume_Vuka.pdf",
         "subtitle": "Community Builder | Sales & Relationships | Event Programming",
+        "value_add": "For Vuka: I bring both community instinct and sales hustle \u2014 30-40 new clients per summer, 94% retention through programming, and 46% revenue growth.",
         "summary": (
             "Community builder and relationship-driven seller. Closed 30-40 "
             "new clients per summer through direct outreach and referrals, "
@@ -768,6 +783,7 @@ JOBS = {
     "industrious-events": {
         "file": "Kyle_Resume_Industrious_Events.pdf",
         "subtitle": "Community Events Leader | Marketing & Growth | Programming",
+        "value_add": "For Industrious: I design events that drive member acquisition and retention \u2014 48+ programs from scratch and a 3,140-subscriber growth pipeline.",
         "summary": (
             "Community event designer and growth operator. Built a portfolio of "
             "48+ events, 4 masterminds, and 6 structured programs from scratch. "
@@ -818,6 +834,7 @@ JOBS = {
     "clipboard": {
         "file": "Kyle_Resume_Clipboard.pdf",
         "subtitle": "Strategy & Operations | Generalist Operator | Systems Builder",
+        "value_add": "For Clipboard Health: I thrive where the playbook hasn't been written \u2014 three-time founder with 212% efficiency gains and multi-hat execution across every function.",
         "summary": (
             "Generalist operator building organizational systems from scratch. "
             "Three-time founder with a track record of 212% efficiency gains, "
@@ -867,6 +884,7 @@ JOBS = {
     "sonder": {
         "file": "Kyle_Resume_Sonder.pdf",
         "subtitle": "General Manager | Hospitality Operations | P&L Leadership",
+        "value_add": "For Sonder: I turn properties into thriving communities \u2014 full P&L ownership, end-to-end guest experience design, and 94% occupancy sustained for 19 months.",
         "summary": (
             "Hospitality operator with end-to-end property management experience. "
             "Ran the full-stack operation at a residential coliving property - "
@@ -937,6 +955,7 @@ def generate_resume(job_id, job_data):
     # Use full Inter fonts (not subsets) to avoid missing glyph fallback
     ir = fitz.Font(fontfile="Inter-Regular.ttf")
     ib = fitz.Font(fontfile="Inter-Bold.ttf")
+    ii = fitz.Font(fontfile="Inter-Italic.ttf")
 
     BLUE = (0, 0x8c/255, 1.0)
     DGRAY = (0x3e/255, 0x3e/255, 0x3e/255)
@@ -962,7 +981,7 @@ def generate_resume(job_id, job_data):
 
     # Redact old text areas (preserve bullet dots at x<56.5, achievement icons at x<386)
     page.add_redact_annot(fitz.Rect(48.8, 68.0, 370, 86.0), fill=WHITE)      # subtitle
-    page.add_redact_annot(fitz.Rect(48.8, 141.0, 335, 228.0), fill=WHITE)    # summary
+    page.add_redact_annot(fitz.Rect(48.8, 141.0, 335, 252.0), fill=WHITE)    # summary + value-add
     page.add_redact_annot(fitz.Rect(56.5, 309.0, 335, 476.0), fill=WHITE)    # revillage bullets
     page.add_redact_annot(fitz.Rect(56.5, 524.0, 335, 610.0), fill=WHITE)    # van village bullets
     page.add_redact_annot(fitz.Rect(386.0, 141.0, 555, 405.0), fill=WHITE)   # achievement titles+descs
@@ -971,6 +990,7 @@ def generate_resume(job_id, job_data):
 
     # Safety: draw white rectangles over the same areas to ensure clean background
     white_rects = [
+        fitz.Rect(48.8, 141.0, 335, 252.0),
         fitz.Rect(56.5, 309.0, 335, 476.0),
         fitz.Rect(56.5, 524.0, 335, 610.0),
         fitz.Rect(386.0, 141.0, 555, 405.0),
@@ -987,6 +1007,11 @@ def generate_resume(job_id, job_data):
     # Body text
     tw_b = fitz.TextWriter(page.rect)
     tw_wrap(tw_b, 48.8, 153.5, 280, job_data["summary"], ir, 8.2, LH)
+
+    # Value-add statement (italic, personalized per company)
+    tw_va = fitz.TextWriter(page.rect)
+    tw_wrap(tw_va, 48.8, 235.0, 280, job_data["value_add"], ii, 7.8, 9.5)
+    tw_va.write_text(page, color=BLUE)
 
     # Revillage bullets - y positions aligned with original bullet dots
     rv_y = [317.8, 338.1, 358.4, 378.7, 399.0, 429.4, 459.9]
