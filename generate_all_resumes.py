@@ -922,7 +922,7 @@ def generate_resume(job_id, job_data):
     doc = fitz.open(INPUT)
     page = doc[0]
 
-    # Extract fonts
+    # Extract Rubik-Medium from PDF (only used for subtitle, all chars available)
     fonts = {}
     for f in page.get_fonts(full=True):
         xref, name = f[0], f[3]
@@ -933,9 +933,10 @@ def generate_resume(job_id, job_data):
         except:
             pass
 
-    ir = fonts["AAAAAA+Inter-Regular"]
     rm = fonts["BAAAAA+Rubik-Medium"]
-    ib = fonts["CAAAAA+Inter-Bold"]
+    # Use full Inter fonts (not subsets) to avoid missing glyph fallback
+    ir = fitz.Font(fontfile="Inter-Regular.ttf")
+    ib = fitz.Font(fontfile="Inter-Bold.ttf")
 
     BLUE = (0, 0x8c/255, 1.0)
     DGRAY = (0x3e/255, 0x3e/255, 0x3e/255)
@@ -959,14 +960,24 @@ def generate_resume(job_id, job_data):
             cy += lh
         return cy
 
-    # Redact
-    page.add_redact_annot(fitz.Rect(48.8, 68.0, 370, 86.0), fill=WHITE)
-    page.add_redact_annot(fitz.Rect(48.8, 141.0, 335, 228.0), fill=WHITE)
-    page.add_redact_annot(fitz.Rect(56.5, 308.0, 335, 474.0), fill=WHITE)
-    page.add_redact_annot(fitz.Rect(56.5, 523.0, 335, 608.0), fill=WHITE)
-    page.add_redact_annot(fitz.Rect(386.0, 141.0, 555, 403.0), fill=WHITE)
-    page.add_redact_annot(fitz.Rect(366.0, 444.0, 555, 635.0), fill=WHITE)
+    # Redact old text areas (preserve bullet dots at x<56.5, achievement icons at x<386)
+    page.add_redact_annot(fitz.Rect(48.8, 68.0, 370, 86.0), fill=WHITE)      # subtitle
+    page.add_redact_annot(fitz.Rect(48.8, 141.0, 335, 228.0), fill=WHITE)    # summary
+    page.add_redact_annot(fitz.Rect(56.5, 309.0, 335, 476.0), fill=WHITE)    # revillage bullets
+    page.add_redact_annot(fitz.Rect(56.5, 524.0, 335, 610.0), fill=WHITE)    # van village bullets
+    page.add_redact_annot(fitz.Rect(386.0, 141.0, 555, 405.0), fill=WHITE)   # achievement titles+descs
+    page.add_redact_annot(fitz.Rect(366.0, 444.0, 555, 635.0), fill=WHITE)   # skills
     page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=0)
+
+    # Safety: draw white rectangles over the same areas to ensure clean background
+    white_rects = [
+        fitz.Rect(56.5, 309.0, 335, 476.0),
+        fitz.Rect(56.5, 524.0, 335, 610.0),
+        fitz.Rect(386.0, 141.0, 555, 405.0),
+        fitz.Rect(366.0, 444.0, 555, 635.0),
+    ]
+    for rect in white_rects:
+        page.draw_rect(rect, color=None, fill=(1, 1, 1))
 
     # Subtitle
     tw_s = fitz.TextWriter(page.rect)
@@ -977,19 +988,23 @@ def generate_resume(job_id, job_data):
     tw_b = fitz.TextWriter(page.rect)
     tw_wrap(tw_b, 48.8, 153.5, 280, job_data["summary"], ir, 8.2, LH)
 
-    rv_y = [309.8, 330.1, 350.4, 370.7, 391.0, 421.4, 451.9]
+    # Revillage bullets - y positions aligned with original bullet dots
+    rv_y = [317.8, 338.1, 358.4, 378.7, 399.0, 429.4, 459.9]
     for i, bt in enumerate(job_data["rv_bullets"]):
         tw_wrap(tw_b, BX, rv_y[i], BW, bt, ir, 8.2, LH)
 
-    vv_y = [524.8, 545.1, 565.4, 585.7]
+    # Van Village bullets - y positions aligned with original bullet dots
+    vv_y = [532.8, 553.1, 573.4, 593.7]
     for i, bt in enumerate(job_data["vv_bullets"]):
         tw_wrap(tw_b, BX, vv_y[i], BW, bt, ir, 8.2, LH)
 
-    ach_desc_y = [168.8, 216.3, 274.1, 331.8, 379.4]
+    # Achievement descriptions
+    ach_desc_y = [167.5, 215.0, 272.8, 330.5, 378.0]
     for i, desc in enumerate(job_data["ach_descs"]):
         tw_wrap(tw_b, AX, ach_desc_y[i], AW, desc, ir, 8.2, LH)
 
-    skill_y = [448.1, 472.8, 497.6, 522.3, 547.1, 571.8, 596.5]
+    # Skills
+    skill_y = [456.7, 481.4, 506.2, 530.9, 555.7, 580.4, 605.1]
     for i, (s1, s2) in enumerate(job_data["skills"]):
         tw_b.append((366.6, skill_y[i]), s1, font=ib, fontsize=8.9)
         if s2:
@@ -998,11 +1013,11 @@ def generate_resume(job_id, job_data):
 
     tw_b.write_text(page, color=DGRAY)
 
-    # Achievement titles
+    # Achievement titles (word-wrapped to prevent overflow)
     tw_t = fitz.TextWriter(page.rect)
-    ach_title_y = [155.0, 203.0, 261.0, 318.5, 366.0]
+    ach_title_y = [153.5, 201.1, 258.8, 316.5, 364.1]
     for i, title in enumerate(job_data["ach_titles"]):
-        tw_t.append((AX, ach_title_y[i]), title, font=ib, fontsize=9.5)
+        tw_wrap(tw_t, AX, ach_title_y[i], AW, title, ib, 9.5, 10.5)
     tw_t.write_text(page, color=BLACK)
 
     out = os.path.join(OUT_DIR, job_data["file"])

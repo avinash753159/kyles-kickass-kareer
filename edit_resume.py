@@ -27,9 +27,10 @@ for f in page.get_fonts(full=True):
     except Exception as e:
         print(f"  Font FAIL: {name}: {e}")
 
-inter_reg  = font_map["AAAAAA+Inter-Regular"]
 rubik_med  = font_map["BAAAAA+Rubik-Medium"]
-inter_bold = font_map["CAAAAA+Inter-Bold"]
+# Use full Inter fonts (not subsets) to avoid missing glyph fallback
+inter_reg  = fitz.Font(fontfile="Inter-Regular.ttf")
+inter_bold = fitz.Font(fontfile="Inter-Bold.ttf")
 
 # ── Colors ──────────────────────────────────────────────────────────────
 BLACK     = (0, 0, 0)
@@ -78,13 +79,13 @@ page.add_redact_annot(fitz.Rect(48.8, 68.0, 370, 86.0), fill=WHITE)
 page.add_redact_annot(fitz.Rect(48.8, 141.0, 335, 228.0), fill=WHITE)
 
 # Revillage bullet TEXT only (x>=56.5 preserves bullet dots at x=51.4-56.0)
-page.add_redact_annot(fitz.Rect(56.5, 308.0, 335, 474.0), fill=WHITE)
+page.add_redact_annot(fitz.Rect(56.5, 309.0, 335, 476.0), fill=WHITE)
 
 # Van Village bullet TEXT only
-page.add_redact_annot(fitz.Rect(56.5, 523.0, 335, 608.0), fill=WHITE)
+page.add_redact_annot(fitz.Rect(56.5, 524.0, 335, 610.0), fill=WHITE)
 
 # Achievement TITLES + DESCRIPTIONS (x>=386 preserves diamond icons at x=363-377)
-page.add_redact_annot(fitz.Rect(386.0, 141.0, 555, 403.0), fill=WHITE)
+page.add_redact_annot(fitz.Rect(386.0, 141.0, 555, 405.0), fill=WHITE)
 
 # Skills text
 page.add_redact_annot(fitz.Rect(366.0, 444.0, 555, 635.0), fill=WHITE)
@@ -92,6 +93,11 @@ page.add_redact_annot(fitz.Rect(366.0, 444.0, 555, 635.0), fill=WHITE)
 # Apply redactions: remove text only, keep graphics (dividers) and images
 page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=0)
 print("  Redactions applied")
+
+# Safety: draw white rectangles to guarantee clean background
+for rect in [fitz.Rect(56.5, 309.0, 335, 476.0), fitz.Rect(56.5, 524.0, 335, 610.0),
+             fitz.Rect(386.0, 141.0, 555, 405.0), fitz.Rect(366.0, 444.0, 555, 635.0)]:
+    page.draw_rect(rect, color=None, fill=WHITE)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -127,9 +133,8 @@ summary = (
 tw_wrap(tw_body, 48.8, 153.5, 280, summary, inter_reg, 8.2, LH)
 
 # ── Revillage bullets (DARK GRAY) ──────────────────────────────────────
-# Slot sizes: bullets 1-4 = 2 lines each, bullets 5-6 = 3 lines each, bullet 7 = 2 lines
-# Y positions from original bullet dots
-rv_y = [309.8, 330.1, 350.4, 370.7, 391.0, 421.4, 451.9]
+# Y positions aligned with original bullet dots
+rv_y = [317.8, 338.1, 358.4, 378.7, 399.0, 429.4, 459.9]
 rv = [
     # Bullet 1 (2-line slot)
     "Launched an 8-bedroom coliving property in 2 weeks, reaching "
@@ -161,7 +166,8 @@ for i, bt in enumerate(rv):
     tw_wrap(tw_body, BX, rv_y[i], BW, bt, inter_reg, 8.2, LH)
 
 # ── Van Village bullets (DARK GRAY) ────────────────────────────────────
-vv_y = [524.8, 545.1, 565.4, 585.7]
+# Y positions aligned with original bullet dots
+vv_y = [532.8, 553.1, 573.4, 593.7]
 vv = [
     "Built demand pipeline of 3,140 subscribers through grassroots "
     "community outreach and concept validation",
@@ -180,15 +186,15 @@ for i, bt in enumerate(vv):
 
 # ── Achievement descriptions (DARK GRAY) ──────────────────────────────
 ach_desc = [
-    (168.8, "Build end-to-end GTM motions for trust-based networks "
+    (167.5, "Build end-to-end GTM motions for trust-based networks "
             "- activation loops, referral programs, community nurture"),
-    (216.3, "A/B tested pricing and engagement programs, drove 48% "
+    (215.0, "A/B tested pricing and engagement programs, drove 48% "
             "annual revenue growth at sustained occupancy"),
-    (274.1, "Launched and filled 8-bed network in 2 weeks, sustained "
+    (272.8, "Launched and filled 8-bed network in 2 weeks, sustained "
             "94% occupancy for 19 months"),
-    (331.8, "Sourced and secured an investor-backed pilot for a new "
+    (330.5, "Sourced and secured an investor-backed pilot for a new "
             "community network concept across 5 states"),
-    (379.4, "Built early demand pipeline of 3,140 subscribers through "
+    (378.0, "Built early demand pipeline of 3,140 subscribers through "
             "concept validation and outreach"),
 ]
 for ay, at in ach_desc:
@@ -198,13 +204,13 @@ for ay, at in ach_desc:
 
 # ── Skills (DARK GRAY, Inter-Bold) ─────────────────────────────────────
 skills = [
-    (448.1, "GTM Strategy & Launch",     None),
-    (472.8, "Community-Led Growth",      None),
-    (497.6, "Cross-Functional Execution",None),
-    (522.3, "Channel Experimentation",   None),
-    (547.1, "Member Activation",         "Onboarding"),
-    (571.8, "Lifecycle & Nurture",       "Programs"),
-    (596.5, "Partnerships",              "Market Creation"),
+    (456.7, "GTM Strategy & Launch",     None),
+    (481.4, "Community-Led Growth",      None),
+    (506.2, "Cross-Functional Execution",None),
+    (530.9, "Channel Experimentation",   None),
+    (555.7, "Member Activation",         "Onboarding"),
+    (580.4, "Lifecycle & Nurture",       "Programs"),
+    (605.1, "Partnerships",              "Market Creation"),
 ]
 for sy, s1, s2 in skills:
     tw_body.append((366.6, sy), s1, font=inter_bold, fontsize=8.9)
@@ -218,14 +224,14 @@ tw_body.write_text(page, color=DARK_GRAY)
 # ── Achievement titles (BLACK, Inter-Bold) ─────────────────────────────
 tw_titles = fitz.TextWriter(page.rect)
 ach_titles = [
-    (155.0, "Circles GTM Launch - DRI Ready"),
-    (203.0, "48% Revenue Lift via Experimentation"),
-    (261.0, "Rapid Network Launch"),
-    (318.5, "Investor Pilot Secured"),
-    (366.0, "Demand Pipeline Built"),
+    (153.5, "Circles GTM Launch - DRI Ready"),
+    (201.1, "48% Revenue Lift via Experimentation"),
+    (258.8, "Rapid Network Launch"),
+    (316.5, "Investor Pilot Secured"),
+    (364.1, "Demand Pipeline Built"),
 ]
 for ay, at in ach_titles:
-    tw_titles.append((AX, ay), at, font=inter_bold, fontsize=9.5)
+    tw_wrap(tw_titles, AX, ay, AW, at, inter_bold, 9.5, 10.5)
 tw_titles.write_text(page, color=BLACK)
 
 
