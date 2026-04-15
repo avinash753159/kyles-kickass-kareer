@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Job Board</title>
+<title>Your Job Board — A Kyle-Avi Project</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -338,7 +338,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="header-inner">
     <div class="brand">
       <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
-      <div class="brand-text">your <em>job board</em></div>
+      <div class="brand-text">your <em>job board</em> <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:500;margin-left:6px;letter-spacing:0;">— a Kyle-Avi project</span></div>
     </div>
     <div class="header-right">
       <div class="live-label"><div class="live-dot"></div>Live</div>
@@ -362,12 +362,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="user-hero-actions">
         <label class="primary-btn" style="cursor:pointer;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload your resume
+          <span id="upload-btn-label">Upload your resume</span>
           <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
         </label>
-        <button class="secondary-btn" onclick="document.getElementById('add-job-form').scrollIntoView({behavior:'smooth'});document.getElementById('uj-title').focus();">+ Add a job</button>
+        <button class="primary-btn" id="go-btn" style="display:none;background:var(--blue);" onclick="goFindJobs()">Find Jobs →</button>
       </div>
       <div id="user-resume-list" style="margin-top:18px;"></div>
+      <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;font-family:var(--mono);">Next — search these boards, then paste roles below</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <a class="source-tag" href="https://www.linkedin.com/jobs/" target="_blank">LinkedIn Jobs</a>
+          <a class="source-tag" href="https://www.indeed.com" target="_blank">Indeed</a>
+          <a class="source-tag" href="https://wellfound.com/jobs" target="_blank">Wellfound</a>
+          <a class="source-tag" href="https://www.ycombinator.com/jobs" target="_blank">Y Combinator</a>
+          <a class="source-tag" href="https://jobs.ashbyhq.com" target="_blank">Ashby</a>
+          <a class="source-tag" href="https://job-boards.greenhouse.io" target="_blank">Greenhouse</a>
+          <a class="source-tag" href="https://apply.workable.com" target="_blank">Workable</a>
+          <a class="source-tag" href="https://startup.jobs" target="_blank">Startup.jobs</a>
+          <a class="source-tag" href="https://www.builtin.com" target="_blank">Built In</a>
+          <a class="source-tag" href="https://www.ziprecruiter.com" target="_blank">ZipRecruiter</a>
+        </div>
+      </div>
     </div>
 
     <!-- STATS -->
@@ -976,8 +991,25 @@ function renderUserResumes(){
   const r=lsGet(U_RESUMES_KEY);
   const list=document.getElementById('user-resume-list');
   if(!list)return;
-  if(!r.length){list.innerHTML='';return;}
+  const goBtn=document.getElementById('go-btn');
+  const goPanel=document.getElementById('go-panel');
+  const uploadLabel=document.getElementById('upload-btn-label');
+  if(!r.length){
+    list.innerHTML='';
+    if(goBtn)goBtn.style.display='none';
+    if(goPanel)goPanel.style.display='none';
+    if(uploadLabel)uploadLabel.textContent='Upload your resume';
+    return;
+  }
+  if(goBtn)goBtn.style.display='inline-flex';
+  if(uploadLabel)uploadLabel.textContent='Upload another';
   list.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">YOUR RESUMES</div>'+r.map(x=>`<span class="resume-chip"><a href="${x.data}" download="${x.name.replace(/"/g,'')}" style="color:inherit;text-decoration:none;">📄 ${x.name}</a><button onclick="removeUserResume('${x.id}')" title="Remove">×</button></span>`).join('');
+}
+function goFindJobs(){
+  const panel=document.getElementById('go-panel');
+  if(panel)panel.style.display='block';
+  document.getElementById('add-job-form').scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>{const el=document.getElementById('uj-title');if(el)el.focus();},400);
 }
 function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));renderUserResumes();}
 
