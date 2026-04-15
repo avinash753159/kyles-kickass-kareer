@@ -23,6 +23,29 @@ app.post('/api/update-run', (req, res) => {
   res.json({ lastRun: lastRunTime });
 });
 
+// ── Sources of Me ─────────────────────────────────────────────────
+const SOURCES_FILE = path.join(__dirname, 'sources.json');
+
+app.get('/api/sources', (req, res) => {
+  try {
+    const data = fs.existsSync(SOURCES_FILE) ? JSON.parse(fs.readFileSync(SOURCES_FILE, 'utf8')) : [];
+    res.json({ sources: data });
+  } catch (e) { res.json({ sources: [], error: e.message }); }
+});
+
+app.post('/api/update-sources', (req, res) => {
+  try {
+    const sources = req.body.sources || [];
+    fs.writeFileSync(SOURCES_FILE, JSON.stringify(sources, null, 2));
+    lastRunTime = new Date().toISOString();
+    // Trigger re-match in background (regenerate resumes with new sources)
+    exec('python generate_all_resumes.py', { cwd: __dirname, timeout: 60000 }, (err) => {
+      if (err) console.error('Regen failed:', err.message);
+    });
+    res.json({ ok: true, count: sources.length, lastRun: lastRunTime });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // SSE endpoint for progress
 app.get('/api/progress/:jobId', (req, res) => {
   const jobId = req.params.jobId;

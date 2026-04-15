@@ -1028,13 +1028,49 @@ def generate_resume(job_id, job_data):
     for i, desc in enumerate(job_data["ach_descs"]):
         tw_wrap(tw_b, AX, ach_desc_y[i], AW, desc, ir, 8.2, LH)
 
-    # Skills
-    skill_y = [456.7, 481.4, 506.2, 530.9, 555.7, 580.4, 605.1]
-    for i, (s1, s2) in enumerate(job_data["skills"]):
-        tw_b.append((366.6, skill_y[i]), s1, font=ib, fontsize=8.9)
+    # Skills - Image #5 style: bold text, thin underline under each skill, auto-wrap
+    skill_x0 = 366.6
+    skill_w_max = 188.0
+    skill_start_y = 456.7
+    skill_row_h = 19.5
+    skill_gap = 12.0
+    skill_font_sz = 8.9
+    skill_underline_dy = 3.2
+
+    flat_skills = []
+    for s1, s2 in job_data["skills"]:
+        if s1:
+            flat_skills.append(s1)
         if s2:
-            w1 = ib.text_length(s1, fontsize=8.9)
-            tw_b.append((366.6 + w1 + 18, skill_y[i]), s2, font=ib, fontsize=8.9)
+            flat_skills.append(s2)
+
+    rows = []
+    cur_row = []
+    cur_w = 0.0
+    for sk in flat_skills:
+        tw = ib.text_length(sk, fontsize=skill_font_sz)
+        if cur_row and cur_w + skill_gap + tw > skill_w_max:
+            rows.append(cur_row)
+            cur_row = [(sk, tw)]
+            cur_w = tw
+        else:
+            cur_w = (cur_w + skill_gap + tw) if cur_row else tw
+            cur_row.append((sk, tw))
+    if cur_row:
+        rows.append(cur_row)
+
+    for ri, row in enumerate(rows):
+        y = skill_start_y + ri * skill_row_h
+        x = skill_x0
+        for sk, tw in row:
+            tw_b.append((x, y), sk, font=ib, fontsize=skill_font_sz)
+            page.draw_line(
+                fitz.Point(x, y + skill_underline_dy),
+                fitz.Point(x + tw, y + skill_underline_dy),
+                color=(0.72, 0.72, 0.72),
+                width=0.5,
+            )
+            x += tw + skill_gap
 
     tw_b.write_text(page, color=DGRAY)
 
