@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kyle's Kicka*s Kareer</title>
+<title>Your Job Board</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -56,6 +56,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;box-shadow:0 0 6px rgba(22,163,74,0.4);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .live-label{font-family:var(--mono);font-size:11px;color:var(--green);display:flex;align-items:center;gap:6px;}
+
+/* === TAB BAR === */
+.tab-bar{border-top:1px solid var(--border);background:var(--card);}
+.tab-inner{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;gap:4px;}
+.tab-btn{background:transparent;border:none;padding:14px 18px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;}
+.tab-btn:hover{color:var(--text-secondary);}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+@media(max-width:900px){.tab-inner{padding:0 16px;}.tab-btn{padding:12px 12px;font-size:12px;}}
+
+/* === USER BOARD EMPTY + UI === */
+.user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:36px 32px;margin-bottom:24px;text-align:center;border:1px solid var(--border);}
+.user-hero h1{font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;color:var(--text);}
+.user-hero p{font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;}
+.user-hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.primary-btn{background:var(--green);color:#fff;border:none;padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,0.25);}
+.secondary-btn{background:var(--card);color:var(--text);border:1px solid var(--border);padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;}
+.secondary-btn:hover{border-color:#c1c5ce;background:var(--bg);}
+.resume-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-bg);color:var(--green);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:var(--mono);margin:6px 4px 0 0;}
+.resume-chip button{background:none;border:none;color:var(--green);cursor:pointer;padding:0;font-size:14px;opacity:0.6;}
+.resume-chip button:hover{opacity:1;}
+.add-job-form{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:20px 22px;margin-bottom:16px;border:1px solid var(--border);}
+.add-job-form h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text);}
+.add-job-form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.add-job-form input,.add-job-form textarea,.add-job-form select{width:100%;padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);background:var(--card);color:var(--text);outline:none;transition:border .15s;}
+.add-job-form input:focus,.add-job-form textarea:focus,.add-job-form select:focus{border-color:var(--green);}
+.add-job-form textarea{resize:vertical;min-height:60px;margin-bottom:10px;}
+.add-job-form .actions{display:flex;justify-content:flex-end;gap:8px;}
+.user-job-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 22px;margin-bottom:10px;border:1px solid var(--border);border-left:3px solid var(--green);display:flex;align-items:center;gap:16px;}
+.user-job-card .ujc-main{flex:1;min-width:0;}
+.user-job-card .ujc-title{font-size:14px;font-weight:600;margin-bottom:3px;}
+.user-job-card .ujc-title a{color:var(--text);text-decoration:none;}
+.user-job-card .ujc-title a:hover{color:var(--blue);text-decoration:underline;}
+.user-job-card .ujc-meta{font-size:11.5px;color:var(--text-muted);margin-bottom:6px;}
+.user-job-card .ujc-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.user-job-card .ujc-right{display:flex;gap:6px;align-items:center;}
+.stage-select{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-family:var(--mono);font-weight:600;cursor:pointer;background:var(--bg);color:var(--text-secondary);}
+.icon-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:14px;}
+.icon-btn:hover{background:var(--bg);color:var(--red);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;}
 
 /* === LAYOUT === */
 .layout{max-width:1200px;margin:0 auto;padding:24px 32px 60px;display:grid;grid-template-columns:1fr 320px;gap:24px;}
@@ -298,16 +338,123 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="header-inner">
     <div class="brand">
       <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
-      <div class="brand-text">kyle's <em>kicka*s kareer</em></div>
+      <div class="brand-text">your <em>job board</em></div>
     </div>
     <div class="header-right">
       <div class="live-label"><div class="live-dot"></div>Live</div>
       <div class="cmd-btn" onclick="openCmd()"><kbd>Ctrl</kbd>+<kbd>K</kbd> Search</div>
     </div>
   </div>
+  <div class="tab-bar">
+    <div class="tab-inner">
+      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">My Board</button>
+      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Example · Kyle's Board</button>
+    </div>
+  </div>
 </div>
 
-<div class="layout">
+<!-- USER BOARD VIEW -->
+<div class="layout" id="view-user">
+  <div class="main">
+    <div class="user-hero">
+      <h1 id="user-hero-title">Welcome to Your Job Board</h1>
+      <p id="user-hero-sub">Upload your resume, add jobs you're tracking, and keep everything in one place. Your data stays on this device — nothing is sent to a server.</p>
+      <div class="user-hero-actions">
+        <label class="primary-btn" style="cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload your resume
+          <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
+        </label>
+        <button class="secondary-btn" onclick="document.getElementById('add-job-form').scrollIntoView({behavior:'smooth'});document.getElementById('uj-title').focus();">+ Add a job</button>
+      </div>
+      <div id="user-resume-list" style="margin-top:18px;"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-value" id="user-stat-total">0</div>
+        <div class="stat-label">Jobs Tracked</div>
+        <div class="stat-sub">On this device</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--blue);" id="user-stat-applied">0</div>
+        <div class="stat-label">Applied</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--amber);" id="user-stat-interview">0</div>
+        <div class="stat-label">Interviewing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green);" id="user-stat-offer">0</div>
+        <div class="stat-label">Offers</div>
+      </div>
+    </div>
+
+    <!-- ADD JOB FORM -->
+    <div class="add-job-form" id="add-job-form">
+      <h3>Add a job you're tracking</h3>
+      <div class="row">
+        <input type="text" id="uj-title" placeholder="Job title (e.g., Product Manager)">
+        <input type="text" id="uj-company" placeholder="Company">
+      </div>
+      <div class="row">
+        <input type="text" id="uj-location" placeholder="Location (e.g., Remote, Austin TX)">
+        <input type="url" id="uj-url" placeholder="Job posting URL (optional)">
+      </div>
+      <textarea id="uj-notes" placeholder="Notes, salary, contact info, why it's a fit..."></textarea>
+      <div class="actions">
+        <button class="secondary-btn" onclick="clearJobForm()">Clear</button>
+        <button class="primary-btn" onclick="addUserJob()">Add job</button>
+      </div>
+    </div>
+
+    <!-- USER JOB LIST -->
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">Your Jobs</div>
+        <div class="sec-subtitle">tracked locally on this device</div>
+      </div>
+      <div class="sec-badge" id="user-job-count">0 roles</div>
+    </div>
+    <div id="user-job-list"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="side-card">
+      <h3>Pipeline</h3>
+      <div id="user-pipeline" style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);"></div>
+    </div>
+    <div class="side-card">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Sources of You</span>
+      </h3>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Add resumes, LinkedIn, and notes about yourself. Everything stays in your browser.</div>
+      <div id="user-sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
+          + Upload resume/file
+          <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="addUserSourceFile(event)" multiple>
+        </label>
+        <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
+        <textarea id="user-src-text" placeholder="What you want, strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
+        <button onclick="addUserSourceText()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;">+ Save notes</button>
+      </div>
+    </div>
+    <div class="side-card">
+      <h3>Tips</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+        <div>Check out the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see what a fully-filled board looks like.</div>
+        <div>Paste any job URL in the form on the left to start tracking it.</div>
+        <div>All data is stored in your browser (localStorage). Clearing site data will delete it.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXAMPLE BOARD VIEW (Kyle's) -->
+<div class="layout" id="view-example" style="display:none;">
   <div class="main">
     <!-- STATS -->
     <div class="stats-grid">
@@ -780,7 +927,115 @@ function filterCmd(){
   });
 }
 
-window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();});
+window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoard();});
+
+// ── Tabs ──────────────────────────────────────────────────────────
+const TAB_KEY='yjb_active_tab_v1';
+function switchTab(which){
+  const u=document.getElementById('view-user'),e=document.getElementById('view-example');
+  const tu=document.getElementById('tab-user'),te=document.getElementById('tab-example');
+  if(which==='example'){u.style.display='none';e.style.display='grid';tu.classList.remove('active');te.classList.add('active');}
+  else{u.style.display='grid';e.style.display='none';te.classList.remove('active');tu.classList.add('active');}
+  try{localStorage.setItem(TAB_KEY,which);}catch(_){ }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── User Board (localStorage) ─────────────────────────────────────
+const U_JOBS_KEY='yjb_user_jobs_v1';
+const U_RESUMES_KEY='yjb_user_resumes_v1';
+const U_SOURCES_KEY='yjb_user_sources_v1';
+const STAGES=['Saved','Applied','Interview','Offer','Rejected'];
+
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(_){return [];}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){ }}
+
+function initUserBoard(){
+  const saved=(()=>{try{return localStorage.getItem(TAB_KEY);}catch(_){return null;}})();
+  switchTab(saved==='example'?'example':'user');
+  renderUserResumes();
+  renderUserJobs();
+  renderUserSources();
+}
+
+function userUploadResume(e){
+  const files=Array.from(e.target.files||[]);
+  const r=lsGet(U_RESUMES_KEY);
+  let pending=files.length;
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:ev.target.result,uploaded:new Date().toISOString()});
+      if(--pending===0){lsSet(U_RESUMES_KEY,r);renderUserResumes();}
+    };
+    reader.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+
+function renderUserResumes(){
+  const r=lsGet(U_RESUMES_KEY);
+  const list=document.getElementById('user-resume-list');
+  if(!list)return;
+  if(!r.length){list.innerHTML='';return;}
+  list.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">YOUR RESUMES</div>'+r.map(x=>`<span class="resume-chip"><a href="${x.data}" download="${x.name.replace(/"/g,'')}" style="color:inherit;text-decoration:none;">📄 ${x.name}</a><button onclick="removeUserResume('${x.id}')" title="Remove">×</button></span>`).join('');
+}
+function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));renderUserResumes();}
+
+function addUserJob(){
+  const title=document.getElementById('uj-title').value.trim();
+  const company=document.getElementById('uj-company').value.trim();
+  if(!title||!company){alert('Job title and company are required.');return;}
+  const job={id:'j'+Date.now(),title,company,location:document.getElementById('uj-location').value.trim(),url:document.getElementById('uj-url').value.trim(),notes:document.getElementById('uj-notes').value.trim(),stage:'Saved',added:new Date().toISOString()};
+  const jobs=lsGet(U_JOBS_KEY);jobs.unshift(job);lsSet(U_JOBS_KEY,jobs);
+  clearJobForm();renderUserJobs();
+}
+function clearJobForm(){['uj-title','uj-company','uj-location','uj-url','uj-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+function removeUserJob(id){if(!confirm('Remove this job?'))return;lsSet(U_JOBS_KEY,lsGet(U_JOBS_KEY).filter(j=>j.id!==id));renderUserJobs();}
+function updateUserJobStage(id,stage){const jobs=lsGet(U_JOBS_KEY);const j=jobs.find(x=>x.id===id);if(j){j.stage=stage;lsSet(U_JOBS_KEY,jobs);renderUserJobs();}}
+
+function renderUserJobs(){
+  const jobs=lsGet(U_JOBS_KEY);
+  const list=document.getElementById('user-job-list');
+  const count=document.getElementById('user-job-count');
+  if(!list)return;
+  count.textContent=jobs.length+' role'+(jobs.length===1?'':'s');
+  document.getElementById('user-stat-total').textContent=jobs.length;
+  document.getElementById('user-stat-applied').textContent=jobs.filter(j=>j.stage==='Applied').length;
+  document.getElementById('user-stat-interview').textContent=jobs.filter(j=>j.stage==='Interview').length;
+  document.getElementById('user-stat-offer').textContent=jobs.filter(j=>j.stage==='Offer').length;
+  const pipeline=document.getElementById('user-pipeline');
+  if(pipeline){pipeline.innerHTML=STAGES.map(s=>{const n=jobs.filter(j=>j.stage===s).length;return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${s}</span><span style="font-family:var(--mono);font-weight:700;color:var(--text);">${n}</span></div>`;}).join('');}
+  if(!jobs.length){list.innerHTML='<div class="empty-state">No jobs yet. Add one above to start tracking.</div>';return;}
+  list.innerHTML=jobs.map(j=>{
+    const stageOpts=STAGES.map(s=>`<option value="${s}" ${j.stage===s?'selected':''}>${s}</option>`).join('');
+    const titleHtml=j.url?`<a href="${j.url}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>`:escapeHtml(j.title);
+    const metaBits=[escapeHtml(j.company),j.location?escapeHtml(j.location):''].filter(Boolean).join(' · ');
+    const notes=j.notes?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(j.notes)}</div>`:'';
+    return `<div class="user-job-card"><div class="ujc-main"><div class="ujc-title">${titleHtml}</div><div class="ujc-meta">${metaBits}</div>${notes}</div><div class="ujc-right"><select class="stage-select" onchange="updateUserJobStage('${j.id}',this.value)">${stageOpts}</select><button class="icon-btn" onclick="removeUserJob('${j.id}')" title="Remove">✕</button></div></div>`;
+  }).join('');
+}
+
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// User Sources of Me
+function renderUserSources(){
+  const list=document.getElementById('user-sources-list');if(!list)return;
+  const s=lsGet(U_SOURCES_KEY);
+  if(!s.length){list.innerHTML='<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:6px;">No sources yet.</div>';return;}
+  list.innerHTML=s.map(src=>{
+    const icon=src.type==='file'?'📄':src.type==='linkedin'?'🔗':'📝';
+    const label=src.type==='file'?src.name:src.type==='linkedin'?src.value:(src.value.slice(0,50)+(src.value.length>50?'...':''));
+    return `<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;"><span>${icon}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(label||'')}">${escapeHtml(label||'')}</span><button onclick="removeUserSource('${src.id}')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button></div>`;
+  }).join('');
+}
+function addUserSourceFile(e){
+  const files=Array.from(e.target.files||[]);const s=lsGet(U_SOURCES_KEY);let pending=files.length;
+  files.forEach(f=>{const reader=new FileReader();reader.onload=ev=>{s.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),type:'file',name:f.name,value:ev.target.result,size:f.size});if(--pending===0){lsSet(U_SOURCES_KEY,s);renderUserSources();}};reader.readAsDataURL(f);});
+  e.target.value='';
+}
+function addUserSourceLinkedIn(){const el=document.getElementById('user-src-linkedin');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'linkedin',value:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
+function addUserSourceText(){const el=document.getElementById('user-src-text');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'text',value:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
+function removeUserSource(id){lsSet(U_SOURCES_KEY,lsGet(U_SOURCES_KEY).filter(x=>x.id!==id));renderUserSources();}
 
 </script>
 </body>

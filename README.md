@@ -1,4 +1,4 @@
-# Kyle's Job Board
+# Your Job Board
 
 Dark-mode job board with AI fit scoring, resume tailoring, Hunter.io email finder, and LinkedIn mutual connection search.
 
