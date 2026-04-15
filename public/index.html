@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Job Board – A Kyle-Avi Project</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 :root{
   --bg:#f0f2f7;
@@ -373,17 +375,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </div>
       <div id="user-resume-list" style="margin-top:18px;"></div>
       <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:12px;font-family:var(--mono);">Search the top boards</div>
-        <div style="margin-bottom:12px;">
-          <input type="text" id="search-role" placeholder="Role (e.g., Product Manager)" style="width:100%;padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:var(--sans);">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:12px;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;">
+          <span id="matches-heading">Jobs matching your resume</span>
+          <span style="font-size:10px;color:var(--text-muted);cursor:pointer;text-transform:none;letter-spacing:0;font-family:var(--sans);font-weight:500;" onclick="document.getElementById('role-wrap').style.display='block';document.getElementById('search-role').focus();">refine ↗</span>
+        </div>
+        <div id="role-wrap" style="margin-bottom:12px;display:none;">
+          <input type="text" id="search-role" placeholder="Detected from your resume — edit to change" style="width:100%;padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:var(--sans);">
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="loc-options">
           <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked><span>Anywhere</span></label>
           <label class="loc-opt"><input type="radio" name="loc" value="remote"><span>Remote</span></label>
           <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
         </div>
+        <div id="detected-chip" style="margin-bottom:12px;font-size:12px;color:var(--text-secondary);display:none;">Searching for: <strong id="detected-role" style="color:var(--blue);"></strong></div>
         <div id="search-links" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:10px;font-style:italic;">Fill in a role and click a board to search.</div>
       </div>
     </div>
   </div>
@@ -937,6 +942,8 @@ function toggleSources(){
 function renderSearchLinks(){
   const wrap=document.getElementById('search-links');if(!wrap)return;
   const role=(document.getElementById('search-role')||{}).value||'';
+  const chip=document.getElementById('detected-chip'),chipVal=document.getElementById('detected-role');
+  if(chip&&chipVal){if(role.trim()){chip.style.display='block';chipVal.textContent=role;}else{chip.style.display='none';}}
   const sel=document.querySelector('input[name="loc"]:checked');
   const locKey=sel?sel.value:'anywhere';
   const locLabel=locKey==='austin'?'Austin, TX':locKey==='remote'?'Remote':'';
@@ -964,13 +971,54 @@ function userUploadResume(e){
   let pending=files.length;
   files.forEach(f=>{
     const reader=new FileReader();
-    reader.onload=ev=>{
+    reader.onload=async ev=>{
       r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:ev.target.result,uploaded:new Date().toISOString()});
       if(--pending===0){lsSet(U_RESUMES_KEY,r);renderUserResumes();}
+      const role=await tryExtractRoleFromFile(f,ev.target.result);
+      if(role){
+        const input=document.getElementById('search-role');
+        if(input&&!input.value)input.value=role;
+        renderSearchLinks();
+        goFindJobs();
+      }else{
+        goFindJobs();
+      }
     };
     reader.readAsDataURL(f);
   });
   e.target.value='';
+}
+
+async function tryExtractRoleFromFile(file,dataUrl){
+  try{
+    let text='';
+    if(/\.pdf$/i.test(file.name)&&window.pdfjsLib){
+      const b64=dataUrl.split(',')[1];
+      const bin=atob(b64);const arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const pdf=await pdfjsLib.getDocument({data:arr}).promise;
+      for(let i=1;i<=Math.min(pdf.numPages,2);i++){
+        const p=await pdf.getPage(i);
+        const c=await p.getTextContent();
+        text+=c.items.map(it=>it.str).join(' ')+'\n';
+      }
+    }else if(/\.(txt|md)$/i.test(file.name)){
+      text=await file.text();
+    }
+    return guessRole(text+' '+file.name.replace(/[_\-.]/g,' '));
+  }catch(_){return '';}
+}
+
+function guessRole(text){
+  if(!text)return '';
+  const titleNouns='(Manager|Engineer|Designer|Analyst|Director|Specialist|Coordinator|Consultant|Developer|Architect|Scientist|Associate|Founder|Officer|Lead|Principal|Strategist|Producer|Researcher|Recruiter|Marketer|Planner|Advisor|Partner|Representative|Executive|Administrator|Operator|Editor|Writer|Accountant|Attorney|Nurse|Therapist|Teacher|Professor|Technician|Buyer|Trader|Advocate|Agent|Ambassador|Intern|Apprentice|VP|CEO|COO|CFO|CTO|CMO|CPO|Head)';
+  const modifiers='(Senior|Staff|Lead|Principal|Chief|Head|Junior|Associate|Executive|Global|Regional|Assistant|Vice)';
+  const domains='(Product|Program|Project|Engineering|Software|Data|Marketing|Sales|Operations|Finance|Design|UX|UI|Research|Business|Customer|Growth|Content|Community|People|HR|Legal|Strategy|Brand|Creative|Technical|Financial|Account|Quality|Mechanical|Electrical|Civil|Industrial|Full[- ]?Stack|Front[- ]?End|Back[- ]?End|Mobile|Cloud|DevOps|Security|Machine Learning|AI|Data Science|Analytics|Digital|Graphic|Motion|Visual|Content|Social Media|Event|Public Relations|Talent|Human Resources|Supply Chain|Procurement|Logistics|Risk|Tax|Audit|Investment|Portfolio|Real Estate|Policy)';
+  const re=new RegExp(`\\b(?:${modifiers}\\s+)?(?:${domains}\\s+)?${titleNouns}(?:\\s+(?:of|for|,)\\s+[A-Z][A-Za-z ]{2,30})?`,'g');
+  const matches=[...text.matchAll(re)].map(m=>m[0].trim()).filter(m=>m.length>3&&m.length<60);
+  if(!matches.length)return '';
+  const counts={};matches.forEach(m=>{counts[m]=(counts[m]||0)+1;});
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
 }
 
 function renderUserResumes(){
