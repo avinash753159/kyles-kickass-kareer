@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Job Board — A Kyle-Avi Project</title>
+<title>Your Job Board – A Kyle-Avi Project</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -338,7 +338,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="header-inner">
     <div class="brand">
       <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
-      <div class="brand-text">your <em>job board</em> <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:500;margin-left:6px;letter-spacing:0;">— a Kyle-Avi project</span></div>
+      <div class="brand-text">Your <em>Job Board</em> <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:500;margin-left:6px;letter-spacing:0;">– A Kyle-Avi Project</span></div>
     </div>
     <div class="header-right">
       <div class="live-label"><div class="live-dot"></div>Live</div>
@@ -358,7 +358,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   <div class="main">
     <div class="user-hero">
       <h1 id="user-hero-title">Welcome to Your Job Board</h1>
-      <p id="user-hero-sub">Upload your resume, add jobs you're tracking, and keep everything in one place. Your data stays on this device — nothing is sent to a server.</p>
+      <p id="user-hero-sub">Upload your resume and we'll point you to matching roles across the top job boards. Everything stays on this device.</p>
       <div class="user-hero-actions">
         <label class="primary-btn" style="cursor:pointer;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -369,100 +369,44 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </div>
       <div id="user-resume-list" style="margin-top:18px;"></div>
       <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;font-family:var(--mono);">Next — search these boards, then paste roles below</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          <a class="source-tag" href="https://www.linkedin.com/jobs/" target="_blank">LinkedIn Jobs</a>
-          <a class="source-tag" href="https://www.indeed.com" target="_blank">Indeed</a>
-          <a class="source-tag" href="https://wellfound.com/jobs" target="_blank">Wellfound</a>
-          <a class="source-tag" href="https://www.ycombinator.com/jobs" target="_blank">Y Combinator</a>
-          <a class="source-tag" href="https://jobs.ashbyhq.com" target="_blank">Ashby</a>
-          <a class="source-tag" href="https://job-boards.greenhouse.io" target="_blank">Greenhouse</a>
-          <a class="source-tag" href="https://apply.workable.com" target="_blank">Workable</a>
-          <a class="source-tag" href="https://startup.jobs" target="_blank">Startup.jobs</a>
-          <a class="source-tag" href="https://www.builtin.com" target="_blank">Built In</a>
-          <a class="source-tag" href="https://www.ziprecruiter.com" target="_blank">ZipRecruiter</a>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:12px;font-family:var(--mono);">Search the top boards</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <input type="text" id="search-role" placeholder="Role (e.g., Product Manager)" style="padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:var(--sans);">
+          <input type="text" id="search-loc" placeholder="Location (e.g., Remote, Austin)" style="padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:var(--sans);">
         </div>
+        <div id="search-links" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:10px;font-style:italic;">Fill in a role to open targeted searches on each board. Location is optional.</div>
       </div>
     </div>
-
-    <!-- STATS -->
-    <div class="stats-grid">
-      <div class="stat-card primary">
-        <div class="stat-value" id="user-stat-total">0</div>
-        <div class="stat-label">Jobs Tracked</div>
-        <div class="stat-sub">On this device</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--blue);" id="user-stat-applied">0</div>
-        <div class="stat-label">Applied</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--amber);" id="user-stat-interview">0</div>
-        <div class="stat-label">Interviewing</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--green);" id="user-stat-offer">0</div>
-        <div class="stat-label">Offers</div>
-      </div>
-    </div>
-
-    <!-- ADD JOB FORM -->
-    <div class="add-job-form" id="add-job-form">
-      <h3>Add a job you're tracking</h3>
-      <div class="row">
-        <input type="text" id="uj-title" placeholder="Job title (e.g., Product Manager)">
-        <input type="text" id="uj-company" placeholder="Company">
-      </div>
-      <div class="row">
-        <input type="text" id="uj-location" placeholder="Location (e.g., Remote, Austin TX)">
-        <input type="url" id="uj-url" placeholder="Job posting URL (optional)">
-      </div>
-      <textarea id="uj-notes" placeholder="Notes, salary, contact info, why it's a fit..."></textarea>
-      <div class="actions">
-        <button class="secondary-btn" onclick="clearJobForm()">Clear</button>
-        <button class="primary-btn" onclick="addUserJob()">Add job</button>
-      </div>
-    </div>
-
-    <!-- USER JOB LIST -->
-    <div class="sec-header">
-      <div>
-        <div class="sec-title">Your Jobs</div>
-        <div class="sec-subtitle">tracked locally on this device</div>
-      </div>
-      <div class="sec-badge" id="user-job-count">0 roles</div>
-    </div>
-    <div id="user-job-list"></div>
   </div>
 
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="side-card">
-      <h3>Pipeline</h3>
-      <div id="user-pipeline" style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);"></div>
-    </div>
-    <div class="side-card">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Sources of You</span>
-      </h3>
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Add resumes, LinkedIn, and notes about yourself. Everything stays in your browser.</div>
-      <div id="user-sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
-          + Upload resume/file
-          <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="addUserSourceFile(event)" multiple>
-        </label>
-        <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
-        <textarea id="user-src-text" placeholder="What you want, strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
-        <button onclick="addUserSourceText()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;">+ Save notes</button>
+      <h3>Tips</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+        <div>Upload your resume above, then hit <strong style="color:var(--blue);">Find Jobs</strong> to search every major board in one click.</div>
+        <div>Check out the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see what a fully-built board looks like.</div>
+        <div>All data is stored in your browser (localStorage). Clearing site data will delete it.</div>
       </div>
     </div>
     <div class="side-card">
-      <h3>Tips</h3>
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
-        <div>Check out the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see what a fully-filled board looks like.</div>
-        <div>Paste any job URL in the form on the left to start tracking it.</div>
-        <div>All data is stored in your browser (localStorage). Clearing site data will delete it.</div>
+      <h3 style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSources()">
+        <span>Optional: tell us more about you</span>
+        <span id="sources-chev" style="font-size:10px;color:var(--text-muted);transition:transform .2s;">▼</span>
+      </h3>
+      <div id="sources-body" style="display:none;">
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Add LinkedIn, notes, or extra files. Helps you remember what you're looking for. Everything stays in your browser.</div>
+        <div id="user-sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
+            + Upload file
+            <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="addUserSourceFile(event)" multiple>
+          </label>
+          <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
+          <textarea id="user-src-text" placeholder="What you want, strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
+          <button onclick="addUserSourceText()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;">+ Save notes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -968,8 +912,40 @@ function initUserBoard(){
   const saved=(()=>{try{return localStorage.getItem(TAB_KEY);}catch(_){return null;}})();
   switchTab(saved==='example'?'example':'user');
   renderUserResumes();
-  renderUserJobs();
   renderUserSources();
+  const r=document.getElementById('search-role'),l=document.getElementById('search-loc');
+  if(r)r.addEventListener('input',renderSearchLinks);
+  if(l)l.addEventListener('input',renderSearchLinks);
+  renderSearchLinks();
+}
+function toggleSources(){
+  const body=document.getElementById('sources-body');
+  const chev=document.getElementById('sources-chev');
+  if(!body)return;
+  const open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(chev)chev.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+function renderSearchLinks(){
+  const wrap=document.getElementById('search-links');if(!wrap)return;
+  const role=(document.getElementById('search-role')||{}).value||'';
+  const loc=(document.getElementById('search-loc')||{}).value||'';
+  const q=encodeURIComponent(role.trim()),lq=encodeURIComponent(loc.trim());
+  const boards=[
+    ['LinkedIn',`https://www.linkedin.com/jobs/search/?keywords=${q}${lq?`&location=${lq}`:''}`],
+    ['Indeed',`https://www.indeed.com/jobs?q=${q}${lq?`&l=${lq}`:''}`],
+    ['Wellfound',`https://wellfound.com/jobs?q=${q}`],
+    ['Y Combinator',`https://www.ycombinator.com/jobs?query=${q}`],
+    ['Ashby',`https://jobs.ashbyhq.com/?query=${q}`],
+    ['Greenhouse',`https://job-boards.greenhouse.io/?query=${q}`],
+    ['Workable',`https://apply.workable.com/?query=${q}`],
+    ['Startup.jobs',`https://startup.jobs/?q=${q}`],
+    ['Built In',`https://www.builtin.com/jobs?search=${q}${lq?`&city=${lq}`:''}`],
+    ['ZipRecruiter',`https://www.ziprecruiter.com/jobs-search?search=${q}${lq?`&location=${lq}`:''}`],
+    ['Google Jobs',`https://www.google.com/search?q=${q}+jobs${lq?`+${lq}`:''}&ibp=htl;jobs`],
+    ['Otta',`https://app.otta.com/jobs/theme/all-jobs?keywords=${q}`]
+  ];
+  wrap.innerHTML=boards.map(([n,u])=>`<a class="source-tag" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join('');
 }
 
 function userUploadResume(e){
@@ -1008,8 +984,8 @@ function renderUserResumes(){
 function goFindJobs(){
   const panel=document.getElementById('go-panel');
   if(panel)panel.style.display='block';
-  document.getElementById('add-job-form').scrollIntoView({behavior:'smooth',block:'start'});
-  setTimeout(()=>{const el=document.getElementById('uj-title');if(el)el.focus();},400);
+  renderSearchLinks();
+  setTimeout(()=>{const el=document.getElementById('search-role');if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});}},50);
 }
 function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));renderUserResumes();}
 
