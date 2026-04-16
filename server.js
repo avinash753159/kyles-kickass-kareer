@@ -957,5 +957,48 @@ function scoreFit(job, keywords) {
   return Math.max(5, Math.min(98, raw));
 }
 
+// ── Company Info for Interview Prep ──────────────────────────────
+const COMPANY_INFO = {
+  'airbnb': { size: '6,000+', funding: 'Public (ABNB)', glassdoor: '4.1', industry: 'Travel & Hospitality', news: 'Expanding long-term stay offerings and experiences platform' },
+  'industrious': { size: '1,500+', funding: 'Series E ($250M)', glassdoor: '3.8', industry: 'Coworking & Real Estate', news: 'Largest premium flexible workspace provider in the US' },
+  'kindred': { size: '50-100', funding: 'Series A', glassdoor: '4.3', industry: 'Coliving & Community', news: 'Building coliving communities for remote workers' },
+  'hipcamp': { size: '100-200', funding: 'Series C ($57M)', glassdoor: '3.9', industry: 'Outdoor & Hospitality', news: 'Leading outdoor stays marketplace, expanding internationally' },
+  'stripe': { size: '8,000+', funding: 'Private ($95B valuation)', glassdoor: '4.2', industry: 'Fintech & Payments', news: 'Processing trillions in payment volume annually' },
+  'notion': { size: '800+', funding: 'Series C ($10B valuation)', glassdoor: '4.0', industry: 'Productivity & SaaS', news: 'AI-powered workspace features driving enterprise adoption' },
+  'figma': { size: '1,500+', funding: 'Acquired by Adobe (cancelled), independent', glassdoor: '4.4', industry: 'Design & SaaS', news: 'Leading collaborative design tool, expanding into development' },
+  'ramp': { size: '1,000+', funding: 'Series D ($8.1B valuation)', glassdoor: '4.5', industry: 'Fintech & B2B', news: 'Fastest-growing corporate card and spend management platform' },
+  'sonder': { size: '2,000+', funding: 'Public (SOND)', glassdoor: '3.2', industry: 'Hospitality & Real Estate', news: 'Restructuring operations after layoffs, focusing on profitability' },
+  'clipboard health': { size: '1,500+', funding: 'Series C ($1.3B valuation)', glassdoor: '3.5', industry: 'Healthcare & Marketplace', news: 'On-demand healthcare staffing marketplace growing rapidly' },
+  'capital factory': { size: '50-100', funding: 'Private', glassdoor: '4.0', industry: 'Startup Accelerator & Coworking', news: 'Austin-based accelerator and innovation hub' },
+  'teero': { size: '10-50', funding: 'Seed', glassdoor: 'N/A', industry: 'Proptech & Real Estate', news: 'Streamlining real estate transactions' },
+  'homeward': { size: '100-200', funding: 'Series B ($136M)', glassdoor: '4.1', industry: 'Proptech & Real Estate', news: 'Austin-based power buyer platform for home purchases' },
+  'duolingo': { size: '800+', funding: 'Public (DUOL)', glassdoor: '4.3', industry: 'Edtech & Consumer', news: 'AI-powered language learning, strong subscriber growth' },
+  'nextdoor': { size: '1,000+', funding: 'Public (KIND)', glassdoor: '3.4', industry: 'Social & Local', news: 'Neighborhood social network monetizing through local advertising' },
+  'eventbrite': { size: '1,000+', funding: 'Public (EB)', glassdoor: '3.5', industry: 'Events & Marketplace', news: 'Pivoting to creator-focused events platform' },
+  'flexport': { size: '3,000+', funding: 'Series E ($8B valuation)', glassdoor: '3.3', industry: 'Logistics & Supply Chain', news: 'Global freight forwarder rebuilding after leadership changes' },
+  'rippling': { size: '3,000+', funding: 'Series F ($13.5B valuation)', glassdoor: '3.8', industry: 'HR Tech & B2B SaaS', news: 'Unified workforce platform expanding globally' },
+  'thumbtack': { size: '1,000+', funding: 'Series G ($3.2B valuation)', glassdoor: '3.6', industry: 'Marketplace & Local Services', news: 'Local services marketplace adding AI matching' },
+  'the commune': { size: '10-50', funding: 'Bootstrapped', glassdoor: 'N/A', industry: 'Coliving & Community', news: 'Austin-based intentional community spaces' },
+  'drillbit': { size: '10-50', funding: 'Seed', glassdoor: 'N/A', industry: 'Energy & Technology', news: 'Oil and gas technology startup' },
+  'closinglock': { size: '50-100', funding: 'Series A', glassdoor: '4.2', industry: 'Fintech & Real Estate', news: 'Austin-based wire fraud prevention for real estate' },
+  'vuka collective': { size: '10-50', funding: 'Private', glassdoor: 'N/A', industry: 'Coworking & Community', news: 'Austin-based coworking and event spaces' },
+};
+
+app.get('/api/company-info', (req, res) => {
+  const company = (req.query.company || '').trim().toLowerCase();
+  if (!company) return res.json({ size: 'Unknown', industry: 'Technology' });
+
+  // Exact match
+  if (COMPANY_INFO[company]) return res.json(COMPANY_INFO[company]);
+
+  // Partial match fallback
+  const partial = Object.keys(COMPANY_INFO).find(k =>
+    k.includes(company) || company.includes(k)
+  );
+  if (partial) return res.json(COMPANY_INFO[partial]);
+
+  res.json({ size: 'Unknown', funding: 'Unknown', glassdoor: 'N/A', industry: 'Technology', news: '' });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
