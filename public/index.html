@@ -359,84 +359,97 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
 </div>
 
-<!-- USER BOARD VIEW -->
-<div class="layout" id="view-user">
-  <div class="main">
-    <div class="user-hero">
-      <h1 id="user-hero-title">Welcome to Your Job Board</h1>
-      <p id="user-hero-sub">Upload your resume and we'll point you to matching roles across the top job boards. Everything stays on this device.</p>
-      <div class="user-hero-actions">
-        <label class="primary-btn" style="cursor:pointer;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span id="upload-btn-label">Upload your resume</span>
-          <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
-        </label>
-        <button class="primary-btn" id="go-btn" style="display:none;background:var(--blue);" onclick="goFindJobs()">Find Jobs ↓</button>
-      </div>
-      <div id="user-resume-list" style="margin-top:18px;"></div>
-      <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="loc-options">
-          <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked><span>Anywhere</span></label>
-          <label class="loc-opt"><input type="radio" name="loc" value="remote"><span>Remote</span></label>
-          <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
-        </div>
-        <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
-      </div>
+<!-- USER: Upload Screen (before search) -->
+<div id="view-user-upload" style="max-width:680px;margin:40px auto;padding:0 32px;">
+  <div class="user-hero">
+    <h1>Welcome to Your Job Board</h1>
+    <p style="font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;">Upload your resume and we'll find matching roles from live job boards.</p>
+    <div class="user-hero-actions">
+      <label class="primary-btn" style="cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span id="upload-btn-label">Upload your resume</span>
+        <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
+      </label>
     </div>
-
-    <!-- LOADING STATE -->
-    <div id="user-loading" style="display:none;text-align:center;padding:40px 20px;">
-      <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 16px;"></div>
-      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Scanning job boards...</div>
-      <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);" id="loading-sub">Matching your resume against live postings</div>
-    </div>
-
-    <!-- RESULTS (Kyle-style dashboard) -->
-    <div id="user-results" style="display:none;">
-      <div class="stats-grid">
-        <div class="stat-card primary">
-          <div class="stat-value" id="ur-total">0</div>
-          <div class="stat-label">Jobs Matched</div>
-          <div class="stat-sub">Updated just now</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
-          <div class="stat-label">Hot Matches</div>
-          <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">85%+ fit score</span></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
-          <div class="stat-label">Strong Fit</div>
-          <div class="stat-sub">70–84% fit</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
-          <div class="stat-label">Good Fit</div>
-          <div class="stat-sub">Below 70%</div>
-        </div>
+    <div id="user-resume-list" style="margin-top:18px;"></div>
+    <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:center;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;" id="loc-options">
+        <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked><span>Anywhere</span></label>
+        <label class="loc-opt"><input type="radio" name="loc" value="remote"><span>Remote</span></label>
+        <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
       </div>
-
-      <div class="last-run-bar">
-        <div class="run-dot"></div>
-        <span>Matched: <strong id="ur-run-time">just now</strong></span>
-        <button class="run-again" onclick="searchJobs()">Search again</button>
-      </div>
-
-      <div class="sec-header">
-        <div>
-          <div class="sec-title">All Matches</div>
-          <div class="sec-subtitle">real postings matched to your resume</div>
-        </div>
-        <div class="sec-badge" id="ur-count">0 roles</div>
-      </div>
-      <div class="job-list" id="ur-job-list"></div>
+      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
     </div>
   </div>
+  <div style="text-align:center;margin-top:16px;">
+    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Example tab</strong> to see what results look like</span>
+  </div>
+</div>
 
-  <!-- SIDEBAR -->
+<!-- USER: Results Dashboard (after search, same layout as Kyle's) -->
+<div class="layout" id="view-user-results" style="display:none;">
+  <div class="main">
+    <!-- Compact resume bar -->
+    <div class="last-run-bar" style="margin-bottom:16px;">
+      <div class="run-dot"></div>
+      <span id="ur-resume-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="anywhere" checked onchange="document.querySelector('input[name=loc][value=anywhere]').checked=true"><span>Anywhere</span></label>
+        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="remote" onchange="document.querySelector('input[name=loc][value=remote]').checked=true"><span>Remote</span></label>
+        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="austin" onchange="document.querySelector('input[name=loc][value=austin]').checked=true"><span>Austin</span></label>
+      </div>
+      <button class="run-again" onclick="searchJobs()">Search again</button>
+      <label style="font-size:11px;color:var(--text-muted);cursor:pointer;font-family:var(--mono);">
+        New resume <input type="file" accept=".pdf,.doc,.docx,.txt" style="display:none;" onchange="userUploadResume(event);searchJobs();">
+      </label>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-value" id="ur-total">0</div>
+        <div class="stat-label">Jobs Matched</div>
+        <div class="stat-sub">Updated just now</div>
+        <svg class="stat-chart" viewBox="0 0 120 50"><polyline points="0,40 20,35 40,38 60,25 80,28 100,15 120,8" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/><polygon points="0,40 20,35 40,38 60,25 80,28 100,15 120,8 120,50 0,50" fill="rgba(255,255,255,0.1)"/></svg>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
+        <div class="stat-label">Hot Matches</div>
+        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">85%+ fit</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
+        <div class="stat-label">Strong Fit</div>
+        <div class="stat-sub">70–84% fit</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
+        <div class="stat-label">Good Fit</div>
+        <div class="stat-sub">Below 70%</div>
+      </div>
+    </div>
+
+    <!-- Last run -->
+    <div class="last-run-bar">
+      <div class="run-dot"></div>
+      <span>Last searched: <strong id="ur-run-time">just now</strong></span>
+      <button class="run-again" onclick="searchJobs()">Run again</button>
+    </div>
+
+    <!-- Job list -->
+    <div class="sec-header">
+      <div>
+        <div class="sec-title">All Matches</div>
+        <div class="sec-subtitle">real postings · matched to your resume</div>
+      </div>
+      <div class="sec-badge" id="ur-count">0 roles</div>
+    </div>
+    <div class="job-list" id="ur-job-list"></div>
+  </div>
+
+  <!-- Sidebar -->
   <div class="sidebar">
-    <!-- Fit Distribution (populated after search) -->
-    <div class="side-card" id="ur-donut-card" style="display:none;">
+    <div class="side-card" id="ur-donut-card">
       <h3>Fit Distribution</h3>
       <div class="donut-wrap">
         <svg width="100" height="100" viewBox="0 0 100 100" id="ur-donut"><circle cx="50" cy="50" r="38" fill="none" stroke="#f0f2f7" stroke-width="12"/></svg>
@@ -447,18 +460,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         </div>
       </div>
     </div>
-    <!-- Top 5 -->
-    <div class="side-card" id="ur-top5-card" style="display:none;">
+    <div class="side-card" id="ur-top5-card">
       <h3>Top 5 Matches</h3>
       <div class="top-companies" id="ur-top5"></div>
-    </div>
-    <div class="side-card">
-      <h3>Tips</h3>
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
-        <div>Upload your resume, pick a location, and hit <strong style="color:var(--blue);">Search Jobs</strong>.</div>
-        <div>Check the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see a fully-built board.</div>
-        <div>All data stays in your browser.</div>
-      </div>
     </div>
     <div class="side-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSources()">
@@ -480,6 +484,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </div>
     </div>
   </div>
+</div>
+
+<!-- LOADING overlay -->
+<div id="user-loading" style="display:none;max-width:680px;margin:80px auto;text-align:center;padding:40px 20px;">
+  <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 16px;"></div>
+  <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Scanning job boards...</div>
+  <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">Matching your resume against live postings</div>
 </div>
 
 <!-- EXAMPLE BOARD VIEW (Kyle's) -->
@@ -961,12 +972,25 @@ window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoa
 // ── Tabs ──────────────────────────────────────────────────────────
 const TAB_KEY='yjb_active_tab_v1';
 function switchTab(which){
-  const u=document.getElementById('view-user'),e=document.getElementById('view-example');
+  const upload=document.getElementById('view-user-upload');
+  const results=document.getElementById('view-user-results');
+  const loading=document.getElementById('user-loading');
+  const ex=document.getElementById('view-example');
   const tu=document.getElementById('tab-user'),te=document.getElementById('tab-example');
-  if(which==='example'){u.style.display='none';e.style.display='grid';tu.classList.remove('active');te.classList.add('active');}
-  else{u.style.display='grid';e.style.display='none';te.classList.remove('active');tu.classList.add('active');}
+  upload.style.display='none';results.style.display='none';loading.style.display='none';ex.style.display='none';
+  if(which==='example'){ex.style.display='grid';tu.classList.remove('active');te.classList.add('active');}
+  else{
+    if(document.getElementById('ur-job-list').innerHTML){results.style.display='grid';}
+    else{upload.style.display='block';}
+    te.classList.remove('active');tu.classList.add('active');
+  }
   try{localStorage.setItem(TAB_KEY,which);}catch(_){ }
   window.scrollTo({top:0,behavior:'smooth'});
+}
+function showUserScreen(screen){
+  document.getElementById('view-user-upload').style.display=screen==='upload'?'block':'none';
+  document.getElementById('view-user-results').style.display=screen==='results'?'grid':'none';
+  document.getElementById('user-loading').style.display=screen==='loading'?'block':'none';
 }
 
 // ── User Board (localStorage) ─────────────────────────────────────
@@ -980,9 +1004,9 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){ }}
 
 function initUserBoard(){
   const saved=(()=>{try{return localStorage.getItem(TAB_KEY);}catch(_){return null;}})();
-  switchTab(saved==='example'?'example':'user');
   renderUserResumes();
   renderUserSources();
+  switchTab(saved==='example'?'example':'user');
   const r=document.getElementById('search-role');
   if(r)r.addEventListener('input',renderSearchLinks);
   document.querySelectorAll('input[name="loc"]').forEach(el=>el.addEventListener('change',renderSearchLinks));
@@ -1019,10 +1043,8 @@ async function searchJobs(){
   }
   if(!lastResumeText){alert('Please upload a resume first.');return;}
   const btn=document.getElementById('search-jobs-btn');
-  const loading=document.getElementById('user-loading');
-  const results=document.getElementById('user-results');
-  btn.disabled=true;btn.textContent='Searching...';
-  loading.style.display='block';results.style.display='none';
+  if(btn){btn.disabled=true;btn.textContent='Searching...';}
+  showUserScreen('loading');
 
   const sel=document.querySelector('input[name="loc"]:checked');
   const loc=sel?sel.value:'anywhere';
@@ -1033,17 +1055,18 @@ async function searchJobs(){
     if(data.error)throw new Error(data.error);
     renderUserResults(data.jobs||[]);
   }catch(e){
-    loading.innerHTML='<div style="color:var(--red);font-size:13px;">Error: '+escapeHtml(e.message)+'</div>';
-    setTimeout(()=>{loading.style.display='none';},3000);
+    showUserScreen('upload');
+    alert('Search error: '+e.message);
   }finally{
-    btn.disabled=false;btn.textContent='Search Jobs';
+    if(btn){btn.disabled=false;btn.textContent='Search Jobs';}
   }
 }
 
 function renderUserResults(jobs){
-  document.getElementById('user-loading').style.display='none';
-  const res=document.getElementById('user-results');
-  res.style.display='block';
+  showUserScreen('results');
+  const resumes=lsGet(U_RESUMES_KEY);
+  const rn=document.getElementById('ur-resume-name');
+  if(rn)rn.textContent=resumes.length?resumes[0].name:'Your resume';
 
   const hot=jobs.filter(j=>j.tier==='hot').length;
   const strong=jobs.filter(j=>j.tier==='strong').length;
@@ -1057,7 +1080,6 @@ function renderUserResults(jobs){
   document.getElementById('ur-run-time').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 
   // Donut
-  const donutCard=document.getElementById('ur-donut-card');donutCard.style.display='block';
   const svg=document.getElementById('ur-donut');
   svg.querySelectorAll('circle:not(:first-child)').forEach(c=>c.remove());
   const circ=2*Math.PI*38;let offset=0;
@@ -1071,7 +1093,6 @@ function renderUserResults(jobs){
   });
 
   // Top 5
-  const top5Card=document.getElementById('ur-top5-card');top5Card.style.display='block';
   const top5=document.getElementById('ur-top5');top5.innerHTML='';
   jobs.slice(0,5).forEach(j=>{
     const bg=j.tier==='hot'?'var(--green-light)':j.tier==='strong'?'var(--blue-light)':'var(--amber-light)';
@@ -1099,7 +1120,7 @@ function renderUserResults(jobs){
     list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span><span class="pill">${escapeHtml(j.source)}</span></div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div><div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
-  res.scrollIntoView({behavior:'smooth',block:'start'});
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function renderSearchLinks(){
   const wrap=document.getElementById('search-links');if(!wrap)return;
