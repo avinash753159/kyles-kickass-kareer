@@ -563,7 +563,7 @@ app.post('/api/find-jobs', async (req, res) => {
       .sort((a, b) => b.fit - a.fit);
 
     // Filter out clearly non-English-market jobs from all results
-    const nonEnglishMarket = /\b(india|china|shanghai|beijing|japan|tokyo|korea|seoul|france|paris|germany|berlin|munich|karlsruhe|spain|madrid|barcelona|brazil|s[aã]o paulo|nigeria|philippines|pakistan|latam|latin america|asia|africa|middle east|emea|apac|europe|singapore|hong kong|taiwan|thailand|vietnam|indonesia|malaysia|mexico|colombia|argentina|chile|peru|egypt|turkey|dubai|uae|saudi|qatar|russia|moscow|poland|czech|romania|hungary|ukraine|bangladesh|sri lanka|nepal)\b/i;
+    const nonEnglishMarket = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france|paris|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|s[aã]o paulo|nigeria|lagos|philippines|manila|pakistan|karachi|latam|latin america|asia|africa|middle east|emea|apac|europe|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|mexico|colombia|bogota|argentina|buenos aires|chile|santiago|peru|lima|egypt|cairo|turkey|istanbul|dubai|uae|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal)\b/i;
     scored = scored.filter(j => {
       const loc = (j.location || '').toLowerCase();
       const title = (j.title || '').toLowerCase();
@@ -805,9 +805,29 @@ const GENERIC_RESUME_WORDS = new Set([
 function extractResumeKeywords(text) {
   const lower = text.toLowerCase();
 
-  // 1. Extract job titles from resume
-  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of)?\s*(?:product|program|project|engineering|software|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate)\b/gi;
+  // 1. Extract job titles from resume (multiple patterns)
+  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of|founder)?\s*(?:product|program|project|engineering|software|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate|leader|owner|operator)\b/gi;
   const titles = [...new Set([...text.matchAll(titleRe)].map(m => m[0].trim().toLowerCase()))];
+  // Also extract "X & Y" compound titles like "Product & Operations"
+  const compoundRe = /\b(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\s*[&+]\s*(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\b/gi;
+  [...text.matchAll(compoundRe)].forEach(m => {
+    const parts = m[0].toLowerCase().split(/\s*[&+]\s*/);
+    parts.forEach(p => { if (p.length >= 4 && !titles.includes(p)) titles.push(p); });
+  });
+  // If no titles found, infer from section headers and key phrases
+  if (titles.length === 0) {
+    const inferRe = /\b(product[- ]?(?:leader|lead|ops|operations)|community[- ]?(?:manager|lead|builder|operations)|operations[- ]?(?:manager|lead|director)|general[- ]?manager|program[- ]?(?:manager|director)|growth[- ]?(?:manager|lead|marketing))\b/gi;
+    [...text.matchAll(inferRe)].forEach(m => {
+      const t = m[0].trim().toLowerCase();
+      if (!titles.includes(t)) titles.push(t);
+    });
+  }
+  // Last resort: use the domain + "manager"/"lead" combos from the domain skills
+  if (titles.length === 0) {
+    ['product', 'operations', 'community', 'marketing', 'growth'].forEach(d => {
+      if (lower.includes(d)) titles.push(d + ' manager');
+    });
+  }
 
   // 2. Domain terms (broad coverage beyond just tech)
   const domainTerms = [
@@ -903,6 +923,14 @@ function parseSalaryMid(salary) {
   return values[0];
 }
 
+// Generic skills that match most jobs — low signal
+const LOW_SIGNAL_SKILLS = new Set([
+  'marketing','sales','operations','strategy','analytics','growth','finance',
+  'leadership','management','consulting','accounting','education',
+  'reporting','training','research','analysis','stakeholder','pipeline',
+  'acquisition','onboarding','retention','budget','startup','founder'
+]);
+
 function scoreFit(job, keywords) {
   const jobText = ((job.title || '') + ' ' + (job.description || '') + ' ' +
     (Array.isArray(job.tags) ? job.tags.join(' ') : '') + ' ' +
@@ -910,64 +938,98 @@ function scoreFit(job, keywords) {
   const jobTitle = (job.title || '').toLowerCase();
 
   let titleScore = 0;
-  let skillCount = 0;
+  let highSkillCount = 0;
+  let lowSkillCount = 0;
   let wordCount = 0;
   let bigramCount = 0;
 
-  // Job title matches resume titles (e.g. "product manager" in "Senior Product Manager")
+  // 1. Title matches (highest signal — resume titles in job title)
   keywords.titles.forEach(t => {
-    if (jobText.includes(t)) titleScore += 15;
+    if (jobTitle.includes(t)) titleScore += 20;
+    else if (jobText.includes(t)) titleScore += 10;
     else {
-      const words = t.split(/\s+/).filter(w => w.length >= 3);
+      const words = t.split(/\s+/).filter(w => w.length >= 4);
       const matched = words.filter(w => jobTitle.includes(w)).length;
-      if (matched > 0) titleScore += Math.round((matched / words.length) * 10);
+      if (matched > 0) titleScore += Math.round((matched / words.length) * 12);
     }
   });
 
-  // Domain skills found in job posting
-  keywords.domainSkills.forEach(s => { if (jobText.includes(s)) skillCount++; });
+  // 2. Domain skills — split into high-signal (specific) vs low-signal (generic)
+  keywords.domainSkills.forEach(s => {
+    if (jobText.includes(s)) {
+      if (LOW_SIGNAL_SKILLS.has(s)) lowSkillCount++;
+      else highSkillCount++;
+    }
+  });
 
-  // Resume-specific words found in job
+  // 3. Resume words in job
   keywords.specificWords.forEach(w => {
     if (jobTitle.includes(w)) wordCount += 2;
     else if (jobText.includes(w)) wordCount++;
   });
 
-  // Bigram matches
+  // 4. Bigram matches (high signal — two-word phrases are specific)
   keywords.specificBigrams.forEach(bg => { if (jobText.includes(bg)) bigramCount++; });
 
-  // Core scoring dimensions (same as before but base reduced)
-  const base = 15;
-  const titleBonus = Math.min(25, titleScore);
-  const skillBonus = Math.min(30, skillCount * 5);   // 6+ skill matches = max
-  const wordBonus = Math.min(15, wordCount * 2);      // 8+ word matches = max
-  const bigramBonus = Math.min(8, bigramCount * 4);    // 2+ bigram matches = max
+  // 5. Title MISMATCH penalty — if job title is clearly a different field
+  let mismatchPenalty = 0;
+  const resumeHasTech = keywords.domainSkills.some(s => ['javascript','python','java','react','node','aws','kubernetes','docker','machine learning','data science','ci/cd','devops','sql','terraform','golang','rust','typescript'].includes(s));
+  const resumeHasBiz = keywords.domainSkills.some(s => ['community','hospitality','coliving','coworking','real estate','product management','event planning','property management','proptech'].includes(s));
+  if (resumeHasBiz && !resumeHasTech) {
+    // Business/ops resume seeing technical jobs = heavy penalty
+    if (/\b(software engineer|data engineer|data scientist|ml engineer|devops engineer|sre|backend engineer|frontend engineer|full.?stack engineer|machine learning|ai engineer|analytics engineer|security engineer|infrastructure engineer|platform engineer|site reliability|cloud engineer)\b/i.test(jobTitle)) {
+      mismatchPenalty = -30;
+    }
+    // Science/quant roles = penalty
+    if (/\b(data science|data scientist|research scientist|quantitative|statistician|bioinformatics)\b/i.test(jobTitle)) {
+      mismatchPenalty = -25;
+    }
+    // Unrelated specialist roles = penalty
+    if (/\b(stock administrator|payroll|accounts? payable|accounts? receivable|bookkeeper|tax analyst|auditor|compliance officer|legal counsel|paralegal|nurse|pharmacist|physician|dental|veterinary)\b/i.test(jobTitle)) {
+      mismatchPenalty = -20;
+    }
+  }
+  if (resumeHasTech && !resumeHasBiz) {
+    // Tech resume seeing pure sales/biz dev = penalty
+    if (/\b(account executive|business development representative|sales representative|sales manager|bdr|sdr|insurance agent|real estate agent|loan officer)\b/i.test(jobTitle)) {
+      mismatchPenalty = -20;
+    }
+  }
+  // Universal: penalize roles clearly unrelated to ANY resume
+  if (!resumeHasTech && /\b(senior|staff|principal|lead)?\s*(software|backend|frontend|full.?stack|mobile|ios|android|devops|cloud|platform|infra)\s*(engineer|developer)\b/i.test(jobTitle)) {
+    mismatchPenalty = Math.min(mismatchPenalty, -20);
+  }
 
-  // New dimensions
-  // Posting freshness
+  // Scoring with differentiated weights
+  const base = 10;
+  const titleBonus = Math.min(30, titleScore);
+  const highSkillBonus = Math.min(25, highSkillCount * 8);  // Specific skills worth more
+  const lowSkillBonus = Math.min(10, lowSkillCount * 2);     // Generic skills capped low
+  const wordBonus = Math.min(10, wordCount);
+  const bigramBonus = Math.min(10, bigramCount * 5);
+
+  // Freshness
   const days = parseDaysAgo(job.posted);
   let freshnessBonus = 0;
   if (days !== null) {
-    if (days <= 7) freshnessBonus = 10;
-    else if (days <= 14) freshnessBonus = 5;
+    if (days <= 7) freshnessBonus = 8;
+    else if (days <= 14) freshnessBonus = 4;
     else if (days <= 30) freshnessBonus = 0;
     else freshnessBonus = -5;
   }
 
-  // Salary alignment
+  // Salary
   let salaryBonus = 0;
   const salaryMid = parseSalaryMid(job.salary);
-  if (salaryMid !== null && salaryMid >= 40000 && salaryMid <= 300000) {
-    salaryBonus = 5;
-  }
+  if (salaryMid !== null && salaryMid >= 40000 && salaryMid <= 300000) salaryBonus = 3;
 
-  // Location fit
+  // Location
   let locationBonus = 0;
   const loc = (job.location || '').toLowerCase();
-  if (/austin/i.test(loc)) locationBonus = 5;
-  else if (/remote/i.test(loc) || job.remote) locationBonus = 3;
+  if (/austin/i.test(loc)) locationBonus = 4;
+  else if (/remote/i.test(loc) || job.remote) locationBonus = 2;
 
-  const raw = base + titleBonus + skillBonus + wordBonus + bigramBonus + freshnessBonus + salaryBonus + locationBonus;
+  const raw = base + titleBonus + highSkillBonus + lowSkillBonus + wordBonus + bigramBonus + mismatchPenalty + freshnessBonus + salaryBonus + locationBonus;
   return Math.max(5, Math.min(98, raw));
 }
 
