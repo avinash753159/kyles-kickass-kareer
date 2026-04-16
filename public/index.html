@@ -1097,9 +1097,10 @@ function renderUserResults(jobs){
   jobs.slice(0,5).forEach(j=>{
     const bg=j.tier==='hot'?'var(--green-light)':j.tier==='strong'?'var(--blue-light)':'var(--amber-light)';
     const col=j.tier==='hot'?'var(--green)':j.tier==='strong'?'var(--blue)':'var(--amber)';
-    const domain=j.url?new URL(j.url).hostname.replace('www.',''):'';
+    const domain=safeDomain(j.url);
     const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
-    const logoHtml=logoSrc?`<img src="${logoSrc}" onerror="this.parentElement.textContent='${escapeHtml(j.company.substring(0,2).toUpperCase())}'">`:escapeHtml(j.company.substring(0,2).toUpperCase());
+    const co2=escapeHtml(String(j.company||'').substring(0,2).toUpperCase());
+    const logoHtml=logoSrc?`<img src="${logoSrc}" onerror="this.parentElement.textContent='${co2}'">`:(co2||'??');
     top5.innerHTML+=`<div class="tc-row" onclick="document.getElementById('ucard-${j.id}').scrollIntoView({behavior:'smooth',block:'center'})"><div class="tc-logo">${logoHtml}</div><span class="tc-name">${escapeHtml(j.company)}</span><span class="tc-fit" style="background:${bg};color:${col};">${j.fit}%</span></div>`;
   });
 
@@ -1112,9 +1113,10 @@ function renderUserResults(jobs){
     const tagClass=j.tier==='hot'?'tag-hot':j.tier==='strong'?'tag-strong':'tag-good';
     const tagLabel=j.tier==='hot'?'hot match':j.tier==='strong'?'strong fit':'good fit';
     const locPill=j.location.includes('Remote')?'b':j.location.includes('Austin')?'g':'';
-    const domain=j.url?new URL(j.url).hostname.replace('www.',''):'';
+    const domain=safeDomain(j.url);
     const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
-    const logoHtml=logoSrc?`<img src="${logoSrc}" alt="${escapeHtml(j.company)}" onerror="this.parentElement.classList.add('no-img');this.parentElement.textContent='${escapeHtml(j.company.substring(0,3).toUpperCase())}'">`:escapeHtml(j.company.substring(0,3).toUpperCase());
+    const co3=escapeHtml(String(j.company||'').substring(0,3).toUpperCase());
+    const logoHtml=logoSrc?`<img src="${logoSrc}" alt="${escapeHtml(j.company)}" onerror="this.parentElement.classList.add('no-img');this.parentElement.textContent='${co3}'">`:(co3||'???');
     const descShort=(j.description||'').substring(0,300).replace(/\s+/g,' ');
 
     list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span><span class="pill">${escapeHtml(j.source)}</span></div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div><div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
@@ -1248,7 +1250,8 @@ function renderUserJobs(){
   }).join('');
 }
 
-function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safeDomain(url){try{return new URL(url).hostname.replace('www.','');}catch(_){return '';}}
 
 // User Sources of Me
 function renderUserSources(){

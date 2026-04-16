@@ -294,6 +294,17 @@ app.post('/api/find-jobs', async (req, res) => {
     top.forEach(j => {
       j.tier = j.fit >= 85 ? 'hot' : j.fit >= 70 ? 'strong' : 'good';
       j.color = j.tier === 'hot' ? 'g' : j.tier === 'strong' ? 'b' : 'y';
+      j.title = String(j.title || '');
+      j.company = String(j.company || 'Unknown');
+      j.location = String(j.location || '');
+      j.salary = String(j.salary || '');
+      j.posted = String(j.posted || '');
+      j.type = String(j.type || 'Full-time');
+      j.url = String(j.url || '');
+      j.logo = String(j.logo || '');
+      j.description = String(j.description || '');
+      j.source = String(j.source || '');
+      j.tags = Array.isArray(j.tags) ? j.tags.map(String) : [];
     });
 
     res.json({ jobs: top, keywords: keywords.titles.concat(keywords.skills).slice(0, 10) });
@@ -396,7 +407,8 @@ function extractResumeKeywords(text) {
 }
 
 function scoreFit(job, keywords) {
-  const jt = (job.title + ' ' + job.description + ' ' + job.tags.join(' ')).toLowerCase();
+  const tags = Array.isArray(job.tags) ? job.tags.join(' ') : '';
+  const jt = ((job.title || '') + ' ' + (job.description || '') + ' ' + tags).toLowerCase();
   let score = 0, max = 0;
   keywords.titles.forEach(t => {
     max += 30;
