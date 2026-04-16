@@ -802,6 +802,26 @@ function extractResumeKeywords(text) {
   return { titles, domainSkills: matchedDomain, specificWords, specificBigrams };
 }
 
+function parseDaysAgo(posted) {
+  if (!posted) return null;
+  const p = posted.toLowerCase().trim();
+  if (p === 'today') return 0;
+  const dayMatch = p.match(/^(\d+)d\s*ago$/);
+  if (dayMatch) return parseInt(dayMatch[1], 10);
+  const moMatch = p.match(/^(\d+)mo\s*ago$/);
+  if (moMatch) return parseInt(moMatch[1], 10) * 30;
+  return null;
+}
+
+function parseSalaryMid(salary) {
+  if (!salary) return null;
+  const nums = salary.match(/\$?\s*(\d+)\s*k/gi);
+  if (!nums || nums.length === 0) return null;
+  const values = nums.map(n => parseInt(n.replace(/[^0-9]/g, ''), 10) * 1000);
+  if (values.length >= 2) return (values[0] + values[1]) / 2;
+  return values[0];
+}
+
 function scoreFit(job, keywords) {
   const jobText = ((job.title || '') + ' ' + (job.description || '') + ' ' +
     (Array.isArray(job.tags) ? job.tags.join(' ') : '') + ' ' +
@@ -835,14 +855,39 @@ function scoreFit(job, keywords) {
   // Bigram matches
   keywords.specificBigrams.forEach(bg => { if (jobText.includes(bg)) bigramCount++; });
 
-  // Additive scoring with caps — no broken denominator
-  const base = 20;
+  // Core scoring dimensions (same as before but base reduced)
+  const base = 15;
   const titleBonus = Math.min(25, titleScore);
   const skillBonus = Math.min(30, skillCount * 5);   // 6+ skill matches = max
   const wordBonus = Math.min(15, wordCount * 2);      // 8+ word matches = max
   const bigramBonus = Math.min(8, bigramCount * 4);    // 2+ bigram matches = max
 
-  return Math.min(98, base + titleBonus + skillBonus + wordBonus + bigramBonus);
+  // New dimensions
+  // Posting freshness
+  const days = parseDaysAgo(job.posted);
+  let freshnessBonus = 0;
+  if (days !== null) {
+    if (days <= 7) freshnessBonus = 10;
+    else if (days <= 14) freshnessBonus = 5;
+    else if (days <= 30) freshnessBonus = 0;
+    else freshnessBonus = -5;
+  }
+
+  // Salary alignment
+  let salaryBonus = 0;
+  const salaryMid = parseSalaryMid(job.salary);
+  if (salaryMid !== null && salaryMid >= 40000 && salaryMid <= 300000) {
+    salaryBonus = 5;
+  }
+
+  // Location fit
+  let locationBonus = 0;
+  const loc = (job.location || '').toLowerCase();
+  if (/austin/i.test(loc)) locationBonus = 5;
+  else if (/remote/i.test(loc) || job.remote) locationBonus = 3;
+
+  const raw = base + titleBonus + skillBonus + wordBonus + bigramBonus + freshnessBonus + salaryBonus + locationBonus;
+  return Math.max(5, Math.min(98, raw));
 }
 
 const PORT = process.env.PORT || 3000;
