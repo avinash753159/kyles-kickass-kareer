@@ -388,7 +388,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
           <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
         </div>
         <div id="detected-chip" style="margin-bottom:12px;font-size:12px;color:var(--text-secondary);display:none;">Searching for: <strong id="detected-role" style="color:var(--blue);"></strong></div>
+        <button class="primary-btn" style="width:100%;justify-content:center;margin-bottom:14px;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="openAllBoards()">Search Jobs</button>
         <div id="search-links" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center;">Or click individual boards above</div>
       </div>
     </div>
   </div>
@@ -938,6 +940,12 @@ function toggleSources(){
   const open=body.style.display==='block';
   body.style.display=open?'none':'block';
   if(chev)chev.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+function openAllBoards(){
+  const links=document.querySelectorAll('#search-links a');
+  if(!links.length)return;
+  const top3=[...links].slice(0,3);
+  top3.forEach(a=>window.open(a.href,'_blank'));
 }
 function renderSearchLinks(){
   const wrap=document.getElementById('search-links');if(!wrap)return;
