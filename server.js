@@ -321,53 +321,54 @@ app.get('/api/domain-search', async (req, res) => {
 let jobCache = { data: null, ts: 0 };
 const CACHE_TTL = 30 * 60 * 1000;
 
-// ── ATS Company Portals ──────────────────────────────────────────
+// ── ATS Company Portals (all slugs verified working) ────────────
 const ATS_COMPANIES = [
-  // Greenhouse
-  { slug: 'stripe', name: 'Stripe', platform: 'greenhouse', tags: ['fintech', 'payments', 'engineering', 'developer tools', 'saas'] },
-  { slug: 'notion', name: 'Notion', platform: 'greenhouse', tags: ['productivity', 'saas', 'engineering', 'design', 'developer tools'] },
-  { slug: 'figma', name: 'Figma', platform: 'greenhouse', tags: ['design', 'saas', 'engineering', 'product', 'developer tools'] },
-  { slug: 'airtable', name: 'Airtable', platform: 'greenhouse', tags: ['productivity', 'saas', 'engineering', 'product', 'developer tools'] },
-  { slug: 'plaid', name: 'Plaid', platform: 'greenhouse', tags: ['fintech', 'payments', 'engineering', 'developer tools', 'b2b'] },
-  { slug: 'webflow', name: 'Webflow', platform: 'greenhouse', tags: ['design', 'saas', 'engineering', 'developer tools', 'product'] },
-  { slug: 'loom', name: 'Loom', platform: 'greenhouse', tags: ['productivity', 'saas', 'engineering', 'product', 'growth'] },
-  { slug: 'retool', name: 'Retool', platform: 'greenhouse', tags: ['developer tools', 'saas', 'engineering', 'product', 'b2b'] },
-  { slug: 'linear', name: 'Linear', platform: 'greenhouse', tags: ['developer tools', 'saas', 'engineering', 'product', 'productivity'] },
-  { slug: 'vercel', name: 'Vercel', platform: 'greenhouse', tags: ['developer tools', 'engineering', 'saas', 'product', 'growth'] },
+  // Greenhouse (verified 200)
+  { slug: 'stripe', name: 'Stripe', platform: 'greenhouse', tags: ['fintech', 'payments', 'engineering', 'product', 'growth'] },
+  { slug: 'figma', name: 'Figma', platform: 'greenhouse', tags: ['design', 'saas', 'engineering', 'product', 'growth'] },
+  { slug: 'airtable', name: 'Airtable', platform: 'greenhouse', tags: ['productivity', 'saas', 'engineering', 'product', 'operations'] },
+  { slug: 'webflow', name: 'Webflow', platform: 'greenhouse', tags: ['design', 'saas', 'engineering', 'marketing', 'product'] },
+  { slug: 'vercel', name: 'Vercel', platform: 'greenhouse', tags: ['engineering', 'developer tools', 'product', 'growth', 'saas'] },
   { slug: 'airbnb', name: 'Airbnb', platform: 'greenhouse', tags: ['hospitality', 'travel', 'marketplace', 'community', 'product'] },
-  { slug: 'sonder', name: 'Sonder', platform: 'greenhouse', tags: ['hospitality', 'travel', 'real estate', 'operations', 'property management'] },
-  { slug: 'industrious', name: 'Industrious', platform: 'greenhouse', tags: ['coworking', 'real estate', 'hospitality', 'community', 'operations'] },
-  { slug: 'hipcamp', name: 'Hipcamp', platform: 'greenhouse', tags: ['outdoor', 'marketplace', 'hospitality', 'community', 'travel'] },
-  { slug: 'common', name: 'Common', platform: 'greenhouse', tags: ['coliving', 'real estate', 'community', 'property management', 'proptech'] },
-  { slug: 'selina', name: 'Selina', platform: 'greenhouse', tags: ['hospitality', 'coliving', 'travel', 'community', 'operations'] },
-  { slug: 'vacasa', name: 'Vacasa', platform: 'greenhouse', tags: ['hospitality', 'property management', 'travel', 'real estate', 'operations'] },
-  { slug: 'pacaso', name: 'Pacaso', platform: 'greenhouse', tags: ['real estate', 'proptech', 'marketplace', 'property management', 'consumer'] },
+  { slug: 'pacaso', name: 'Pacaso', platform: 'greenhouse', tags: ['real estate', 'proptech', 'marketplace', 'operations', 'community'] },
   { slug: 'thumbtack', name: 'Thumbtack', platform: 'greenhouse', tags: ['marketplace', 'consumer', 'local', 'operations', 'growth'] },
-  { slug: 'rover', name: 'Rover', platform: 'greenhouse', tags: ['marketplace', 'consumer', 'community', 'operations', 'growth'] },
   { slug: 'faire', name: 'Faire', platform: 'greenhouse', tags: ['marketplace', 'b2b', 'operations', 'logistics', 'growth'] },
   { slug: 'taskrabbit', name: 'TaskRabbit', platform: 'greenhouse', tags: ['marketplace', 'consumer', 'local', 'operations', 'community'] },
-  { slug: 'duolingo', name: 'Duolingo', platform: 'greenhouse', tags: ['edtech', 'consumer', 'product', 'growth', 'design'] },
-  { slug: 'alltrails', name: 'AllTrails', platform: 'greenhouse', tags: ['outdoor', 'consumer', 'community', 'product', 'growth'] },
+  { slug: 'duolingo', name: 'Duolingo', platform: 'greenhouse', tags: ['edtech', 'consumer', 'product', 'growth', 'community'] },
   { slug: 'nextdoor', name: 'Nextdoor', platform: 'greenhouse', tags: ['social', 'local', 'community', 'consumer', 'growth'] },
-  { slug: 'bumble', name: 'Bumble', platform: 'greenhouse', tags: ['consumer', 'social', 'product', 'growth', 'design'] },
-  { slug: 'eventbrite', name: 'Eventbrite', platform: 'greenhouse', tags: ['events', 'marketplace', 'consumer', 'community', 'operations'] },
-  { slug: 'flexport', name: 'Flexport', platform: 'greenhouse', tags: ['logistics', 'supply chain', 'operations', 'b2b', 'engineering'] },
-  { slug: 'rippling', name: 'Rippling', platform: 'greenhouse', tags: ['hr tech', 'people operations', 'saas', 'b2b', 'engineering'] },
-  { slug: 'clipboard-health', name: 'Clipboard Health', platform: 'greenhouse', tags: ['healthcare', 'marketplace', 'operations', 'growth', 'engineering'] },
-  // Ashby
+  { slug: 'flexport', name: 'Flexport', platform: 'greenhouse', tags: ['logistics', 'supply chain', 'operations', 'b2b', 'growth'] },
+  { slug: 'coinbase', name: 'Coinbase', platform: 'greenhouse', tags: ['fintech', 'engineering', 'product', 'operations', 'growth'] },
+  { slug: 'dropbox', name: 'Dropbox', platform: 'greenhouse', tags: ['productivity', 'saas', 'engineering', 'product', 'growth'] },
+  { slug: 'gitlab', name: 'GitLab', platform: 'greenhouse', tags: ['developer tools', 'engineering', 'product', 'saas', 'operations'] },
+  { slug: 'hubspot', name: 'HubSpot', platform: 'greenhouse', tags: ['saas', 'marketing', 'sales', 'product', 'growth'] },
+  { slug: 'instacart', name: 'Instacart', platform: 'greenhouse', tags: ['marketplace', 'logistics', 'consumer', 'operations', 'growth'] },
+  { slug: 'lyft', name: 'Lyft', platform: 'greenhouse', tags: ['marketplace', 'consumer', 'operations', 'product', 'community'] },
+  { slug: 'mongodb', name: 'MongoDB', platform: 'greenhouse', tags: ['engineering', 'developer tools', 'saas', 'product', 'b2b'] },
+  { slug: 'postman', name: 'Postman', platform: 'greenhouse', tags: ['developer tools', 'engineering', 'product', 'saas', 'b2b'] },
+  { slug: 'reddit', name: 'Reddit', platform: 'greenhouse', tags: ['social', 'community', 'consumer', 'product', 'growth'] },
+  { slug: 'robinhood', name: 'Robinhood', platform: 'greenhouse', tags: ['fintech', 'consumer', 'product', 'engineering', 'growth'] },
+  { slug: 'twilio', name: 'Twilio', platform: 'greenhouse', tags: ['saas', 'engineering', 'product', 'b2b', 'developer tools'] },
+  { slug: 'cloudflare', name: 'Cloudflare', platform: 'greenhouse', tags: ['engineering', 'saas', 'product', 'b2b', 'growth'] },
+  { slug: 'databricks', name: 'Databricks', platform: 'greenhouse', tags: ['engineering', 'data', 'saas', 'product', 'b2b'] },
+  { slug: 'datadog', name: 'Datadog', platform: 'greenhouse', tags: ['engineering', 'saas', 'product', 'b2b', 'operations'] },
+  { slug: 'discord', name: 'Discord', platform: 'greenhouse', tags: ['social', 'community', 'consumer', 'product', 'engineering'] },
+  { slug: 'intercom', name: 'Intercom', platform: 'greenhouse', tags: ['saas', 'customer success', 'product', 'b2b', 'growth'] },
+  { slug: 'lattice', name: 'Lattice', platform: 'greenhouse', tags: ['hr tech', 'people operations', 'saas', 'product', 'b2b'] },
+  { slug: 'linkedin', name: 'LinkedIn', platform: 'greenhouse', tags: ['social', 'saas', 'product', 'engineering', 'community'] },
+  { slug: 'eventbriteinc', name: 'Eventbrite', platform: 'greenhouse', tags: ['events', 'marketplace', 'community', 'consumer', 'operations'] },
+  // Ashby (verified 200)
   { slug: 'kindred', name: 'Kindred', platform: 'ashby', tags: ['coliving', 'community', 'hospitality', 'real estate', 'operations'] },
   { slug: 'ramp', name: 'Ramp', platform: 'ashby', tags: ['fintech', 'saas', 'b2b', 'engineering', 'growth'] },
-  { slug: 'lattice', name: 'Lattice', platform: 'ashby', tags: ['hr tech', 'people operations', 'saas', 'b2b', 'product'] },
   { slug: 'watershed', name: 'Watershed', platform: 'ashby', tags: ['sustainability', 'esg', 'climate', 'saas', 'engineering'] },
-  { slug: 'opensea', name: 'OpenSea', platform: 'ashby', tags: ['marketplace', 'engineering', 'product', 'consumer', 'design'] },
+  { slug: 'opensea', name: 'OpenSea', platform: 'ashby', tags: ['marketplace', 'engineering', 'product', 'consumer', 'community'] },
   { slug: 'assembly', name: 'Assembly', platform: 'ashby', tags: ['hr tech', 'people operations', 'saas', 'community', 'product'] },
-  // Lever
-  { slug: 'peerstreet', name: 'PeerStreet', platform: 'lever', tags: ['fintech', 'real estate', 'proptech', 'marketplace', 'engineering'] },
-  { slug: 'landed', name: 'Landed', platform: 'lever', tags: ['real estate', 'fintech', 'proptech', 'consumer', 'social'] },
-  { slug: 'tripactions', name: 'TripActions', platform: 'lever', tags: ['travel', 'saas', 'b2b', 'operations', 'fintech'] },
-  { slug: 'samsara', name: 'Samsara', platform: 'lever', tags: ['iot', 'logistics', 'operations', 'engineering', 'b2b'] },
-  { slug: 'gusto', name: 'Gusto', platform: 'lever', tags: ['hr tech', 'people operations', 'fintech', 'saas', 'b2b'] },
-  { slug: 'calm', name: 'Calm', platform: 'lever', tags: ['wellness', 'consumer', 'product', 'growth', 'design'] },
+  { slug: 'notion', name: 'Notion', platform: 'ashby', tags: ['productivity', 'saas', 'engineering', 'design', 'product'] },
+  { slug: 'linear', name: 'Linear', platform: 'ashby', tags: ['developer tools', 'saas', 'engineering', 'product', 'design'] },
+  { slug: 'retool', name: 'Retool', platform: 'ashby', tags: ['developer tools', 'saas', 'engineering', 'product', 'b2b'] },
+  { slug: 'loom', name: 'Loom', platform: 'ashby', tags: ['productivity', 'saas', 'engineering', 'product', 'growth'] },
+  { slug: 'clipboard', name: 'Clipboard Health', platform: 'ashby', tags: ['healthcare', 'marketplace', 'operations', 'growth', 'community'] },
+  { slug: 'plaid', name: 'Plaid', platform: 'ashby', tags: ['fintech', 'engineering', 'product', 'b2b', 'developer tools'] },
+  { slug: 'bumble', name: 'Bumble', platform: 'ashby', tags: ['consumer', 'social', 'community', 'product', 'growth'] },
 ];
 
 // ── Ghost Job Detection Data ─────────────────────────────────────
@@ -440,7 +441,11 @@ async function fetchATSJobs(companies, keywords) {
   function isTitleRelevant(title) {
     if (!title) return false;
     const t = title.toLowerCase();
-    return titleTerms.some(term => t.includes(term) || term.split(/\s+/).some(w => w.length >= 4 && t.includes(w)));
+    // Broad match: any resume keyword word (4+ chars) in the title
+    if (titleTerms.some(term => t.includes(term) || term.split(/\s+/).some(w => w.length >= 4 && t.includes(w)))) return true;
+    // Also match common business roles that most resumes relate to
+    const broadRoles = ['manager', 'director', 'lead', 'coordinator', 'specialist', 'analyst', 'associate', 'operations', 'strategy', 'growth', 'marketing', 'product', 'community', 'customer', 'success', 'program', 'project', 'sales', 'account', 'business', 'experience'];
+    return broadRoles.some(r => t.includes(r));
   }
 
   // Process in batches of 10 concurrent
@@ -536,10 +541,12 @@ app.post('/api/find-jobs', async (req, res) => {
 
     // Fetch general APIs + ATS portals in parallel
     const selectedCompanies = selectCompaniesForResume(keywords);
+    console.log('ATS: scanning', selectedCompanies.length, 'companies:', selectedCompanies.map(c => c.name).join(', '));
     const [generalJobs, atsJobs] = await Promise.all([
       fetchAllJobs(),
-      fetchATSJobs(selectedCompanies, keywords)
+      fetchATSJobs(selectedCompanies, keywords).catch(e => { console.error('ATS scan error:', e.message); return []; })
     ]);
+    console.log('Found', generalJobs.length, 'general +', atsJobs.length, 'ATS jobs');
 
     // Merge and deduplicate
     const merged = [...generalJobs, ...atsJobs];
@@ -569,7 +576,7 @@ app.post('/api/find-jobs', async (req, res) => {
       scored = scored.filter(j => /austin/i.test(j.location));
     }
 
-    const top = scored.slice(0, 20);
+    const top = scored.slice(0, 40);
     // Dynamic tiers: top 20% = hot, next 30% = strong, rest = good
     const count = top.length;
     const hotCut = Math.max(1, Math.floor(count * 0.2));
