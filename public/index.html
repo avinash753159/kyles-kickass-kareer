@@ -375,34 +375,89 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </div>
       <div id="user-resume-list" style="margin-top:18px;"></div>
       <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:12px;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;">
-          <span id="matches-heading">Jobs matching your resume</span>
-          <span style="font-size:10px;color:var(--text-muted);cursor:pointer;text-transform:none;letter-spacing:0;font-family:var(--sans);font-weight:500;" onclick="document.getElementById('role-wrap').style.display='block';document.getElementById('search-role').focus();">refine ↗</span>
-        </div>
-        <div id="role-wrap" style="margin-bottom:12px;display:none;">
-          <input type="text" id="search-role" placeholder="Detected from your resume — edit to change" style="width:100%;padding:10px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;outline:none;font-family:var(--sans);">
-        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="loc-options">
           <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked><span>Anywhere</span></label>
           <label class="loc-opt"><input type="radio" name="loc" value="remote"><span>Remote</span></label>
           <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
         </div>
-        <div id="detected-chip" style="margin-bottom:12px;font-size:12px;color:var(--text-secondary);display:none;">Searching for: <strong id="detected-role" style="color:var(--blue);"></strong></div>
-        <button class="primary-btn" style="width:100%;justify-content:center;margin-bottom:14px;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="openAllBoards()">Search Jobs</button>
-        <div id="search-links" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center;">Or click individual boards above</div>
+        <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
       </div>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div id="user-loading" style="display:none;text-align:center;padding:40px 20px;">
+      <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 16px;"></div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Scanning job boards...</div>
+      <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);" id="loading-sub">Matching your resume against live postings</div>
+    </div>
+
+    <!-- RESULTS (Kyle-style dashboard) -->
+    <div id="user-results" style="display:none;">
+      <div class="stats-grid">
+        <div class="stat-card primary">
+          <div class="stat-value" id="ur-total">0</div>
+          <div class="stat-label">Jobs Matched</div>
+          <div class="stat-sub">Updated just now</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
+          <div class="stat-label">Hot Matches</div>
+          <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">85%+ fit score</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
+          <div class="stat-label">Strong Fit</div>
+          <div class="stat-sub">70–84% fit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
+          <div class="stat-label">Good Fit</div>
+          <div class="stat-sub">Below 70%</div>
+        </div>
+      </div>
+
+      <div class="last-run-bar">
+        <div class="run-dot"></div>
+        <span>Matched: <strong id="ur-run-time">just now</strong></span>
+        <button class="run-again" onclick="searchJobs()">Search again</button>
+      </div>
+
+      <div class="sec-header">
+        <div>
+          <div class="sec-title">All Matches</div>
+          <div class="sec-subtitle">real postings matched to your resume</div>
+        </div>
+        <div class="sec-badge" id="ur-count">0 roles</div>
+      </div>
+      <div class="job-list" id="ur-job-list"></div>
     </div>
   </div>
 
   <!-- SIDEBAR -->
   <div class="sidebar">
+    <!-- Fit Distribution (populated after search) -->
+    <div class="side-card" id="ur-donut-card" style="display:none;">
+      <h3>Fit Distribution</h3>
+      <div class="donut-wrap">
+        <svg width="100" height="100" viewBox="0 0 100 100" id="ur-donut"><circle cx="50" cy="50" r="38" fill="none" stroke="#f0f2f7" stroke-width="12"/></svg>
+        <div class="donut-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Hot match<span class="legend-val" id="ur-leg-hot">0</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div>Strong fit<span class="legend-val" id="ur-leg-strong">0</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber);"></div>Good fit<span class="legend-val" id="ur-leg-good">0</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Top 5 -->
+    <div class="side-card" id="ur-top5-card" style="display:none;">
+      <h3>Top 5 Matches</h3>
+      <div class="top-companies" id="ur-top5"></div>
+    </div>
     <div class="side-card">
       <h3>Tips</h3>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
-        <div>Upload your resume above, then hit <strong style="color:var(--blue);">Find Jobs</strong> to search every major board in one click.</div>
-        <div>Check out the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see what a fully-built board looks like.</div>
-        <div>All data is stored in your browser (localStorage). Clearing site data will delete it.</div>
+        <div>Upload your resume, pick a location, and hit <strong style="color:var(--blue);">Search Jobs</strong>.</div>
+        <div>Check the <strong style="color:var(--green);cursor:pointer;" onclick="switchTab('example')">Example tab</strong> to see a fully-built board.</div>
+        <div>All data stays in your browser.</div>
       </div>
     </div>
     <div class="side-card">
@@ -419,7 +474,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
             <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="addUserSourceFile(event)" multiple>
           </label>
           <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
-          <textarea id="user-src-text" placeholder="What you want, strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
+          <textarea id="user-src-text" placeholder="Strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
           <button onclick="addUserSourceText()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;">+ Save notes</button>
         </div>
       </div>
@@ -941,11 +996,91 @@ function toggleSources(){
   body.style.display=open?'none':'block';
   if(chev)chev.style.transform=open?'rotate(0deg)':'rotate(180deg)';
 }
-function openAllBoards(){
-  const links=document.querySelectorAll('#search-links a');
-  if(!links.length)return;
-  const top3=[...links].slice(0,3);
-  top3.forEach(a=>window.open(a.href,'_blank'));
+let lastResumeText='';
+async function searchJobs(){
+  if(!lastResumeText){alert('Please upload a resume first.');return;}
+  const btn=document.getElementById('search-jobs-btn');
+  const loading=document.getElementById('user-loading');
+  const results=document.getElementById('user-results');
+  btn.disabled=true;btn.textContent='Searching...';
+  loading.style.display='block';results.style.display='none';
+
+  const sel=document.querySelector('input[name="loc"]:checked');
+  const loc=sel?sel.value:'anywhere';
+
+  try{
+    const r=await fetch('/api/find-jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resumeText:lastResumeText,location:loc})});
+    const data=await r.json();
+    if(data.error)throw new Error(data.error);
+    renderUserResults(data.jobs||[]);
+  }catch(e){
+    loading.innerHTML='<div style="color:var(--red);font-size:13px;">Error: '+escapeHtml(e.message)+'</div>';
+    setTimeout(()=>{loading.style.display='none';},3000);
+  }finally{
+    btn.disabled=false;btn.textContent='Search Jobs';
+  }
+}
+
+function renderUserResults(jobs){
+  document.getElementById('user-loading').style.display='none';
+  const res=document.getElementById('user-results');
+  res.style.display='block';
+
+  const hot=jobs.filter(j=>j.tier==='hot').length;
+  const strong=jobs.filter(j=>j.tier==='strong').length;
+  const good=jobs.filter(j=>j.tier==='good').length;
+
+  animCount('ur-total',jobs.length);animCount('ur-hot',hot);animCount('ur-strong',strong);animCount('ur-good',good);
+  document.getElementById('ur-count').textContent=jobs.length+' roles';
+  document.getElementById('ur-leg-hot').textContent=hot;
+  document.getElementById('ur-leg-strong').textContent=strong;
+  document.getElementById('ur-leg-good').textContent=good;
+  document.getElementById('ur-run-time').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+  // Donut
+  const donutCard=document.getElementById('ur-donut-card');donutCard.style.display='block';
+  const svg=document.getElementById('ur-donut');
+  svg.querySelectorAll('circle:not(:first-child)').forEach(c=>c.remove());
+  const circ=2*Math.PI*38;let offset=0;
+  [[hot,'var(--green)'],[strong,'var(--blue)'],[good,'var(--amber)']].forEach(([n,color])=>{
+    if(!n)return;const len=circ*n/jobs.length;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx','50');c.setAttribute('cy','50');c.setAttribute('r','38');
+    c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width','12');
+    c.setAttribute('stroke-dasharray',len+' '+(circ-len));c.setAttribute('stroke-dashoffset',-offset);
+    c.setAttribute('transform','rotate(-90 50 50)');svg.appendChild(c);offset+=len;
+  });
+
+  // Top 5
+  const top5Card=document.getElementById('ur-top5-card');top5Card.style.display='block';
+  const top5=document.getElementById('ur-top5');top5.innerHTML='';
+  jobs.slice(0,5).forEach(j=>{
+    const bg=j.tier==='hot'?'var(--green-light)':j.tier==='strong'?'var(--blue-light)':'var(--amber-light)';
+    const col=j.tier==='hot'?'var(--green)':j.tier==='strong'?'var(--blue)':'var(--amber)';
+    const domain=j.url?new URL(j.url).hostname.replace('www.',''):'';
+    const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
+    const logoHtml=logoSrc?`<img src="${logoSrc}" onerror="this.parentElement.textContent='${escapeHtml(j.company.substring(0,2).toUpperCase())}'">`:escapeHtml(j.company.substring(0,2).toUpperCase());
+    top5.innerHTML+=`<div class="tc-row" onclick="document.getElementById('ucard-${j.id}').scrollIntoView({behavior:'smooth',block:'center'})"><div class="tc-logo">${logoHtml}</div><span class="tc-name">${escapeHtml(j.company)}</span><span class="tc-fit" style="background:${bg};color:${col};">${j.fit}%</span></div>`;
+  });
+
+  // Job cards
+  const list=document.getElementById('ur-job-list');list.innerHTML='';
+  jobs.forEach(j=>{
+    const R=21,crc=2*Math.PI*R,off=crc*(1-j.fit/100);
+    const colorVar=j.color==='g'?'var(--green)':j.color==='b'?'var(--blue)':'var(--amber)';
+    const tierClass=j.tier;
+    const tagClass=j.tier==='hot'?'tag-hot':j.tier==='strong'?'tag-strong':'tag-good';
+    const tagLabel=j.tier==='hot'?'hot match':j.tier==='strong'?'strong fit':'good fit';
+    const locPill=j.location.includes('Remote')?'b':j.location.includes('Austin')?'g':'';
+    const domain=j.url?new URL(j.url).hostname.replace('www.',''):'';
+    const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
+    const logoHtml=logoSrc?`<img src="${logoSrc}" alt="${escapeHtml(j.company)}" onerror="this.parentElement.classList.add('no-img');this.parentElement.textContent='${escapeHtml(j.company.substring(0,3).toUpperCase())}'">`:escapeHtml(j.company.substring(0,3).toUpperCase());
+    const descShort=(j.description||'').substring(0,300).replace(/\s+/g,' ');
+
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span><span class="pill">${escapeHtml(j.source)}</span></div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div><div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+  });
+
+  res.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderSearchLinks(){
   const wrap=document.getElementById('search-links');if(!wrap)return;
@@ -982,51 +1117,34 @@ function userUploadResume(e){
     reader.onload=async ev=>{
       r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:ev.target.result,uploaded:new Date().toISOString()});
       if(--pending===0){lsSet(U_RESUMES_KEY,r);renderUserResumes();}
-      const role=await tryExtractRoleFromFile(f,ev.target.result);
-      if(role){
-        const input=document.getElementById('search-role');
-        if(input&&!input.value)input.value=role;
-        renderSearchLinks();
-        goFindJobs();
-      }else{
-        goFindJobs();
-      }
+      const extracted=await tryExtractTextFromFile(f,ev.target.result);
+      if(extracted)lastResumeText=extracted;
+      goFindJobs();
     };
     reader.readAsDataURL(f);
   });
   e.target.value='';
 }
 
-async function tryExtractRoleFromFile(file,dataUrl){
+async function tryExtractTextFromFile(file,dataUrl){
   try{
-    let text='';
     if(/\.pdf$/i.test(file.name)&&window.pdfjsLib){
       const b64=dataUrl.split(',')[1];
       const bin=atob(b64);const arr=new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
       const pdf=await pdfjsLib.getDocument({data:arr}).promise;
-      for(let i=1;i<=Math.min(pdf.numPages,2);i++){
+      let text='';
+      for(let i=1;i<=Math.min(pdf.numPages,3);i++){
         const p=await pdf.getPage(i);
         const c=await p.getTextContent();
         text+=c.items.map(it=>it.str).join(' ')+'\n';
       }
+      return text;
     }else if(/\.(txt|md)$/i.test(file.name)){
-      text=await file.text();
+      return await file.text();
     }
-    return guessRole(text+' '+file.name.replace(/[_\-.]/g,' '));
-  }catch(_){return '';}
-}
-
-function guessRole(text){
-  if(!text)return '';
-  const titleNouns='(Manager|Engineer|Designer|Analyst|Director|Specialist|Coordinator|Consultant|Developer|Architect|Scientist|Associate|Founder|Officer|Lead|Principal|Strategist|Producer|Researcher|Recruiter|Marketer|Planner|Advisor|Partner|Representative|Executive|Administrator|Operator|Editor|Writer|Accountant|Attorney|Nurse|Therapist|Teacher|Professor|Technician|Buyer|Trader|Advocate|Agent|Ambassador|Intern|Apprentice|VP|CEO|COO|CFO|CTO|CMO|CPO|Head)';
-  const modifiers='(Senior|Staff|Lead|Principal|Chief|Head|Junior|Associate|Executive|Global|Regional|Assistant|Vice)';
-  const domains='(Product|Program|Project|Engineering|Software|Data|Marketing|Sales|Operations|Finance|Design|UX|UI|Research|Business|Customer|Growth|Content|Community|People|HR|Legal|Strategy|Brand|Creative|Technical|Financial|Account|Quality|Mechanical|Electrical|Civil|Industrial|Full[- ]?Stack|Front[- ]?End|Back[- ]?End|Mobile|Cloud|DevOps|Security|Machine Learning|AI|Data Science|Analytics|Digital|Graphic|Motion|Visual|Content|Social Media|Event|Public Relations|Talent|Human Resources|Supply Chain|Procurement|Logistics|Risk|Tax|Audit|Investment|Portfolio|Real Estate|Policy)';
-  const re=new RegExp(`\\b(?:${modifiers}\\s+)?(?:${domains}\\s+)?${titleNouns}(?:\\s+(?:of|for|,)\\s+[A-Z][A-Za-z ]{2,30})?`,'g');
-  const matches=[...text.matchAll(re)].map(m=>m[0].trim()).filter(m=>m.length>3&&m.length<60);
-  if(!matches.length)return '';
-  const counts={};matches.forEach(m=>{counts[m]=(counts[m]||0)+1;});
-  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+    return file.name.replace(/[_\-.]/g,' ');
+  }catch(_){return file.name.replace(/[_\-.]/g,' ');}
 }
 
 function renderUserResumes(){

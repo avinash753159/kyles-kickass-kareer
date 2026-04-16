@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '7b5adce8f66f24b8af6f4439f1fde92de4b5b0dc';
@@ -263,6 +263,151 @@ app.get('/api/domain-search', async (req, res) => {
     res.json({ error: e.message });
   }
 });
+
+// ── Find Jobs (real job search matched to resume) ──────────────────
+let jobCache = { data: null, ts: 0 };
+const CACHE_TTL = 30 * 60 * 1000;
+
+app.post('/api/find-jobs', async (req, res) => {
+  try {
+    const { resumeText, location } = req.body;
+    if (!resumeText) return res.status(400).json({ error: 'No resume text' });
+
+    const allJobs = await fetchAllJobs();
+    const keywords = extractResumeKeywords(resumeText);
+
+    let scored = allJobs
+      .map(job => ({ ...job, fit: scoreFit(job, keywords) }))
+      .sort((a, b) => b.fit - a.fit);
+
+    if (location === 'remote') {
+      const remote = scored.filter(j => /remote/i.test(j.location) || j.remote);
+      if (remote.length >= 5) scored = remote;
+    } else if (location === 'austin') {
+      const local = scored.filter(j => /austin/i.test(j.location));
+      const remote = scored.filter(j => /remote/i.test(j.location) || j.remote);
+      const merged = [...local, ...remote];
+      if (merged.length >= 5) scored = merged;
+    }
+
+    const top = scored.slice(0, 20);
+    top.forEach(j => {
+      j.tier = j.fit >= 85 ? 'hot' : j.fit >= 70 ? 'strong' : 'good';
+      j.color = j.tier === 'hot' ? 'g' : j.tier === 'strong' ? 'b' : 'y';
+    });
+
+    res.json({ jobs: top, keywords: keywords.titles.concat(keywords.skills).slice(0, 10) });
+  } catch (e) {
+    console.error('Find jobs error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+async function fetchAllJobs() {
+  if (jobCache.data && Date.now() - jobCache.ts < CACHE_TTL) return jobCache.data;
+  const fetch = (await import('node-fetch')).default;
+  const results = [];
+
+  // RemoteOK
+  try {
+    const r = await fetch('https://remoteok.com/api', {
+      headers: { 'User-Agent': 'YourJobBoard/1.0' }, signal: AbortSignal.timeout(10000)
+    });
+    const data = await r.json();
+    data.slice(1).forEach(j => {
+      if (!j.position) return;
+      results.push({
+        id: 'rok-' + (j.id || j.slug), title: j.position, company: j.company || 'Unknown',
+        location: j.location || 'Remote', remote: true,
+        url: j.url || ('https://remoteok.com/remote-jobs/' + j.slug),
+        logo: j.company_logo || j.logo || '',
+        salary: j.salary_min && j.salary_max ? '$' + Math.round(j.salary_min / 1000) + 'k\u2013$' + Math.round(j.salary_max / 1000) + 'k' : '',
+        posted: j.date ? timeAgo(new Date(j.date)) : '', type: 'Full-time',
+        description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
+        tags: j.tags || [], source: 'RemoteOK'
+      });
+    });
+  } catch (e) { console.error('RemoteOK:', e.message); }
+
+  // Arbeitnow
+  try {
+    const r = await fetch('https://www.arbeitnow.com/api/job-board-api', { signal: AbortSignal.timeout(10000) });
+    const data = await r.json();
+    (data.data || []).forEach(j => {
+      results.push({
+        id: 'abn-' + j.slug, title: j.title, company: j.company_name || 'Unknown',
+        location: j.location || (j.remote ? 'Remote' : ''), remote: !!j.remote,
+        url: j.url, logo: '', salary: '',
+        posted: j.created_at ? timeAgo(new Date(j.created_at * 1000)) : '', type: (j.job_types || []).join(', ') || 'Full-time',
+        description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
+        tags: j.tags || [], source: 'Arbeitnow'
+      });
+    });
+  } catch (e) { console.error('Arbeitnow:', e.message); }
+
+  // Jobicy
+  try {
+    const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50', { signal: AbortSignal.timeout(10000) });
+    const data = await r.json();
+    (data.jobs || []).forEach(j => {
+      results.push({
+        id: 'jcy-' + j.id, title: j.jobTitle, company: j.companyName || 'Unknown',
+        location: j.jobGeo || 'Remote', remote: true,
+        url: j.url, logo: j.companyLogo || '', salary: j.annualSalaryMin && j.annualSalaryMax ? '$' + Math.round(j.annualSalaryMin / 1000) + 'k\u2013$' + Math.round(j.annualSalaryMax / 1000) + 'k' : '',
+        posted: j.pubDate ? timeAgo(new Date(j.pubDate)) : '', type: j.jobType || 'Full-time',
+        description: (j.jobDescription || '').replace(/<[^>]+>/g, '').substring(0, 1500),
+        tags: [], source: 'Jobicy'
+      });
+    });
+  } catch (e) { console.error('Jobicy:', e.message); }
+
+  jobCache = { data: results, ts: Date.now() };
+  console.log('Fetched', results.length, 'total jobs from APIs');
+  return results;
+}
+
+function timeAgo(d) {
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days < 1) return 'today';
+  if (days === 1) return '1d ago';
+  if (days < 30) return days + 'd ago';
+  return Math.floor(days / 30) + 'mo ago';
+}
+
+function extractResumeKeywords(text) {
+  const lower = text.toLowerCase();
+  const skillList = [
+    'javascript', 'typescript', 'python', 'java', 'c\\+\\+', 'c#', 'ruby', 'php', 'swift', 'kotlin', 'rust', 'golang',
+    'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'rails', 'next\\.?js',
+    'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch', 'kafka',
+    'machine learning', 'deep learning', 'nlp', 'tensorflow', 'pytorch', 'data science',
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'ci/cd', 'devops',
+    'product management', 'project management', 'agile', 'scrum',
+    'marketing', 'sales', 'operations', 'strategy', 'analytics', 'growth', 'seo',
+    'figma', 'sketch', 'ui/ux', 'user experience', 'graphic design',
+    'accounting', 'finance', 'consulting', 'management', 'leadership', 'communication'
+  ];
+  const skills = [];
+  skillList.forEach(s => { if (new RegExp('\\b' + s + '\\b', 'i').test(lower)) skills.push(s.replace(/\\[+.?]/g, m => m[1])); });
+
+  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate)?\s*(?:product|program|project|engineering|software|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|machine learning|ai)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant)\b/gi;
+  const titles = [...text.matchAll(titleRe)].map(m => m[0].trim().toLowerCase());
+  return { skills: [...new Set(skills)], titles: [...new Set(titles)] };
+}
+
+function scoreFit(job, keywords) {
+  const jt = (job.title + ' ' + job.description + ' ' + job.tags.join(' ')).toLowerCase();
+  let score = 0, max = 0;
+  keywords.titles.forEach(t => {
+    max += 30;
+    if (jt.includes(t)) score += 30;
+    else { const w = t.split(/\s+/); score += (w.filter(x => jt.includes(x)).length / w.length) * 20; }
+  });
+  keywords.skills.forEach(s => { max += 5; if (jt.includes(s)) score += 5; });
+  if (max === 0) return 50;
+  const raw = Math.round((score / max) * 100);
+  return Math.min(98, Math.max(45, Math.round(60 + (raw * 38 / 100))));
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
