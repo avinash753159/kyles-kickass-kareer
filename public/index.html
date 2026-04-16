@@ -998,6 +998,25 @@ function toggleSources(){
 }
 let lastResumeText='';
 async function searchJobs(){
+  if(!lastResumeText){
+    const resumes=lsGet(U_RESUMES_KEY);
+    if(resumes.length){
+      for(const r of resumes){
+        if(r.data&&/\.pdf$/i.test(r.name)&&window.pdfjsLib){
+          try{
+            const b64=r.data.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);
+            for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+            const pdf=await pdfjsLib.getDocument({data:arr}).promise;let t='';
+            for(let p=1;p<=Math.min(pdf.numPages,3);p++){const pg=await pdf.getPage(p);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n';}
+            if(t.trim()){lastResumeText=t;break;}
+          }catch(_){}
+        }else if(r.data&&/\.(txt|md)$/i.test(r.name)){
+          try{lastResumeText=atob(r.data.split(',')[1]);break;}catch(_){}
+        }
+      }
+      if(!lastResumeText)lastResumeText=resumes.map(r=>r.name.replace(/[_\-.]/g,' ')).join(' ');
+    }
+  }
   if(!lastResumeText){alert('Please upload a resume first.');return;}
   const btn=document.getElementById('search-jobs-btn');
   const loading=document.getElementById('user-loading');
