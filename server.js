@@ -370,6 +370,43 @@ const ATS_COMPANIES = [
   { slug: 'calm', name: 'Calm', platform: 'lever', tags: ['wellness', 'consumer', 'product', 'growth', 'design'] },
 ];
 
+// ── Ghost Job Detection Data ─────────────────────────────────────
+const RECENT_LAYOFFS = [
+  { company: 'meta', date: '2025-11' },
+  { company: 'amazon', date: '2025-09' },
+  { company: 'google', date: '2025-10' },
+  { company: 'microsoft', date: '2025-08' },
+  { company: 'salesforce', date: '2025-10' },
+  { company: 'snap', date: '2025-07' },
+  { company: 'spotify', date: '2025-06' },
+  { company: 'discord', date: '2025-09' },
+  { company: 'twitch', date: '2025-08' },
+  { company: 'bumble', date: '2025-11' },
+  { company: 'zillow', date: '2025-07' },
+  { company: 'redfin', date: '2025-08' },
+  { company: 'opendoor', date: '2025-09' },
+  { company: 'compass', date: '2025-10' },
+  { company: 'sonder', date: '2025-11' },
+  { company: 'vacasa', date: '2025-06' },
+  { company: 'wayfair', date: '2025-07' },
+  { company: 'robinhood', date: '2025-08' },
+  { company: 'coinbase', date: '2025-09' },
+  { company: 'block', date: '2025-10' },
+];
+
+function getLayoffMatch(company) {
+  if (!company) return false;
+  const norm = company.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  return RECENT_LAYOFFS.some(l => {
+    const lNorm = l.company.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!norm.includes(lNorm) && !lNorm.includes(norm)) return false;
+    const layoffDate = new Date(l.date + '-01');
+    return layoffDate >= sixMonthsAgo;
+  });
+}
+
 function selectCompaniesForResume(keywords) {
   const allKw = [
     ...keywords.titles,
@@ -553,6 +590,36 @@ app.post('/api/find-jobs', async (req, res) => {
       j.description = String(j.description || '');
       j.source = String(j.source || '');
       j.tags = Array.isArray(j.tags) ? j.tags.map(String) : [];
+
+      // Ghost detection fields
+      j.daysAgo = parseDaysAgo(j.posted);
+      if (j.daysAgo === null) j.freshness = 'unknown';
+      else if (j.daysAgo <= 7) j.freshness = 'fresh';
+      else if (j.daysAgo <= 14) j.freshness = 'normal';
+      else if (j.daysAgo <= 30) j.freshness = 'aging';
+      else j.freshness = 'stale';
+
+      j.layoffSignal = getLayoffMatch(j.company);
+    });
+
+    // Repost detection: group by company, flag if same company appears 2+ times
+    const companyCount = {};
+    top.forEach(j => {
+      const co = (j.company || '').toLowerCase();
+      companyCount[co] = (companyCount[co] || 0) + 1;
+    });
+    top.forEach(j => {
+      const co = (j.company || '').toLowerCase();
+      j.reposted = companyCount[co] >= 2;
+    });
+
+    // Ghost risk assessment
+    top.forEach(j => {
+      let signals = 0;
+      if (j.freshness === 'stale' || j.freshness === 'aging') signals++;
+      if (j.layoffSignal) signals++;
+      if (j.reposted) signals++;
+      j.ghostRisk = signals === 0 ? 'low' : signals === 1 ? 'medium' : 'high';
     });
 
     res.json({ jobs: top, keywords: keywords.titles.concat(keywords.domainSkills).slice(0, 10) });
