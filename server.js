@@ -562,15 +562,22 @@ app.post('/api/find-jobs', async (req, res) => {
       .map(job => ({ ...job, fit: scoreFit(job, keywords) }))
       .sort((a, b) => b.fit - a.fit);
 
+    // Filter out clearly non-English-market jobs from all results
+    const nonEnglishMarket = /\b(india|china|shanghai|beijing|japan|tokyo|korea|seoul|france|paris|germany|berlin|munich|karlsruhe|spain|madrid|barcelona|brazil|s[aã]o paulo|nigeria|philippines|pakistan|latam|latin america|asia|africa|middle east|emea|apac|europe|singapore|hong kong|taiwan|thailand|vietnam|indonesia|malaysia|mexico|colombia|argentina|chile|peru|egypt|turkey|dubai|uae|saudi|qatar|russia|moscow|poland|czech|romania|hungary|ukraine|bangladesh|sri lanka|nepal)\b/i;
+    scored = scored.filter(j => {
+      const loc = (j.location || '').toLowerCase();
+      const title = (j.title || '').toLowerCase();
+      // Filter location
+      if (nonEnglishMarket.test(loc)) return false;
+      // Filter titles with non-English markers
+      if (/\b(all genders|m\/w\/d|m\/f\/d)\b/i.test(title)) return false;
+      return true;
+    });
+
     if (location === 'remote') {
       scored = scored.filter(j => {
         const loc = (j.location || '').toLowerCase();
-        const isRemote = /remote/i.test(loc) || j.remote;
-        if (!isRemote) return false;
-        // Exclude explicitly non-US remote jobs
-        const nonUS = /\b(india|europe|emea|apac|uk|germany|france|spain|brazil|nigeria|philippines|pakistan|latam|latin america|asia|africa|middle east)\b/i;
-        if (nonUS.test(loc)) return false;
-        return true;
+        return /remote/i.test(loc) || j.remote;
       });
     } else if (location === 'austin') {
       scored = scored.filter(j => /austin/i.test(j.location));

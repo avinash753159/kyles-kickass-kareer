@@ -1233,7 +1233,7 @@ function renderUserResults(jobs){
   showUserScreen('results');
   const resumes=lsGet(U_RESUMES_KEY);
   const rn=document.getElementById('ur-resume-name');
-  if(rn)rn.textContent=resumes.length?resumes[0].name:'Your resume';
+  if(rn)rn.textContent=resumes.length?resumes[resumes.length-1].name:'Your resume';
 
   const hot=jobs.filter(j=>j.tier==='hot').length;
   const strong=jobs.filter(j=>j.tier==='strong').length;
@@ -1385,13 +1385,14 @@ function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=
 async function userUploadAndSearch(e){
   const files=Array.from(e.target.files||[]);if(!files.length)return;
   lastResumeText='';extractionPromise=null;
-  const r=lsGet(U_RESUMES_KEY);
+  // Replace old resumes — fresh search with new resume only
+  const r=[];
   for(const f of files){
     const dataUrl=await new Promise(resolve=>{const reader=new FileReader();reader.onload=ev=>resolve(ev.target.result);reader.readAsDataURL(f);});
     r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:dataUrl,uploaded:new Date().toISOString()});
-    lsSet(U_RESUMES_KEY,r);renderUserResumes();
     lastResumeText=await extractFromFile(f,dataUrl);
   }
+  lsSet(U_RESUMES_KEY,r);renderUserResumes();
   e.target.value='';
   searchJobs();
 }
