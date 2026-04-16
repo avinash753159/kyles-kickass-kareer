@@ -371,7 +371,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
           <span id="upload-btn-label">Upload your resume</span>
           <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
         </label>
-        <button class="primary-btn" id="go-btn" style="display:none;background:var(--blue);" onclick="goFindJobs()">Find Jobs →</button>
+        <button class="primary-btn" id="go-btn" style="display:none;background:var(--blue);" onclick="goFindJobs()">Find Jobs ↓</button>
       </div>
       <div id="user-resume-list" style="margin-top:18px;"></div>
       <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:left;">
@@ -1041,9 +1041,10 @@ function renderUserResumes(){
 }
 function goFindJobs(){
   const panel=document.getElementById('go-panel');
-  if(panel)panel.style.display='block';
+  if(panel){panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'center'});}
   renderSearchLinks();
-  setTimeout(()=>{const el=document.getElementById('search-role');if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});}},50);
+  const btn=document.getElementById('go-btn');
+  if(btn)btn.style.display='none';
 }
 function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));renderUserResumes();}
 
