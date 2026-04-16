@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Your Job Board – A Kyle-Avi Project</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -102,6 +103,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .loc-opt:hover{border-color:#c1c5ce;color:var(--text);}
 .loc-opt input{accent-color:var(--blue);margin:0;}
 .loc-opt:has(input:checked){background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
+.loc-chip{display:inline-flex;align-items:center;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);font-family:var(--sans);}
+.loc-chip:hover{border-color:#c1c5ce;color:var(--text);}
+.loc-chip.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
 
 /* === LAYOUT === */
 .layout{max-width:1200px;margin:0 auto;padding:24px 32px 60px;display:grid;grid-template-columns:1fr 320px;gap:24px;}
@@ -324,8 +328,41 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .view-resume-btn:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,58,237,0.35);}
 .view-resume-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;}
 
+/* === GHOST BADGES === */
+.ghost-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.ghost-badge{font-size:9.5px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+.ghost-fresh{background:#dcfce7;color:#16a34a;}
+.ghost-normal{background:#f1f5f9;color:#64748b;}
+.ghost-aging{background:#fef3c7;color:#d97706;}
+.ghost-stale{background:#fef2f2;color:#dc2626;}
+.ghost-repost{background:#fef3c7;color:#d97706;}
+.ghost-layoff{background:#fef2f2;color:#dc2626;}
+.ghost-risk{font-size:10px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-weight:600;margin-top:8px;}
+.ghost-risk-low{background:#dcfce7;color:#16a34a;}
+.ghost-risk-medium{background:#fef3c7;color:#d97706;}
+.ghost-risk-high{background:#fef2f2;color:#dc2626;}
 
+/* === FOLLOW-UP BADGE === */
+.followup-badge{font-size:10px;padding:4px 10px;border-radius:6px;font-family:var(--mono);font-weight:600;display:inline-flex;align-items:center;gap:4px;cursor:default;}
+.followup-default{background:#dbeafe;color:#2563eb;}
+.followup-soon{background:#fef3c7;color:#d97706;}
+.followup-overdue{background:#fef2f2;color:#dc2626;}
 
+/* === INTERVIEW PREP === */
+.interview-prep{background:var(--bg);border-radius:var(--radius-sm);padding:16px;margin-top:12px;border:1px solid var(--border);}
+.interview-prep h4{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.prep-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.prep-fact{font-size:11px;padding:6px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);}
+.prep-fact-label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);font-weight:600;margin-bottom:2px;}
+.prep-fact-value{color:var(--text);font-weight:600;}
+.prep-stories{list-style:none;padding:0;}
+.prep-stories li{font-size:11.5px;padding:5px 0;color:var(--text-secondary);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:6px;}
+.prep-stories li:last-child{border:none;}
+.prep-strong{color:var(--green);font-weight:600;}
+.prep-gap{color:var(--amber);font-weight:600;}
+
+/* === SOURCE BADGE === */
+.source-pill{font-size:9px;padding:2px 6px;border-radius:4px;font-family:var(--mono);font-weight:600;background:#f0f4ff;color:#6366f1;}
 
 
 @media(max-width:900px){
@@ -374,9 +411,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div id="user-resume-list" style="margin-top:18px;"></div>
     <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:center;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;" id="loc-options">
-        <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked><span>Anywhere</span></label>
-        <label class="loc-opt"><input type="radio" name="loc" value="remote"><span>Remote</span></label>
-        <label class="loc-opt"><input type="radio" name="loc" value="austin"><span>Austin, TX</span></label>
+        <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked onchange="setLoc('anywhere')"><span>Anywhere</span></label>
+        <label class="loc-opt"><input type="radio" name="loc" value="remote" onchange="setLoc('remote')"><span>Remote</span></label>
+        <label class="loc-opt"><input type="radio" name="loc" value="austin" onchange="setLoc('austin')"><span>Austin, TX</span></label>
       </div>
       <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
     </div>
@@ -393,14 +430,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <div class="last-run-bar" style="margin-bottom:16px;">
       <div class="run-dot"></div>
       <span id="ur-resume-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="anywhere" checked onchange="document.querySelector('input[name=loc][value=anywhere]').checked=true"><span>Anywhere</span></label>
-        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="remote" onchange="document.querySelector('input[name=loc][value=remote]').checked=true"><span>Remote</span></label>
-        <label class="loc-opt" style="padding:4px 10px;font-size:10px;"><input type="radio" name="loc2" value="austin" onchange="document.querySelector('input[name=loc][value=austin]').checked=true"><span>Austin</span></label>
+      <div style="display:flex;gap:6px;align-items:center;" id="loc-bar">
+        <button class="loc-chip active" data-loc="anywhere" onclick="setLoc('anywhere')">Anywhere</button>
+        <button class="loc-chip" data-loc="remote" onclick="setLoc('remote')">Remote</button>
+        <button class="loc-chip" data-loc="austin" onclick="setLoc('austin')">Austin, TX</button>
       </div>
       <button class="run-again" onclick="searchJobs()">Search again</button>
       <label style="font-size:11px;color:var(--text-muted);cursor:pointer;font-family:var(--mono);">
-        New resume <input type="file" accept=".pdf,.doc,.docx,.txt" style="display:none;" onchange="userUploadResume(event);searchJobs();">
+        New resume <input type="file" accept=".pdf,.doc,.docx,.txt" style="display:none;" onchange="userUploadAndSearch(event)">
       </label>
     </div>
 
@@ -993,6 +1030,14 @@ function showUserScreen(screen){
   document.getElementById('user-loading').style.display=screen==='loading'?'block':'none';
 }
 
+let selectedLocation='anywhere';
+function setLoc(loc){
+  selectedLocation=loc;
+  // Sync all loc chips and radios
+  document.querySelectorAll('.loc-chip').forEach(b=>b.classList.toggle('active',b.dataset.loc===loc));
+  document.querySelectorAll('input[name="loc"]').forEach(r=>{r.checked=r.value===loc;});
+}
+
 // ── User Board (localStorage) ─────────────────────────────────────
 const U_JOBS_KEY='yjb_user_jobs_v1';
 const U_RESUMES_KEY='yjb_user_resumes_v1';
@@ -1003,6 +1048,11 @@ function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(_)
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){ }}
 
 function initUserBoard(){
+  // Clear ALL user state from previous sessions — always start fresh
+  try{localStorage.removeItem(U_RESUMES_KEY);}catch(_){}
+  try{localStorage.removeItem(U_SOURCES_KEY);}catch(_){}
+  lastResumeText='';
+  extractionPromise=null;
   const saved=(()=>{try{return localStorage.getItem(TAB_KEY);}catch(_){return null;}})();
   renderUserResumes();
   renderUserSources();
@@ -1021,48 +1071,165 @@ function toggleSources(){
   if(chev)chev.style.transform=open?'rotate(0deg)':'rotate(180deg)';
 }
 let lastResumeText='';
+let isSearching=false;
+let extractionPromise=null;
+
+// Called during upload — kicks off extraction immediately, stores the promise
+async function extractFromFile(file,dataUrl){
+  try{
+    const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:dataUrl,fileName:file.name})});
+    const result=await resp.json();
+    if(result.text&&result.text.trim().length>50)return result.text.trim();
+  }catch(_){}
+
+  // Client-side pdf.js fallback
+  if(/\.pdf$/i.test(file.name)&&window.pdfjsLib){
+    try{
+      const b64=dataUrl.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const pdf=await pdfjsLib.getDocument({data:arr}).promise;let t='';
+      for(let p=1;p<=Math.min(pdf.numPages,5);p++){const pg=await pdf.getPage(p);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n';}
+      if(t.trim().length>50)return t.trim();
+    }catch(_){}
+  }
+
+  // Plain text
+  if(/\.(txt|md)$/i.test(file.name)){
+    try{return await file.text();}catch(_){}
+  }
+
+  return file.name.replace(/[_\-.]/g,' ');
+}
+
 async function searchJobs(){
-  if(!lastResumeText){
+  if(isSearching)return;
+  isSearching=true;
+
+  if(extractionPromise){
+    lastResumeText=await extractionPromise;
+    extractionPromise=null;
+  }
+
+  if(!lastResumeText||lastResumeText.length<50){
     const resumes=lsGet(U_RESUMES_KEY);
-    if(resumes.length){
-      for(const r of resumes){
-        if(r.data&&/\.pdf$/i.test(r.name)&&window.pdfjsLib){
-          try{
-            const b64=r.data.split(',')[1];const bin=atob(b64);const arr=new Uint8Array(bin.length);
-            for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-            const pdf=await pdfjsLib.getDocument({data:arr}).promise;let t='';
-            for(let p=1;p<=Math.min(pdf.numPages,3);p++){const pg=await pdf.getPage(p);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n';}
-            if(t.trim()){lastResumeText=t;break;}
-          }catch(_){}
-        }else if(r.data&&/\.(txt|md)$/i.test(r.name)){
-          try{lastResumeText=atob(r.data.split(',')[1]);break;}catch(_){}
-        }
-      }
-      if(!lastResumeText)lastResumeText=resumes.map(r=>r.name.replace(/[_\-.]/g,' ')).join(' ');
+    if(resumes.length&&resumes[0].data){
+      try{
+        const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:resumes[0].data,fileName:resumes[0].name})});
+        const result=await resp.json();
+        if(result.text&&result.text.trim().length>50)lastResumeText=result.text.trim();
+      }catch(_){}
     }
   }
-  if(!lastResumeText){alert('Please upload a resume first.');return;}
+
+  if(!lastResumeText||lastResumeText.length<20){
+    isSearching=false;
+    alert('Please upload a resume first.');
+    return;
+  }
+
   const btn=document.getElementById('search-jobs-btn');
   if(btn){btn.disabled=true;btn.textContent='Searching...';}
   showUserScreen('loading');
 
-  const sel=document.querySelector('input[name="loc"]:checked');
-  const loc=sel?sel.value:'anywhere';
+  const loc=selectedLocation||'anywhere';
 
   try{
     const r=await fetch('/api/find-jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resumeText:lastResumeText,location:loc})});
     const data=await r.json();
     if(data.error)throw new Error(data.error);
-    renderUserResults(data.jobs||[]);
+    if(!data.jobs||!data.jobs.length){
+      showUserScreen('upload');
+      alert('No jobs found for "'+loc+'" location. Try "Anywhere".');
+    }else{
+      renderUserResults(data.jobs);
+    }
   }catch(e){
     showUserScreen('upload');
     alert('Search error: '+e.message);
   }finally{
+    isSearching=false;
     if(btn){btn.disabled=false;btn.textContent='Search Jobs';}
   }
 }
 
+function getFollowUpStatus(job) {
+  if (job.stage !== 'Applied' || !job.appliedDate) return null;
+  const daysSince = Math.floor((Date.now() - new Date(job.appliedDate).getTime()) / 86400000);
+  const daysLeft = 7 - daysSince;
+  if (job.followUpDismissed) {
+    const dismissedDaysAgo = Math.floor((Date.now() - new Date(job.followUpDismissed).getTime()) / 86400000);
+    const resetDaysLeft = 7 - dismissedDaysAgo;
+    if (resetDaysLeft > 0) return { daysLeft: resetDaysLeft, status: resetDaysLeft <= 3 ? 'soon' : 'default' };
+    return { daysLeft: 0, status: 'overdue' };
+  }
+  if (daysLeft > 3) return { daysLeft, status: 'default' };
+  if (daysLeft > 0) return { daysLeft, status: 'soon' };
+  return { daysLeft: Math.abs(daysLeft), status: 'overdue' };
+}
+
+function dismissFollowUp(jobId) {
+  const jobs = lsGet(U_JOBS_KEY);
+  const j = jobs.find(x => x.id === jobId);
+  if (j) { j.followUpDismissed = new Date().toISOString(); lsSet(U_JOBS_KEY, jobs); renderUserJobs(); }
+}
+
+async function loadInterviewPrep(job) {
+  const factsEl = document.getElementById('prep-facts-' + job.id);
+  const storiesEl = document.getElementById('prep-stories-' + job.id);
+  if (!factsEl || !storiesEl) return;
+
+  try {
+    const r = await fetch('/api/company-info?company=' + encodeURIComponent(job.company || ''));
+    const info = await r.json();
+    let factsHtml = '<div class="prep-facts">';
+    if (info.size) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Size</div><div class="prep-fact-value">${escapeHtml(info.size)}</div></div>`;
+    if (info.funding) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Funding</div><div class="prep-fact-value">${escapeHtml(info.funding)}</div></div>`;
+    if (info.glassdoor && info.glassdoor !== 'N/A') factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Glassdoor</div><div class="prep-fact-value">${escapeHtml(info.glassdoor)}/5</div></div>`;
+    if (info.industry) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">${escapeHtml(info.industry)}</div></div>`;
+    if (info.news) factsHtml += `<div class="prep-fact" style="grid-column:span 2"><div class="prep-fact-label">Recent News</div><div class="prep-fact-value">${escapeHtml(info.news)}</div></div>`;
+    factsHtml += '</div>';
+    factsEl.innerHTML = factsHtml;
+  } catch (e) {
+    factsEl.innerHTML = '<div class="prep-facts"><div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">Technology</div></div></div>';
+  }
+
+  const prompts = generateStarPrompts(job);
+  if (prompts.length) {
+    storiesEl.innerHTML = '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:6px;margin-top:8px;">Prepare to discuss</div><ul class="prep-stories">' +
+      prompts.map(p => `<li><span class="${p.type === 'strong' ? 'prep-strong' : 'prep-gap'}">${p.type === 'strong' ? '✓' : '○'}</span> ${escapeHtml(p.text)}</li>`).join('') + '</ul>';
+  }
+}
+
+function generateStarPrompts(job) {
+  const jobText = ((job.title || '') + ' ' + (job.notes || '') + ' ' + (job.description || '')).toLowerCase();
+  const resumeText = lastResumeText ? lastResumeText.toLowerCase() : '';
+
+  const skillAreas = [
+    'community building', 'product management', 'operations', 'growth', 'marketing',
+    'cross-functional', 'leadership', 'customer success', 'revenue', 'pricing',
+    'data analysis', 'project management', 'event planning', 'sales', 'partnerships',
+    'retention', 'acquisition', 'onboarding', 'strategy', 'budget',
+    'team management', 'stakeholder management', 'process improvement', 'reporting',
+    'vendor management', 'program design', 'user experience', 'marketplace'
+  ];
+
+  const prompts = [];
+  skillAreas.forEach(skill => {
+    if (jobText.includes(skill)) {
+      const inResume = resumeText.includes(skill);
+      prompts.push({
+        text: skill.charAt(0).toUpperCase() + skill.slice(1) + (inResume ? ' (strong in your resume)' : ' (gap — prepare examples)'),
+        type: inResume ? 'strong' : 'gap'
+      });
+    }
+  });
+
+  prompts.sort((a, b) => (a.type === 'strong' ? 0 : 1) - (b.type === 'strong' ? 0 : 1));
+  return prompts.slice(0, 8);
+}
+
 function renderUserResults(jobs){
+  jobs.sort((a,b)=>b.fit-a.fit);
   showUserScreen('results');
   const resumes=lsGet(U_RESUMES_KEY);
   const rn=document.getElementById('ur-resume-name');
@@ -1117,9 +1284,18 @@ function renderUserResults(jobs){
     const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
     const co3=escapeHtml(String(j.company||'').substring(0,3).toUpperCase());
     const logoHtml=logoSrc?`<img src="${logoSrc}" alt="${escapeHtml(j.company)}" onerror="this.parentElement.classList.add('no-img');this.parentElement.textContent='${co3}'">`:(co3||'???');
-    const descShort=(j.description||'').substring(0,300).replace(/\s+/g,' ');
+    const descShort=escapeHtml((j.description||'').substring(0,300).replace(/\s+/g,' '));
+    const sourceBadge = j.source ? `<span class="source-pill">${escapeHtml(j.source)}</span>` : '';
+    const freshnessClass = j.freshness === 'fresh' ? 'ghost-fresh' : j.freshness === 'normal' ? 'ghost-normal' : j.freshness === 'aging' ? 'ghost-aging' : j.freshness === 'stale' ? 'ghost-stale' : 'ghost-normal';
+    const freshnessLabel = j.daysAgo !== null && j.daysAgo !== undefined ? (j.daysAgo === 0 ? 'Today' : j.daysAgo + 'd ago') : (j.posted || 'recent');
+    const ghostBadges = `<div class="ghost-badges">
+      <span class="ghost-badge ${freshnessClass}">${freshnessLabel}</span>
+      ${j.reposted ? '<span class="ghost-badge ghost-repost" title="Multiple similar roles at this company">Reposted</span>' : ''}
+      ${j.layoffSignal ? '<span class="ghost-badge ghost-layoff" title="Recent layoffs reported">⚠ Layoffs</span>' : ''}
+    </div>`;
+    const ghostRiskHtml = j.ghostRisk && j.ghostRisk !== 'low' ? `<div class="ghost-risk ghost-risk-${j.ghostRisk}">Ghost risk: ${j.ghostRisk}</div>` : '';
 
-    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span><span class="pill">${escapeHtml(j.source)}</span></div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div><div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1152,42 +1328,33 @@ function renderSearchLinks(){
 
 function userUploadResume(e){
   const files=Array.from(e.target.files||[]);
+  if(!files.length)return;
+  // Clear old text — new upload = fresh extraction
+  lastResumeText='';
+  extractionPromise=null;
+
   const r=lsGet(U_RESUMES_KEY);
   let pending=files.length;
   files.forEach(f=>{
     const reader=new FileReader();
-    reader.onload=async ev=>{
+    reader.onload=ev=>{
       r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:ev.target.result,uploaded:new Date().toISOString()});
-      if(--pending===0){lsSet(U_RESUMES_KEY,r);renderUserResumes();}
-      const extracted=await tryExtractTextFromFile(f,ev.target.result);
-      if(extracted)lastResumeText=extracted;
-      goFindJobs();
+      if(--pending===0){
+        lsSet(U_RESUMES_KEY,r);
+        renderUserResumes();
+        // Start extraction — store promise so searchJobs can await it
+        extractionPromise=extractFromFile(f,ev.target.result).then(text=>{
+          lastResumeText=text;
+          return text;
+        });
+        goFindJobs();
+      }
     };
     reader.readAsDataURL(f);
   });
   e.target.value='';
 }
 
-async function tryExtractTextFromFile(file,dataUrl){
-  try{
-    if(/\.pdf$/i.test(file.name)&&window.pdfjsLib){
-      const b64=dataUrl.split(',')[1];
-      const bin=atob(b64);const arr=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-      const pdf=await pdfjsLib.getDocument({data:arr}).promise;
-      let text='';
-      for(let i=1;i<=Math.min(pdf.numPages,3);i++){
-        const p=await pdf.getPage(i);
-        const c=await p.getTextContent();
-        text+=c.items.map(it=>it.str).join(' ')+'\n';
-      }
-      return text;
-    }else if(/\.(txt|md)$/i.test(file.name)){
-      return await file.text();
-    }
-    return file.name.replace(/[_\-.]/g,' ');
-  }catch(_){return file.name.replace(/[_\-.]/g,' ');}
-}
 
 function renderUserResumes(){
   const r=lsGet(U_RESUMES_KEY);
@@ -1205,7 +1372,7 @@ function renderUserResumes(){
   }
   if(goBtn)goBtn.style.display='inline-flex';
   if(uploadLabel)uploadLabel.textContent='Upload another';
-  list.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">YOUR RESUMES</div>'+r.map(x=>`<span class="resume-chip"><a href="${x.data}" download="${x.name.replace(/"/g,'')}" style="color:inherit;text-decoration:none;">📄 ${x.name}</a><button onclick="removeUserResume('${x.id}')" title="Remove">×</button></span>`).join('');
+  list.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">YOUR RESUMES</div>'+r.map(x=>`<span class="resume-chip"><a href="${x.data}" download="${escapeHtml(x.name)}" style="color:inherit;text-decoration:none;">📄 ${escapeHtml(x.name)}</a><button onclick="removeUserResume('${x.id}')" title="Remove">×</button></span>`).join('');
 }
 function goFindJobs(){
   const panel=document.getElementById('go-panel');
@@ -1214,7 +1381,20 @@ function goFindJobs(){
   const btn=document.getElementById('go-btn');
   if(btn)btn.style.display='none';
 }
-function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));renderUserResumes();}
+function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=>x.id!==id));lastResumeText='';renderUserResumes();}
+async function userUploadAndSearch(e){
+  const files=Array.from(e.target.files||[]);if(!files.length)return;
+  lastResumeText='';extractionPromise=null;
+  const r=lsGet(U_RESUMES_KEY);
+  for(const f of files){
+    const dataUrl=await new Promise(resolve=>{const reader=new FileReader();reader.onload=ev=>resolve(ev.target.result);reader.readAsDataURL(f);});
+    r.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,6),name:f.name,size:f.size,type:f.type,data:dataUrl,uploaded:new Date().toISOString()});
+    lsSet(U_RESUMES_KEY,r);renderUserResumes();
+    lastResumeText=await extractFromFile(f,dataUrl);
+  }
+  e.target.value='';
+  searchJobs();
+}
 
 function addUserJob(){
   const title=document.getElementById('uj-title').value.trim();
@@ -1226,7 +1406,22 @@ function addUserJob(){
 }
 function clearJobForm(){['uj-title','uj-company','uj-location','uj-url','uj-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function removeUserJob(id){if(!confirm('Remove this job?'))return;lsSet(U_JOBS_KEY,lsGet(U_JOBS_KEY).filter(j=>j.id!==id));renderUserJobs();}
-function updateUserJobStage(id,stage){const jobs=lsGet(U_JOBS_KEY);const j=jobs.find(x=>x.id===id);if(j){j.stage=stage;lsSet(U_JOBS_KEY,jobs);renderUserJobs();}}
+function updateUserJobStage(id, stage) {
+  const jobs = lsGet(U_JOBS_KEY);
+  const j = jobs.find(x => x.id === id);
+  if (j) {
+    j.stage = stage;
+    if (stage === 'Applied' && !j.appliedDate) {
+      j.appliedDate = new Date().toISOString();
+      j.followUpDismissed = null;
+    }
+    if (stage !== 'Applied') {
+      j.followUpDismissed = null;
+    }
+    lsSet(U_JOBS_KEY, jobs);
+    renderUserJobs();
+  }
+}
 
 function renderUserJobs(){
   const jobs=lsGet(U_JOBS_KEY);
@@ -1246,8 +1441,12 @@ function renderUserJobs(){
     const titleHtml=j.url?`<a href="${j.url}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>`:escapeHtml(j.title);
     const metaBits=[escapeHtml(j.company),j.location?escapeHtml(j.location):''].filter(Boolean).join(' · ');
     const notes=j.notes?`<div style="font-size:12px;color:var(--text-secondary);margin-top:8px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(j.notes)}</div>`:'';
-    return `<div class="user-job-card"><div class="ujc-main"><div class="ujc-title">${titleHtml}</div><div class="ujc-meta">${metaBits}</div>${notes}</div><div class="ujc-right"><select class="stage-select" onchange="updateUserJobStage('${j.id}',this.value)">${stageOpts}</select><button class="icon-btn" onclick="removeUserJob('${j.id}')" title="Remove">✕</button></div></div>`;
+    const fu = getFollowUpStatus(j);
+    const fuHtml = fu ? `<div style="margin-top:6px;"><span class="followup-badge followup-${fu.status}">${fu.status === 'overdue' ? 'Follow up overdue (' + fu.daysLeft + 'd)' : 'Follow up in ' + fu.daysLeft + 'd'}</span> <button onclick="dismissFollowUp('${j.id}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;font-family:var(--mono);" title="Snooze 7 days">snooze</button></div>` : '';
+    const prepHtml = j.stage === 'Interview' ? `<div id="prep-${j.id}" class="interview-prep"><h4>Interview Prep</h4><div id="prep-facts-${j.id}"><div style="font-size:11px;color:var(--text-muted);">Loading company info...</div></div><div id="prep-stories-${j.id}"></div></div>` : '';
+    return `<div class="user-job-card"><div class="ujc-main"><div class="ujc-title">${titleHtml}</div><div class="ujc-meta">${metaBits}</div>${notes}${fuHtml}${prepHtml}</div><div class="ujc-right"><select class="stage-select" onchange="updateUserJobStage('${j.id}',this.value)">${stageOpts}</select><button class="icon-btn" onclick="removeUserJob('${j.id}')" title="Remove">✕</button></div></div>`;
   }).join('');
+  jobs.filter(j => j.stage === 'Interview').forEach(j => loadInterviewPrep(j));
 }
 
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
