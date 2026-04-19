@@ -472,11 +472,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </label>
     </div>
     <div style="margin-top:14px;font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:0.6px;">OR</div>
-    <div style="margin-top:10px;display:flex;gap:8px;max-width:480px;margin-left:auto;margin-right:auto;">
-      <input id="linkedin-url-input" type="url" placeholder="https://www.linkedin.com/in/your-handle" autocomplete="url" style="flex:1;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none;" onkeydown="if(event.key==='Enter')submitLinkedIn()"/>
-      <button class="primary-btn" style="padding:10px 16px;font-size:13px;" onclick="submitLinkedIn()">Use LinkedIn</button>
+    <div style="margin-top:10px;max-width:520px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;text-align:left;">Paste a few lines about your background and what you want next:</div>
+      <textarea id="paste-text-input" rows="4" placeholder="e.g. PhD EE with 6 years semiconductor physical design. Interested in staff-level roles at Tenstorrent, SambaNova, Cerebras. Based in Austin." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none;resize:vertical;line-height:1.5;"></textarea>
+      <button class="primary-btn" style="margin-top:8px;padding:10px 16px;font-size:13px;width:100%;justify-content:center;" onclick="submitPastedText()">Use this text</button>
     </div>
-    <div id="linkedin-status" style="display:none;font-size:11.5px;line-height:1.5;margin-top:8px;max-width:480px;margin-left:auto;margin-right:auto;"></div>
+    <div id="linkedin-status" style="display:none;font-size:11.5px;line-height:1.5;margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;"></div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text-muted);text-align:center;">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#f1f5f9;border:1px solid #e2e8f0;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#0a66c2" aria-hidden="true"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2ZM8 19H5v-9h3Zm-1.5-10.3a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4ZM19 19h-3v-4.7c0-1.1 0-2.6-1.6-2.6s-1.8 1.2-1.8 2.5V19h-3v-9h2.9v1.2h.04A3.17 3.17 0 0 1 15.3 9.7c3 0 3.7 2 3.7 4.6Z"/></svg>
+        LinkedIn import · coming soon
+      </span>
+    </div>
     <div id="user-resume-list" style="margin-top:18px;"></div>
     <div id="go-panel" style="display:none;margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;">Location</div>
@@ -1513,61 +1520,33 @@ function renderSearchLinks(){
   wrap.innerHTML=boards.map(([n,u])=>`<a class="source-tag" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join('');
 }
 
-async function submitLinkedIn(){
-  const inp=document.getElementById('linkedin-url-input');
+// Pasted-text alternative to file upload. Feeds straight into the same
+// scoring pipeline as an uploaded resume — we just skip the PDF extract
+// step and treat the textarea contents as resume text directly.
+function submitPastedText(){
+  const ta=document.getElementById('paste-text-input');
   const status=document.getElementById('linkedin-status');
-  if(!inp||!status)return;
-  const url=(inp.value||'').trim();
+  if(!ta||!status)return;
+  const txt=(ta.value||'').trim();
   const show=(html,kind)=>{
     const bg=kind==='err'?'#fef2f2':kind==='ok'?'#ecfdf5':'#f8fafc';
     const bd=kind==='err'?'#fecaca':kind==='ok'?'#86efac':'#cbd5e1';
     const fg=kind==='err'?'#991b1b':kind==='ok'?'#14532d':'#475569';
-    status.style.cssText='font-size:11.5px;line-height:1.5;margin-top:8px;max-width:480px;margin-left:auto;margin-right:auto;padding:9px 12px;border-radius:8px;background:'+bg+';border:1px solid '+bd+';color:'+fg+';';
+    status.style.cssText='font-size:11.5px;line-height:1.5;margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;padding:9px 12px;border-radius:8px;background:'+bg+';border:1px solid '+bd+';color:'+fg+';';
     status.innerHTML=html;status.style.display='block';
   };
-  if(!/^https?:\/\/(www\.)?linkedin\.com\/in\//i.test(url)){
-    show('That doesn\'t look like a LinkedIn profile URL. Expected: <code>https://www.linkedin.com/in/your-handle</code>','err');
+  if(txt.length<40){
+    show('Give us a little more — at least a couple sentences about roles you\'ve held or want next.','err');
     return;
   }
-  show('Fetching profile…','info');
-  try{
-    const r=await fetch('/api/linkedin-to-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
-    const data=await r.json();
-    if(!r.ok||!data.ok){
-      if(data&&data.reason==='login_wall'){
-        show('LinkedIn gated that profile behind a login. Paste your headline + experience text below, or upload a PDF instead:<br><textarea id="li-manual" rows="6" style="width:100%;box-sizing:border-box;margin-top:6px;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid #cbd5e1;border-radius:6px;" placeholder="Paste job titles, companies, and a few bullet points — anything you\'d have on a resume."></textarea><button class="primary-btn" style="margin-top:6px;padding:8px 14px;font-size:12px;" onclick="useManualLinkedInText()">Use this text</button>','err');
-        return;
-      }
-      show('Could not fetch that profile ('+((data&&data.error)||'unknown error')+'). Try uploading a PDF instead.','err');
-      return;
-    }
-    lastResumeText=data.text;
-    extractionPromise=Promise.resolve(data.text);
-    lsSet(U_SOURCES_KEY,[]);
-    renderUserSources();
-    const chipName='LinkedIn · '+(data.name||url.split('/in/')[1].replace(/\/$/,''));
-    const chipResume={id:'r-linkedin-'+Date.now(),name:chipName,size:(data.text||'').length,type:'text/linkedin',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(data.text))),uploaded:new Date().toISOString()};
-    lsSet(U_RESUMES_KEY,[chipResume]);
-    renderUserResumes();
-    show('Got '+((data.text||'').length.toLocaleString())+' characters from LinkedIn. Choose a location and Search.','ok');
-    goFindJobs();
-  }catch(e){
-    show('Network error: '+e.message+'. Try again or upload a PDF.','err');
-  }
-}
-function useManualLinkedInText(){
-  const ta=document.getElementById('li-manual');
-  if(!ta||!ta.value.trim()){return;}
-  const txt=ta.value.trim();
   lastResumeText=txt;
   extractionPromise=Promise.resolve(txt);
   lsSet(U_SOURCES_KEY,[]);
   renderUserSources();
-  const chipResume={id:'r-li-manual-'+Date.now(),name:'LinkedIn (pasted)',size:txt.length,type:'text/linkedin',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(txt))),uploaded:new Date().toISOString()};
+  const chipResume={id:'r-paste-'+Date.now(),name:'Pasted text ('+txt.length.toLocaleString()+' chars)',size:txt.length,type:'text/plain',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(txt))),uploaded:new Date().toISOString()};
   lsSet(U_RESUMES_KEY,[chipResume]);
   renderUserResumes();
-  const status=document.getElementById('linkedin-status');
-  if(status){status.style.background='#ecfdf5';status.style.borderColor='#86efac';status.style.color='#14532d';status.innerHTML='Got '+txt.length.toLocaleString()+' characters. Choose a location and Search.';}
+  show('Got it. Choose a location and Search.','ok');
   goFindJobs();
 }
 function userUploadResume(e){

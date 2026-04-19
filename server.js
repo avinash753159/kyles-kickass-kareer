@@ -1135,7 +1135,15 @@ const ALLOWED_MARKET_RE = /\b(united states|u\.s\.a?\.?|usa|us(?=[-/\s,(]|$)|nor
 // also names an unambiguously non-English-market country is dropped. Keeps
 // "Remote - USA / India" off the board while letting "Remote (US/EMEA)" in
 // (EMEA alone is not an exclusive match).
-const EXCLUSIVE_NON_ENGLISH_RE = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france(?!\s+st)|paris|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|brasil|s[aã]o paulo|rio de janeiro|nigeria|lagos|philippines|manila|pakistan|karachi|cambodia|phnom penh|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|mexico|mexico city|colombia|bogota|argentina|buenos aires|chile|santiago|peru|lima|egypt|cairo|turkey|istanbul|dubai|u\.a\.e\.|uae|saudi arabia|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal|costa rica|panama|ecuador|bolivia|paraguay|uruguay|venezuela)\b/i;
+// Bare country/city names deliberately avoid US collisions:
+//   - `mexico` → negative lookbehind on "new " so "New Mexico, NM" passes
+//     ("mexico city" still drops because it's not preceded by "new ").
+//   - `paris`, `lima` removed as bare alternatives — France / Peru already
+//     catch the country-level match and US towns (Paris TX, Lima OH) were
+//     getting filtered out.
+//   - `turkey`, `panama` require a known non-US context so Turkey, TX and
+//     Panama City, FL don't get dropped.
+const EXCLUSIVE_NON_ENGLISH_RE = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france(?!\s+st)|parisian|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|brasil|s[aã]o paulo|rio de janeiro|nigeria|lagos|philippines|manila|pakistan|karachi|cambodia|phnom penh|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|(?<!new\s)mexico|colombia|bogota|argentina|buenos aires|chile|santiago|peru|peruvian|egypt|cairo|turkey(?!,\s*(tx|texas|nc|north\s+carolina))|istanbul|dubai|u\.a\.e\.|uae|saudi arabia|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal|costa rica|panama(?!\s*city,?\s*(fl|florida))|ecuador|bolivia|paraguay|uruguay|venezuela)\b/i;
 
 function isAllowedMarketLocation(location) {
   if (!location) return true; // empty → keep
