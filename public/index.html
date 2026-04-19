@@ -274,10 +274,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .mutual-link:hover{background:rgba(37,99,235,0.1);}
 
 /* === BUTTONS === */
-.last-run-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--text-secondary);}
-.last-run-bar .run-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
-.last-run-bar .run-again{font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:var(--mono);font-weight:500;transition:all .2s;margin-left:auto;}
-.last-run-bar .run-again:hover{background:var(--bg);color:var(--text);}
+.last-run-bar{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;font-size:12.5px;color:var(--text-secondary);flex-wrap:wrap;}
+.last-run-bar .run-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;}
+.last-run-bar .run-again{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:inherit;font-weight:500;transition:all .2s;margin-left:auto;letter-spacing:-0.1px;}
+.last-run-bar .run-again:hover{background:var(--text);color:var(--card);border-color:var(--text);}
 .sources-section{margin-top:24px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);}
 .sources-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;}
 .sources-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
@@ -345,15 +345,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .view-resume-btn:hover{opacity:0.85;transform:translateY(-1px);}
 .view-resume-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;}
 
-/* === GHOST BADGES === */
-.ghost-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-.ghost-badge{font-size:9.5px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
-.ghost-fresh{background:#dcfce7;color:#16a34a;}
-.ghost-normal{background:#f1f5f9;color:#64748b;}
-.ghost-aging{background:#fef3c7;color:#d97706;}
-.ghost-stale{background:#fef2f2;color:#dc2626;}
-.ghost-repost{background:#fef3c7;color:#d97706;}
-.ghost-layoff{background:#fef2f2;color:#dc2626;}
+/* (ghost-badge band deleted — freshness + reposted now ride inline as pills) */
 .ghost-risk{font-size:10px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-weight:600;margin-top:8px;}
 .ghost-risk-low{background:#dcfce7;color:#16a34a;}
 .ghost-risk-medium{background:#fef3c7;color:#d97706;}
@@ -428,8 +420,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
   <div class="tab-bar">
     <div class="tab-inner">
-      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your Board</button>
-      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Example · Kyle's Board</button>
+      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your search</button>
+      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Curated example · Kyle's board</button>
     </div>
   </div>
 </div>
@@ -460,7 +452,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
-    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Example · Kyle's Board tab</strong> to see what results look like</span>
+    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Curious what results look like? See <strong style="color:var(--green);">Kyle's curated example →</strong></span>
     <div id="user-upload-msg" role="status" aria-live="polite" style="display:none;margin-top:14px;padding:10px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:12px;line-height:1.5;"></div>
   </div>
 </div>
@@ -1274,7 +1266,7 @@ async function searchJobs(){
     if(data.error)throw new Error(data.error);
     if(!data.jobs||!data.jobs.length){
       showUserScreen('upload');
-      showUploadMsg('No jobs found for "'+loc+'". Try <strong>Anywhere</strong>, or add more context in <em>Sources of Me</em> and search again.');
+      showUploadMsg('No matches passed the 55% career-fit threshold for "'+loc+'". Try <strong>Anywhere</strong>, or add extra context (LinkedIn URL, what you want) below — that usually opens the search.');
     }else{
       renderUserResults(data.jobs);
     }
@@ -1423,11 +1415,7 @@ function renderUserResults(jobs){
     const sourceBadge = j.source ? `<span class="source-pill">${escapeHtml(j.source)}</span>` : '';
     const freshnessClass = j.freshness === 'fresh' ? 'ghost-fresh' : j.freshness === 'normal' ? 'ghost-normal' : j.freshness === 'aging' ? 'ghost-aging' : j.freshness === 'stale' ? 'ghost-stale' : 'ghost-normal';
     const freshnessLabel = j.daysAgo !== null && j.daysAgo !== undefined ? (j.daysAgo === 0 ? 'Today' : j.daysAgo + 'd ago') : (j.posted || 'recent');
-    const ghostBadges = `<div class="ghost-badges">
-      <span class="ghost-badge ${freshnessClass}">${freshnessLabel}</span>
-      ${j.reposted ? '<span class="ghost-badge ghost-repost" title="Multiple similar roles at this company">Reposted</span>' : ''}
-      ${j.layoffSignal ? '<span class="ghost-badge ghost-layoff" title="Recent layoffs reported">⚠ Layoffs</span>' : ''}
-    </div>`;
+    // ghostBadges band removed — freshness + repost now ride inline in the .jc-pills row.
     // Plain-English ghost-risk: explain what it means and what drives the score.
     let ghostRiskHtml = '';
     if (j.ghostRisk && j.ghostRisk !== 'low') {
@@ -1448,7 +1436,13 @@ function renderUserResults(jobs){
     // Hiring-manager contact block (filled async by loadHunterContacts)
     const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
 
-    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta">${eyebrow}<div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:10px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+    // Card pills — tightened: location pill dropped (already in .jc-co line);
+    // posted pill dropped (ghost-badge freshness covers it, no more dup
+    // "3d ago / 3d ago"); freshness inlined here so it reads with the other
+    // meta chips instead of in a separate band.
+    const freshnessInline = `<span class="pill ${freshnessClass==='ghost-fresh'?'g':freshnessClass==='ghost-stale'?'y':''}" title="How recent the posting is">${freshnessLabel}</span>`;
+    const repostPill = j.reposted ? '<span class="pill y" title="Multiple similar roles open at this company">Reposted</span>' : '';
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta">${eyebrow}<div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}${freshnessInline}${repostPill}${sourceBadge}</div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:12px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:14px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
   window.scrollTo({top:0,behavior:'smooth'});
