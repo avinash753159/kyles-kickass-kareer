@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Your Job Board – A Kyle-Avi Project</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
@@ -29,9 +31,10 @@
   --amber-bg:rgba(217,119,6,0.06);
   --orange:#ea580c;
   --red:#dc2626;
-  --mono:'IBM Plex Mono',monospace;
-  --sans:'Inter',system-ui,sans-serif;
-  --radius:16px;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+  --sans:'Geist',system-ui,-apple-system,sans-serif;
+  --display:'Bricolage Grotesque','Geist',system-ui,sans-serif;
+  --radius:14px;
   --radius-sm:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -48,15 +51,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .header-inner{max-width:1200px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--green),#22d3ee);border-radius:10px;display:flex;align-items:center;justify-content:center;}
-.brand-icon svg{width:20px;height:20px;fill:#fff;}
-.brand-text{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.brand-icon{width:32px;height:32px;background:var(--text);border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.brand-icon svg{width:17px;height:17px;fill:var(--green-light);}
+.brand-text{font-family:var(--display);font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.5px;}
 .brand-text em{color:var(--green);font-style:normal;}
 .header-right{display:flex;align-items:center;gap:14px;}
 .cmd-btn{font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);transition:all .2s;display:flex;align-items:center;gap:6px;}
 .cmd-btn:hover{border-color:#c1c5ce;color:var(--text-secondary);}
 .cmd-btn kbd{font-size:10px;background:var(--card);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:var(--mono);}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;box-shadow:0 0 6px rgba(22,163,74,0.4);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .live-label{font-family:var(--mono);font-size:11px;color:var(--green);display:flex;align-items:center;gap:6px;}
 
@@ -70,11 +73,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 /* === USER BOARD EMPTY + UI === */
 .user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:36px 32px;margin-bottom:24px;text-align:center;border:1px solid var(--border);}
-.user-hero h1{font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;color:var(--text);}
+.user-hero h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:-1.1px;margin-bottom:8px;color:var(--text);line-height:1.05;}
 .user-hero p{font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;}
 .user-hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 .primary-btn{background:var(--green);color:#fff;border:none;padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
-.primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,0.25);}
+.primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 3px 10px rgba(20,40,30,0.12);}
 .secondary-btn{background:var(--card);color:var(--text);border:1px solid var(--border);padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;}
 .secondary-btn:hover{border-color:#c1c5ce;background:var(--bg);}
 .resume-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-bg);color:var(--green);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:var(--mono);margin:6px 4px 0 0;}
@@ -87,7 +90,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .add-job-form input:focus,.add-job-form textarea:focus,.add-job-form select:focus{border-color:var(--green);}
 .add-job-form textarea{resize:vertical;min-height:60px;margin-bottom:10px;}
 .add-job-form .actions{display:flex;justify-content:flex-end;gap:8px;}
-.user-job-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 22px;margin-bottom:10px;border:1px solid var(--border);border-left:3px solid var(--green);display:flex;align-items:center;gap:16px;}
+.user-job-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 22px;margin-bottom:10px;border:1px solid var(--border);display:flex;align-items:center;gap:16px;}
 .user-job-card .ujc-main{flex:1;min-width:0;}
 .user-job-card .ujc-title{font-size:14px;font-weight:600;margin-bottom:3px;}
 .user-job-card .ujc-title a{color:var(--text);text-decoration:none;}
@@ -125,10 +128,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   border:1px solid transparent;
 }
 .stat-card:hover{box-shadow:var(--card-shadow-lg);transform:translateY(-2px);}
-.stat-card.primary{background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;}
-.stat-card.primary .stat-label{color:rgba(255,255,255,0.7);}
-.stat-card.primary .stat-sub{color:rgba(255,255,255,0.5);}
-.stat-value{font-size:36px;font-weight:800;line-height:1;letter-spacing:-1px;margin-bottom:4px;}
+.stat-card.primary{background:#15803d;color:#fff;}
+.stat-card.primary .stat-label{color:rgba(255,255,255,0.78);}
+.stat-card.primary .stat-sub{color:rgba(255,255,255,0.58);}
+.stat-value{font-family:var(--display);font-size:42px;font-weight:700;line-height:1;letter-spacing:-1.6px;margin-bottom:4px;}
 .stat-label{font-size:12px;color:var(--text-secondary);font-weight:500;}
 .stat-sub{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:8px;display:flex;align-items:center;gap:4px;}
 .stat-sub .up{color:var(--green);}
@@ -157,9 +160,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   border:1px solid transparent;
 }
 .job-card:hover{box-shadow:var(--card-shadow-lg);transform:translateY(-1px);}
-.job-card.hot{border-left:3px solid var(--green);}
-.job-card.strong{border-left:3px solid var(--blue);}
-.job-card.good{border-left:3px solid var(--amber);}
+/* tier is conveyed by the fit-ring stroke color and status-tag chip — no side-tab borders (AI slop tell) */
+.job-card.hot{border-color:color-mix(in oklch, var(--green) 25%, transparent);}
+.job-card.strong{border-color:color-mix(in oklch, var(--blue) 20%, transparent);}
+.job-card.good{border-color:color-mix(in oklch, var(--amber) 18%, transparent);}
 
 .jc-header{padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;user-select:none;}
 .company-logo{width:42px;height:42px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:var(--bg);border:1px solid var(--border);}
@@ -195,10 +199,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .jc-body.open{display:block;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
-.why-box{border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.7;font-weight:450;}
-.why-g{background:var(--green-bg);border-left:3px solid var(--green);color:#15803d;}
-.why-b{background:var(--blue-bg);border-left:3px solid var(--blue);color:#1d4ed8;}
-.why-y{background:var(--amber-bg);border-left:3px solid var(--amber);color:#92400e;}
+.why-box{border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.65;font-weight:450;}
+.why-g{background:var(--green-bg);color:#14532d;}
+.why-b{background:var(--blue-bg);color:#1e3a8a;}
+.why-y{background:var(--amber-bg);color:#78350f;}
 .co-blurb{font-size:12.5px;color:var(--text-secondary);line-height:1.7;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:16px;}
 
 /* === TIMELINE === */
@@ -210,11 +214,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .tl-label.active{color:var(--green);font-weight:600;}
 .tl-line{width:32px;height:2px;background:#e2e8f0;flex-shrink:0;margin:0 6px;border-radius:1px;}
 
-/* === FIT METER === */
-.fit-meter-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.fit-bar-bg{flex:1;height:6px;background:var(--bg);border-radius:99px;overflow:hidden;}
-.fit-bar-fill{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1);}
-.fit-pct-live{font-family:var(--mono);font-size:13px;font-weight:700;min-width:38px;text-align:right;}
+/* (removed unused .fit-meter-row / .fit-bar-fill — dead code, plus width transitions cause layout thrash) */
 
 /* === CHECKBOXES === */
 .gap-item{
@@ -321,11 +321,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   font-size:12px;padding:10px 20px;border-radius:var(--radius-sm);border:none;
   cursor:pointer;font-family:var(--mono);margin:12px 0;transition:all .2s;
   display:inline-flex;align-items:center;gap:8px;font-weight:600;
-  background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;
-  box-shadow:0 2px 8px rgba(124,58,237,0.25);
+  background:var(--text);color:var(--card);
   width:100%;justify-content:center;
 }
-.view-resume-btn:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,58,237,0.35);}
+.view-resume-btn:hover{opacity:0.85;transform:translateY(-1px);}
 .view-resume-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;}
 
 /* === GHOST BADGES === */
@@ -1486,13 +1485,13 @@ function renderUserResults(jobs){
         : 'Posting age + repost signals suggest the role may not be actively interviewing.';
       ghostRiskHtml = `<div class="ghost-risk ghost-risk-${j.ghostRisk}" title="What this means: this listing shows signs of being inactive — old posting age, multiple reposts, or recent layoffs at the company.">${riskLabel}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">${riskExplain}</div>`;
     }
-    // "Why this fits" — LLM-generated one-liner citing actual career history.
-    // Falls back to keyword-overlap chips when scoring ran in fallback mode
-    // (ANTHROPIC_API_KEY missing or LLM call failed).
+    // "Why this fits" — LLM-generated one-liner. This IS the card's primary
+    // signal (the whole reason LLM scoring replaced keyword matching), so it
+    // gets display-font weight and real breathing room, not a side-panel chip.
     const matchedTermsHtml = j.fitReason
-      ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12.5px;color:var(--text);line-height:1.55;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this fits</div>${escapeHtml(j.fitReason)}</div>`
+      ? `<div style="margin-top:4px;padding:16px 18px;background:#f0fdf4;border-radius:12px;color:#14532d;line-height:1.55;"><div style="font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#15803d;margin-bottom:6px;">Why this fits</div><div style="font-size:14.5px;font-weight:500;letter-spacing:-0.1px;">${escapeHtml(j.fitReason)}</div></div>`
       : (j.matchedTerms && j.matchedTerms.length)
-        ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:var(--text);line-height:1.5;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this matches your resume</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:#fff;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:#166534;">${escapeHtml(t)}</span>`).join('')}</div>`
+        ? `<div style="margin-top:4px;padding:12px 16px;background:var(--bg);border-radius:10px;color:var(--text-secondary);line-height:1.55;"><div style="font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;">Resume overlap</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:var(--card);border-radius:4px;padding:2px 8px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:var(--text-secondary);">${escapeHtml(t)}</span>`).join('')}</div>`
         : '';
     // Hiring-manager contact block (filled async by loadHunterContacts)
     const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
