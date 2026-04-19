@@ -1,7 +1,7 @@
 # LLM-Based Job Scoring
 
 ## Model
-Claude Opus 4.7 (`claude-opus-4-7`) with adaptive thinking (`thinking: {type: "adaptive"}`) and `effort: "high"`. Upgraded from Haiku 4.5 when the product priority shifted to "best matches, cost-is-secondary." Opus is materially more honest about borderline fits — low scores go genuinely low (a coliving operator getting 5% on Lyft Pricing PM, not Haiku's charitable 15%) and reasons cite specific line items from the resume rather than generic phrases. The SDK call uses `client.messages.stream()` + `.finalMessage()` so long Opus + thinking runs don't hit default HTTP timeouts.
+Claude Haiku 4.5 (`claude-haiku-4-5`). Selected after A/B against Opus 4.7: on Sonia Sharma's McKinsey-Associate resume, Haiku surfaced 20 candidates and Opus 5. Haiku returns more options (some with partial-credit false positives — Lyft Pricing PM at 74% despite no PM trajectory) but the volume gives users more to browse; Opus is stricter and more calibrated but filtered aggressively. Code supports both via the conditional `isOpusOrSonnet` branch in `scoreJobsWithLLM` — swap `MODEL` and restart to trade calibration for volume. SDK call uses `client.messages.stream()` + `.finalMessage()` in both modes so long runs don't hit HTTP timeouts.
 
 ## Shape
 - **Phase 1** — keyword pre-filter: ~500 fetched jobs → 60 candidates via `scoreFit` + market/location/English-title filters (unchanged).
@@ -12,10 +12,10 @@ Claude Opus 4.7 (`claude-opus-4-7`) with adaptive thinking (`thinking: {type: "a
 The keyword scorer matches surface terms — any mention of "product" in a resume inflates scores on generic Product Manager roles. Kyle Gaarder's actual niche is coliving/coworking/community operations, but the keyword scorer put "Lyft Group PM, Pricing" at 75% fit because "product" and "pricing" appeared near each other. With LLM scoring the same job drops to ~15% — correctly reflecting that he has no pricing strategy, marketplace economics, or transportation experience.
 
 ## Cost
-~9K input + ~3K-6K output per search = **~$0.10–$0.18 at Opus 4.7 list price** ($5/$25 per 1M tokens). Adaptive thinking adds hidden thinking tokens (billed at output rate); rough empirical range is ~1-3K thinking tokens per search. All together the upper bound per search is roughly $0.20. System-prompt caching cuts input cost after the first search in a 5-min window.
+~9K input + ~3K output per search = **~$0.024 at Haiku 4.5 list price** ($1/$5 per 1M tokens). System-prompt caching cuts input cost after the first search in a 5-min window.
 
 ## Latency
-~20-40s for the Opus + adaptive-thinking call on 60 jobs (10s for 5 jobs in the smoke test; scaling is sub-linear due to prompt caching on the system block). Total cold-cache search is ~30-50s; warm is ~25-40s.
+~5-10s for the Haiku call on 60 jobs. Total cold-cache search is ~10-20s; warm is ~6-12s.
 
 Streaming is used internally (via `client.messages.stream().finalMessage()`) to avoid the SDK's default HTTP timeout on long responses — users still see a single non-streaming JSON payload.
 
