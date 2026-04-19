@@ -1092,8 +1092,12 @@ function scoreFit(job, keywords) {
   let wrongField = false;
   // True SWE signal — must include code/framework terms, not just cloud provider
   // names. An EE resume mentioning "AWS" as a customer shouldn't read as SWE.
+  // 'node' is intentionally excluded — it collides with the semiconductor
+  // "process node" term ("14nm node") that domainTerms also accepts, which
+  // would otherwise flip an EE resume into software-mode and skip the
+  // hardware wrong-field guard below.
   const resumeIsSoftware = keywords.domainSkills.some(s =>
-    ['javascript','python','java','react','angular','vue','node','express',
+    ['javascript','python','java','react','angular','vue','node.js','nodejs','express',
      'kubernetes','docker','machine learning','data science','ci/cd','devops',
      'sql','terraform','golang','rust','typescript','c++','ruby','php'].includes(s));
   const resumeIsCloudUser = keywords.domainSkills.some(s =>

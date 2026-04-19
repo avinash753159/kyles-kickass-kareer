@@ -160,6 +160,20 @@ test('scoreFit: EE resume + Senior Yield Engineer → hot (≥55)', () => {
   assert.ok(fit >= 55, `expected ≥55, got ${fit}`);
 });
 
+// Regression guard for Devin Review finding (2026-04-19): the semiconductor
+// "process node" term collided with the Node.js token in the
+// resumeIsSoftware check. An EE resume mentioning "14nm node" would flip
+// `resumeIsSoftware=true`, short-circuit the hardware wrong-field guard,
+// and let infrastructure/SWE roles score in the hot band.
+test('scoreFit: EE resume + Senior Infrastructure Engineer → wrong-field (≤25)', () => {
+  const job = { title: 'Senior Infrastructure Engineer', company: 'AWS',
+    location: 'Seattle, WA',
+    description: 'Own cloud infrastructure at scale. Go, Kubernetes, Terraform, large distributed systems.',
+    tags: ['engineering', 'infrastructure'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit <= 25, `expected ≤25 (hardware resume, not software), got ${fit}`);
+});
+
 // ── Hunter contact ranker ─────────────────────────────────────────
 const { rankHunterContacts } = require('../server');
 
