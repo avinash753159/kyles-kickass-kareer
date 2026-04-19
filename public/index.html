@@ -377,6 +377,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </head>
 <body>
 
+<!-- Email gate popup. Shown once per browser (LS flag yjb_email_v1) before
+     the user can search jobs. Skippable with a tongue-in-cheek button. -->
+<div id="email-gate" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:28px;">
+    <div style="font-size:32px;line-height:1;margin-bottom:10px;">&#128075;</div>
+    <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 8px;letter-spacing:-0.3px;">Hey, before you dive in&hellip;</h2>
+    <p style="font-size:13.5px;color:#475569;line-height:1.55;margin:0 0 6px;">
+      We built this in a weekend &mdash; no investors, no growth team, no creepy tracking.
+      Just two friends who got tired of LinkedIn job filters.
+    </p>
+    <p style="font-size:13.5px;color:#475569;line-height:1.55;margin:0 0 18px;">
+      Drop your email so we can tell our parents <em>somebody</em> is using it. We promise:
+      <strong>no spam, no newsletters, no &ldquo;just checking in!&rdquo; emails</strong>. Literally just a count.
+    </p>
+    <input id="email-gate-input" type="email" placeholder="you@somewhere.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:var(--mono);outline:none;margin-bottom:6px;" />
+    <div id="email-gate-err" style="display:none;font-size:11px;color:#dc2626;margin-bottom:6px;">That email looks off. Try again?</div>
+    <button id="email-gate-submit" onclick="submitEmailGate()" style="width:100%;background:var(--blue);color:#fff;border:0;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;">Continue &rarr;</button>
+    <button onclick="skipEmailGate()" style="width:100%;background:transparent;color:#64748b;border:0;padding:10px;font-size:12px;cursor:pointer;margin-top:4px;text-decoration:underline;">No thanks, my parents already know I'm a disappointment</button>
+  </div>
+</div>
+
 <div class="header">
   <div class="header-inner">
     <div class="brand">
@@ -384,14 +405,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="brand-text">Your <em>Job Board</em> <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:500;margin-left:6px;letter-spacing:0;">– A Kyle-Avi Project</span></div>
     </div>
     <div class="header-right">
+      <div id="visitor-ticker" title="Unique visitors who've used Your Job Board" style="display:none;font-family:var(--mono);font-size:11px;color:var(--text-secondary);background:#f1f5f9;border:1px solid var(--border);border-radius:14px;padding:4px 10px;align-items:center;gap:6px;">
+        <span style="font-size:13px;line-height:1;">&#128065;</span>
+        <span><strong id="visitor-count" style="color:var(--text);">&mdash;</strong> visitors</span>
+      </div>
       <div class="live-label"><div class="live-dot"></div>Live</div>
       <div class="cmd-btn" onclick="openCmd()"><kbd>Ctrl</kbd>+<kbd>K</kbd> Search</div>
     </div>
   </div>
   <div class="tab-bar">
     <div class="tab-inner">
-      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your Search</button>
-      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Curated Examples · Kyle's Board</button>
+      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your Board</button>
+      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Example · Kyle's Board</button>
     </div>
   </div>
 </div>
@@ -422,7 +447,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
-    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Curated Examples tab</strong> to see what results look like</span>
+    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Example · Kyle's Board tab</strong> to see what results look like</span>
     <div id="user-upload-msg" role="status" aria-live="polite" style="display:none;margin-top:14px;padding:10px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:12px;line-height:1.5;"></div>
   </div>
 </div>
@@ -621,7 +646,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <!-- Sources of Me -->
     <div class="side-card">
       <h3>Sources of Me</h3>
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>Your Search</strong> tab to get live matches from an uploaded resume.</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>Your Board</strong> tab to get live matches from an uploaded resume.</div>
       <div id="sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
@@ -972,6 +997,74 @@ function findEmail(firstName,lastName,domain,id){
   result.textContent='Email lookup available on the online version';
 }
 
+// Hunter contact lookup for user-tab cards. Calls /api/company-contacts which
+// ranks results toward recruiter / hiring-manager / Head-of titles and away
+// from CEO / founder / executive-assistant. Renders up to 3 contacts inline.
+const __huntCache = {};
+const __huntInflight = {};
+function loadHunterContacts(jobId, company){
+  const box = document.getElementById('ucontacts-'+jobId);
+  if (!box || box.dataset.loaded) return;
+  box.dataset.loaded = '1';
+  const job = (window.__lastJobs || []).find(j => j.id === jobId);
+  if (!job) return;
+  const domain = job.companyDomain || guessDomainFromCompany(company);
+  if (!domain) {
+    box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">No company domain — can\'t look up contacts.</div>';
+    return;
+  }
+  const cacheKey = domain + '|' + (job.title||'');
+  if (__huntCache[cacheKey]) { renderHunterContacts(box, __huntCache[cacheKey], domain, company); return; }
+  if (__huntInflight[cacheKey]) return;
+  __huntInflight[cacheKey] = true;
+  box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Looking for hiring-side contacts at '+escapeHtml(domain)+'\u2026</div>';
+  fetch('/api/company-contacts?domain='+encodeURIComponent(domain)+'&jobTitle='+encodeURIComponent(job.title||''))
+    .then(r => r.json())
+    .then(d => {
+      __huntCache[cacheKey] = d.contacts || [];
+      __huntInflight[cacheKey] = false;
+      renderHunterContacts(box, d.contacts || [], domain, company);
+    })
+    .catch(() => {
+      __huntInflight[cacheKey] = false;
+      box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Contact lookup unavailable right now.</div>';
+    });
+}
+function guessDomainFromCompany(company){
+  if (!company) return '';
+  const slug = String(company).toLowerCase().replace(/[^a-z0-9]+/g,'');
+  return slug ? slug + '.com' : '';
+}
+function renderHunterContacts(box, contacts, domain, company){
+  if (!contacts.length){
+    box.innerHTML = `<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+      No public hiring-side contacts found at <strong>${escapeHtml(domain)}</strong>.
+      <a href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company+' recruiter')}" target="_blank" style="color:var(--blue);">Search LinkedIn for recruiters \u2197</a>
+    </div>`;
+    return;
+  }
+  const rows = contacts.map(c => {
+    const li = c.linkedin || ('https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(c.name+' '+company));
+    const conf = (c.confidence || c.confidence === 0) ? `<span style="font-family:var(--mono);font-size:10px;color:#64748b;">${c.confidence}%</span>` : '';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(c.name)}</div>
+        <div style="font-size:11px;color:var(--text-secondary);line-height:1.4;">${escapeHtml(c.role)}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;align-items:center;flex-wrap:wrap;">
+          <a href="mailto:${escapeHtml(c.email)}" style="font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;">${escapeHtml(c.email)}</a>
+          ${conf}
+          <a href="${li}" target="_blank" style="font-size:11px;color:var(--text-muted);text-decoration:none;">linkedin \u2197</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div>
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#64748b;margin-bottom:6px;">Hiring-side contacts (ranked)</div>
+    ${rows}
+    <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">Hunter ranks these by recruiter/Head-of/Director title and same-discipline overlap with the role.</div>
+  </div>`;
+}
+
 function findMoreEmails(domain,id){
   const box=document.getElementById('hunter-more-'+id);
   // [S5] escape Hunter's response before injecting it into the DOM. Hunter
@@ -1022,7 +1115,61 @@ function filterCmd(){
   });
 }
 
-window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoard();});
+window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoard();bootAnalytics();});
+
+// ── Email gate + visitor ticker ───────────────────────────────────
+const EMAIL_LS_KEY='yjb_email_v1';
+function bootAnalytics(){
+  // Fire-and-forget visit ping (server dedupes by IP+UA hash). Ticker will
+  // poll the count back so we don't have to round-trip /api/visit-count.
+  fetch('/api/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>r.json()).then(d=>{
+      const t=document.getElementById('visitor-ticker');
+      const n=document.getElementById('visitor-count');
+      if(d&&typeof d.count==='number'&&t&&n){t.style.display='flex';n.textContent=d.count.toLocaleString();}
+    }).catch(()=>{ /* silent — analytics never blocks the UI */ });
+  // Show gate once per browser. localStorage keyed (we ignore prior dismissals
+  // so people don't get spammed across sessions but anyone clearing storage
+  // re-sees it — fine).
+  try {
+    if(!localStorage.getItem(EMAIL_LS_KEY)){
+      const g=document.getElementById('email-gate');
+      if(g){g.style.display='flex'; setTimeout(()=>{const i=document.getElementById('email-gate-input');if(i)i.focus();},50);}
+    }
+  } catch(e){ /* private mode — skip */ }
+}
+function submitEmailGate(){
+  const inp=document.getElementById('email-gate-input');
+  const err=document.getElementById('email-gate-err');
+  const btn=document.getElementById('email-gate-submit');
+  const v=(inp&&inp.value||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){if(err)err.style.display='block';return;}
+  if(err)err.style.display='none';
+  if(btn){btn.disabled=true;btn.textContent='Saving\u2026';}
+  fetch('/api/capture-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:v})})
+    .then(r=>r.json()).then(d=>{
+      if(d&&d.ok){
+        try { localStorage.setItem(EMAIL_LS_KEY, v); } catch(e){}
+        closeEmailGate();
+      } else {
+        if(err){err.style.display='block';err.textContent=(d&&d.error)||'Couldn\u2019t save that. Try again?';}
+        if(btn){btn.disabled=false;btn.textContent='Continue \u2192';}
+      }
+    })
+    .catch(()=>{
+      // Don't trap the user if our server hiccups — just close the gate.
+      try { localStorage.setItem(EMAIL_LS_KEY, '__skipped'); } catch(e){}
+      closeEmailGate();
+    });
+}
+function skipEmailGate(){
+  try { localStorage.setItem(EMAIL_LS_KEY, '__skipped'); } catch(e){}
+  closeEmailGate();
+}
+function closeEmailGate(){
+  const g=document.getElementById('email-gate');
+  if(g)g.style.display='none';
+}
 
 // ── Tabs ──────────────────────────────────────────────────────────
 const TAB_KEY='yjb_active_tab_v1';
@@ -1261,6 +1408,9 @@ function generateStarPrompts(job) {
 
 function renderUserResults(jobs){
   jobs.sort((a,b)=>b.fit-a.fit);
+  // Stash for loadHunterContacts() — async per-card lookup needs the job's
+  // company / domain / title without re-fetching.
+  window.__lastJobs = jobs;
   showUserScreen('results');
   const resumes=lsGet(U_RESUMES_KEY);
   const rn=document.getElementById('ur-resume-name');
@@ -1324,9 +1474,23 @@ function renderUserResults(jobs){
       ${j.reposted ? '<span class="ghost-badge ghost-repost" title="Multiple similar roles at this company">Reposted</span>' : ''}
       ${j.layoffSignal ? '<span class="ghost-badge ghost-layoff" title="Recent layoffs reported">⚠ Layoffs</span>' : ''}
     </div>`;
-    const ghostRiskHtml = j.ghostRisk && j.ghostRisk !== 'low' ? `<div class="ghost-risk ghost-risk-${j.ghostRisk}">Ghost risk: ${j.ghostRisk}</div>` : '';
+    // Plain-English ghost-risk: explain what it means and what drives the score.
+    let ghostRiskHtml = '';
+    if (j.ghostRisk && j.ghostRisk !== 'low') {
+      const riskLabel = j.ghostRisk === 'high' ? 'Likely a ghost listing' : 'Possible ghost listing';
+      const riskExplain = (j.ghostRiskReasons && j.ghostRiskReasons.length)
+        ? j.ghostRiskReasons.map(escapeHtml).join(' · ')
+        : 'Posting age + repost signals suggest the role may not be actively interviewing.';
+      ghostRiskHtml = `<div class="ghost-risk ghost-risk-${j.ghostRisk}" title="What this means: this listing shows signs of being inactive — old posting age, multiple reposts, or recent layoffs at the company.">${riskLabel}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">${riskExplain}</div>`;
+    }
+    // "Why this matches" — concrete keyword overlap from the resume
+    const matchedTermsHtml = (j.matchedTerms && j.matchedTerms.length)
+      ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:var(--text);line-height:1.5;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this matches your resume</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:#fff;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:#166534;">${escapeHtml(t)}</span>`).join('')}</div>`
+      : '';
+    // Hiring-manager contact block (filled async by loadHunterContacts)
+    const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
 
-    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:10px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
   window.scrollTo({top:0,behavior:'smooth'});

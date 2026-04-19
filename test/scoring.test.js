@@ -16,10 +16,12 @@ const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name)
 const KYLE_RESUME = fixture('kyle-hospitality.txt');
 const SWE_RESUME = fixture('swe-engineer.txt');
 const SC_RESUME = fixture('supply-chain.txt');
+const EE_RESUME = fixture('avinash-ee-phd.txt');
 
 const KYLE_KW = extractResumeKeywords(KYLE_RESUME);
 const SWE_KW = extractResumeKeywords(SWE_RESUME);
 const SC_KW = extractResumeKeywords(SC_RESUME);
+const EE_KW = extractResumeKeywords(EE_RESUME);
 
 // ── Kyle (hospitality/ops) ─────────────────────────────────────────
 test('scoreFit: Kyle resume + Community Manager @ Airbnb → hot (≥60)', () => {
@@ -106,4 +108,88 @@ test('scoreFit: fresh post (today) scores higher than 45+ day old', () => {
   const fresh = scoreFit({ ...base, posted: 'today' }, SWE_KW);
   const stale = scoreFit({ ...base, posted: '2mo ago' }, SWE_KW);
   assert.ok(fresh > stale, `fresh ${fresh} should beat stale ${stale}`);
+});
+
+// ── PhD Electrical Engineer (Avinash) — added 2026-04-19 after wrong-field
+// regression: hardware/semi resumes were ranking SWE / Employee Comms / PMM
+// in the top 10. These guard scoreFit() from re-introducing that.
+test('scoreFit: EE resume + Customer Quality Engineer (semiconductor) → hot (≥55)', () => {
+  const job = { title: 'Customer Quality Engineer', company: 'SambaNova Systems',
+    location: 'Palo Alto, CA',
+    description: 'Lead failure analysis and yield improvement for AI training silicon. Customer-facing engineering for hyperscale data center deployments.',
+    tags: ['hardware', 'semiconductor', 'data center'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit >= 55, `expected ≥55, got ${fit}`);
+});
+
+test('scoreFit: EE resume + Senior Software Engineer (Backend) → wrong-field (≤25)', () => {
+  const job = { title: 'Senior Software Engineer, Backend', company: 'Stripe',
+    location: 'Remote - USA',
+    description: 'Build distributed systems in Go. Kubernetes, gRPC, Postgres.',
+    tags: ['engineering'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit <= 25, `expected ≤25 wrong-field, got ${fit}`);
+});
+
+test('scoreFit: EE resume + Employee Communications Manager → wrong-field (≤25)', () => {
+  const job = { title: 'Employee Communications Manager', company: 'Airbnb',
+    location: 'SF, USA',
+    description: 'Drive internal communications strategy across all teams.',
+    tags: ['communications', 'people'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit <= 25, `expected ≤25 wrong-field, got ${fit}`);
+});
+
+test('scoreFit: EE resume + Product Marketing Manager → wrong-field (≤25)', () => {
+  const job = { title: 'Product Marketing Manager, Pricing', company: 'Stripe',
+    location: 'Remote - USA',
+    description: 'Lead pricing strategy and go-to-market for new payment products.',
+    tags: ['marketing', 'product'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit <= 25, `expected ≤25 wrong-field, got ${fit}`);
+});
+
+test('scoreFit: EE resume + Senior Yield Engineer → hot (≥55)', () => {
+  // Yield engineering is a direct title-keyword overlap with the EE resume.
+  // Same domain (semiconductor manufacturing).
+  const job = { title: 'Senior Yield Engineer', company: 'SambaNova Systems',
+    location: 'Palo Alto, CA',
+    description: 'Drive yield improvement and failure analysis for AI silicon at advanced nodes (5nm/7nm).',
+    tags: ['hardware', 'semiconductor'] };
+  const fit = scoreFit(job, EE_KW);
+  assert.ok(fit >= 55, `expected ≥55, got ${fit}`);
+});
+
+// ── Hunter contact ranker ─────────────────────────────────────────
+const { rankHunterContacts } = require('../server');
+
+test('rankHunterContacts: recruiter outranks CEO', () => {
+  const emails = [
+    { value: 'ceo@acme.com', first_name: 'Bob', last_name: 'Boss', position: 'Chief Executive Officer', confidence: 95 },
+    { value: 'jane@acme.com', first_name: 'Jane', last_name: 'Hire', position: 'Senior Recruiter, Engineering', confidence: 88 },
+  ];
+  const ranked = rankHunterContacts(emails, 'Senior Backend Engineer');
+  assert.equal(ranked[0].email, 'jane@acme.com');
+});
+
+test('rankHunterContacts: drops empty-position rows + executive assistants', () => {
+  const emails = [
+    { value: 'noinfo@acme.com', first_name: 'Anon', last_name: 'User', position: '', confidence: 90 },
+    { value: 'ea@acme.com', first_name: 'Sam', last_name: 'EA', position: 'Executive Assistant to the CEO', confidence: 90 },
+    { value: 'tl@acme.com', first_name: 'Pat', last_name: 'Lead', position: 'Director of Engineering', confidence: 80 },
+  ];
+  const ranked = rankHunterContacts(emails, 'Backend Engineer');
+  const emailsList = ranked.map(r => r.email);
+  assert.ok(emailsList.includes('tl@acme.com'));
+  assert.ok(!emailsList.includes('noinfo@acme.com'));
+  assert.ok(!emailsList.includes('ea@acme.com'));
+});
+
+test('rankHunterContacts: same-discipline match wins overlap bonus', () => {
+  const emails = [
+    { value: 'mktg@acme.com', first_name: 'M', last_name: 'X', position: 'Marketing Director', confidence: 85 },
+    { value: 'eng@acme.com', first_name: 'E', last_name: 'Y', position: 'Engineering Director', confidence: 85 },
+  ];
+  const ranked = rankHunterContacts(emails, 'Senior Backend Engineer');
+  assert.equal(ranked[0].email, 'eng@acme.com');
 });

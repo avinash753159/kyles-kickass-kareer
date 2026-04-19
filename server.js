@@ -1,10 +1,103 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '';
+
+// ── Lightweight analytics (no DB; flat files on Railway volume) ──
+// Persists to DATA_DIR if set (mounted Railway volume), else local ./data.
+// Two artifacts:
+//   emails.jsonl   → append-only, one JSON record per signup
+//   visitors.json  → set of hashed-IP+UA strings (unique-visitor count)
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { /* ignore */ }
+const EMAILS_FILE = path.join(DATA_DIR, 'emails.jsonl');
+const VISITORS_FILE = path.join(DATA_DIR, 'visitors.json');
+
+function loadVisitorSet() {
+  try {
+    const raw = fs.readFileSync(VISITORS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed.hashes) ? parsed.hashes : []);
+  } catch (e) { return new Set(); }
+}
+let __visitorSet = loadVisitorSet();
+function saveVisitorSet() {
+  try { fs.writeFileSync(VISITORS_FILE, JSON.stringify({ hashes: [...__visitorSet] })); }
+  catch (e) { console.error('visitor save failed:', e.message); }
+}
+function hashVisitor(ip, ua) {
+  return crypto.createHash('sha256').update(String(ip || '') + '|' + String(ua || '')).digest('hex').slice(0, 16);
+}
+
+// Public visitor ticker — increments unique count, returns the running total.
+const visitorLimiter = rateLimit({ windowMs: 10 * 1000, max: 5 });
+app.post('/api/visit', visitorLimiter, (req, res) => {
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+  const ua = (req.headers['user-agent'] || '').toString();
+  const h = hashVisitor(ip, ua);
+  const fresh = !__visitorSet.has(h);
+  if (fresh) {
+    __visitorSet.add(h);
+    saveVisitorSet();
+  }
+  res.json({ count: __visitorSet.size, fresh });
+});
+
+// Read-only counter (no write — used for the header ticker poll).
+app.get('/api/visit-count', (req, res) => {
+  res.json({ count: __visitorSet.size });
+});
+
+// Email capture — append to emails.jsonl. We do not de-dupe at write time so
+// repeat submissions are still discoverable in audit logs; the admin endpoint
+// dedupes at read time.
+const emailLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
+app.post('/api/capture-email', emailLimiter, (req, res) => {
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 200) {
+    return res.status(400).json({ ok: false, error: 'invalid email' });
+  }
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+  const ua = (req.headers['user-agent'] || '').toString();
+  const record = {
+    email,
+    ts: new Date().toISOString(),
+    ipHash: hashVisitor(ip, ''),  // store IP hash only, not raw IP
+    uaHash: hashVisitor('', ua),
+  };
+  try {
+    fs.appendFileSync(EMAILS_FILE, JSON.stringify(record) + '\n');
+  } catch (e) {
+    console.error('email capture write failed:', e.message);
+    return res.status(500).json({ ok: false, error: 'write_failed' });
+  }
+  res.json({ ok: true });
+});
+
+// Admin readout — list captured emails. Behind ADMIN_TOKEN env var.
+// curl -H "X-Admin-Token: <token>" /api/admin/emails
+app.get('/api/admin/emails', (req, res) => {
+  const required = process.env.ADMIN_TOKEN;
+  if (!required) return res.status(503).json({ error: 'ADMIN_TOKEN not configured' });
+  const provided = req.headers['x-admin-token'];
+  if (provided !== required) return res.status(401).json({ error: 'unauthorized' });
+  let lines = [];
+  try { lines = fs.readFileSync(EMAILS_FILE, 'utf8').split('\n').filter(Boolean); }
+  catch (e) { return res.json({ emails: [], total: 0 }); }
+  const records = lines.map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+  // De-dupe by email, keep earliest timestamp
+  const seen = new Map();
+  records.forEach(r => { if (!seen.has(r.email) || r.ts < seen.get(r.email).ts) seen.set(r.email, r); });
+  const unique = [...seen.values()].sort((a, b) => b.ts.localeCompare(a.ts));
+  res.json({ emails: unique, total: unique.length, totalSubmissions: records.length });
+});
 
 const hunterLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -101,6 +194,73 @@ app.get('/api/domain-search', hunterLimiter, async (req, res) => {
   }
 });
 
+// Rank Hunter contacts toward hiring-manager / recruiter titles, away from
+// CEO/founder/exec assistant noise. Returns the top 3 most-relevant people.
+function rankHunterContacts(emails, jobTitle) {
+  const jt = (jobTitle || '').toLowerCase();
+  const score = (e) => {
+    const pos = (e.position || '').toLowerCase();
+    const dep = (e.department || '').toLowerCase();
+    const sen = (e.seniority || '').toLowerCase();
+    if (!pos && !dep) return -50; // skip empty rows
+    let s = 0;
+    // STRONG positive — actual hiring-side roles
+    if (/\b(recruit|talent|hiring|people\s*ops|people\s*partner|head\s+of\s+people|people\s+team)\b/.test(pos)) s += 60;
+    if (dep.includes('hr') || dep.includes('people')) s += 30;
+    // Senior people who would interview but aren't C-suite founders
+    if (/\b(head\s+of|director|vp|vice\s+president|svp|evp|principal|staff)\b/.test(pos)) s += 25;
+    if (sen === 'senior' || sen === 'executive') s += 8;
+    // Match the job's domain — prefer same-discipline manager (engineering manager
+    // for an engineer role, marketing director for a PMM role, etc.)
+    const jtTokens = jt.split(/[,\s/&]+/).filter(t => t.length >= 4);
+    const overlap = jtTokens.filter(t => pos.includes(t)).length;
+    s += overlap * 10;
+    // NEGATIVE — generic exec assistants, founders, board members
+    if (/\b(ceo|founder|co.?founder|chief\s+executive|owner|board|investor|chairman)\b/.test(pos)) s -= 30;
+    if (/\b(executive\s+assistant|administrative\s+assistant|receptionist|office\s+manager)\b/.test(pos)) s -= 35;
+    if (/\b(intern|coordinator|associate)\b/.test(pos) && !/recruit|talent|hiring/.test(pos)) s -= 5;
+    // Dead emails / no verifiable contact
+    if (e.confidence !== null && e.confidence !== undefined && e.confidence < 50) s -= 8;
+    return s;
+  };
+  const ranked = (emails || [])
+    .map(e => ({ ...e, _score: score(e) }))
+    .filter(e => e._score > -20 && e.value)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 3);
+  return ranked.map(e => ({
+    name: [e.first_name, e.last_name].filter(Boolean).join(' ') || e.value.split('@')[0],
+    role: e.position || e.department || '—',
+    department: e.department || '',
+    seniority: e.seniority || '',
+    email: e.value,
+    confidence: e.confidence,
+    linkedin: e.linkedin,
+    twitter: e.twitter,
+  }));
+}
+
+// Returns ranked hiring-manager-preferring contacts for a given company domain.
+app.get('/api/company-contacts', hunterLimiter, async (req, res) => {
+  if (!HUNTER_API_KEY) return res.json({ contacts: [], error: 'no_key' });
+  const { domain, jobTitle } = req.query;
+  if (!domain) return res.json({ contacts: [] });
+  try {
+    const fetch = (await import('node-fetch')).default;
+    // Pull a wider net (limit=20) than the legacy endpoint so we have something
+    // to rank — Hunter's first 5 are usually whoever's most public, not the
+    // hiring-side people we want.
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=20&type=personal`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const emails = (data && data.data && data.data.emails) || [];
+    const contacts = rankHunterContacts(emails, jobTitle);
+    res.json({ contacts, total: emails.length });
+  } catch (e) {
+    res.json({ contacts: [], error: e.message });
+  }
+});
+
 // ── Find Jobs (real job search matched to resume) ──────────────────
 let jobCache = { data: null, ts: 0 };
 const CACHE_TTL = 30 * 60 * 1000;
@@ -153,6 +313,16 @@ const ATS_COMPANIES = [
   { slug: 'clipboard', name: 'Clipboard Health', platform: 'ashby', tags: ['healthcare', 'marketplace', 'operations', 'growth', 'community'] },
   { slug: 'plaid', name: 'Plaid', platform: 'ashby', tags: ['fintech', 'engineering', 'product', 'b2b', 'developer tools'] },
   { slug: 'bumble', name: 'Bumble', platform: 'ashby', tags: ['consumer', 'social', 'community', 'product', 'growth'] },
+  // Hardware / semiconductor / AI-compute (Greenhouse, verified 200) — added 2026-04-18
+  // to give EE / semiconductor / data-center resumes in-field candidates.
+  { slug: 'sambanovasystems', name: 'SambaNova Systems', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'ai', 'data center', 'engineering', 'electrical'] },
+  { slug: 'tenstorrent', name: 'Tenstorrent', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'ai', 'engineering', 'electrical'] },
+  { slug: 'anthropic', name: 'Anthropic', platform: 'greenhouse', tags: ['ai', 'ml', 'research', 'engineering', 'data center', 'hardware'] },
+  { slug: 'asteralabs', name: 'Astera Labs', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'data center', 'cloud infrastructure', 'electrical'] },
+  { slug: 'cerebrassystems', name: 'Cerebras Systems', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'ai', 'engineering', 'electrical'] },
+  { slug: 'lightmatter', name: 'Lightmatter', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'photonics', 'engineering', 'electrical'] },
+  { slug: 'psiquantum', name: 'PsiQuantum', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
+  { slug: 'ionq', name: 'IonQ', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
 ];
 
 // Ghost-job layoff signal removed 2026-04-18: the hardcoded RECENT_LAYOFFS
@@ -318,7 +488,11 @@ app.post('/api/find-jobs', async (req, res) => {
     });
 
     let scored = allJobs
-      .map(job => ({ ...job, fit: scoreFit(job, keywords) }))
+      .map(job => ({
+        ...job,
+        fit: scoreFit(job, keywords),
+        matchedTerms: matchedTermsForJob(job, keywords)
+      }))
       .sort((a, b) => b.fit - a.fit);
 
     // Filter out clearly non-English-market jobs from all results
@@ -383,10 +557,21 @@ app.post('/api/find-jobs', async (req, res) => {
     // Ghost risk assessment (freshness + reposts only; layoff signal removed)
     top.forEach(j => {
       let signals = 0;
-      if (j.freshness === 'stale') signals += 2;
-      else if (j.freshness === 'aging') signals += 1;
-      if (j.reposted) signals++;
+      const reasons = [];
+      if (j.freshness === 'stale') {
+        signals += 2;
+        reasons.push(`posted ${j.daysAgo}d ago`);
+      } else if (j.freshness === 'aging') {
+        signals += 1;
+        reasons.push(`posted ${j.daysAgo}d ago`);
+      }
+      if (j.reposted) {
+        signals++;
+        reasons.push(`${j.company} has multiple open reqs`);
+      }
       j.ghostRisk = signals === 0 ? 'low' : signals === 1 ? 'medium' : 'high';
+      j.ghostRiskReason = reasons.join(' · ') || 'fresh posting, single req';
+      j.ghostRiskReasons = reasons.length ? reasons : ['Fresh posting, single open req'];
     });
 
     res.json({ jobs: top, keywords: keywords.titles.concat(keywords.domainSkills).slice(0, 10) });
@@ -565,13 +750,15 @@ function extractResumeKeywords(text) {
   const lower = text.toLowerCase();
 
   // 1. Extract job titles from resume (multiple patterns)
-  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of|founder)?\s*(?:product|program|project|engineering|software|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate|leader|owner|operator)\b/gi;
+  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of|founder)?\s*(?:product|program|project|engineering|software|hardware|firmware|systems|silicon|chip|asic|fpga|electrical|mechanical|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate|quality|reliability|yield|test|validation|verification|characterization|integration|applications|field|customer quality)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate|leader|owner|operator|technologist)\b/gi;
   const titles = [...new Set([...text.matchAll(titleRe)].map(m => m[0].trim().toLowerCase()))];
-  // Also extract "X & Y" compound titles like "Product & Operations"
-  const compoundRe = /\b(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\s*[&+]\s*(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\b/gi;
-  [...text.matchAll(compoundRe)].forEach(m => {
-    const parts = m[0].toLowerCase().split(/\s*[&+]\s*/);
-    parts.forEach(p => { if (p.length >= 4 && !titles.includes(p)) titles.push(p); });
+  // "X & Y Manager" — extract the compound as a full title ("product & operations manager").
+  // Previous version added bare "product" / "operations" which polluted titleKeywords
+  // with LOW_SIGNAL words and gave no useful signal.
+  const compoundTitleRe = /\b(product|operations|community|growth|strategy|marketing|revenue|hospitality|member|resident|experience)\s*[&+]\s*(product|operations|community|growth|strategy|marketing|revenue|hospitality|member|resident|experience)\s+(manager|director|lead|specialist|coordinator|leader)\b/gi;
+  [...text.matchAll(compoundTitleRe)].forEach(m => {
+    const t = m[0].trim().toLowerCase();
+    if (!titles.includes(t)) titles.push(t);
   });
   // If no titles found, infer from section headers and key phrases
   if (titles.length === 0) {
@@ -608,6 +795,24 @@ function extractResumeKeywords(text) {
     'property management','tenant','resident','amenities','lease',
     'startup','founder','entrepreneurship','incubator','accelerator',
     'saas','b2b','b2c','crm','erp','api','automation',
+    // Hardware / semiconductor / EE / data-center infrastructure
+    'electrical engineering','electrical','electronics','semiconductor','semiconductors',
+    'silicon','chip','chips','chipset','asic','fpga','soc','ic design','vlsi','rtl',
+    'hardware','firmware','embedded','circuit','circuits','pcb','analog','digital design',
+    'signal integrity','power integrity','rf','mixed signal','analog design',
+    'verilog','systemverilog','vhdl','cadence','synopsys','mentor graphics',
+    'foundry','fabrication','wafer','lithography','photolithography','yield','tape-out','tapeout',
+    'process technology','7nm','5nm','14nm','10nm','3nm','node','cmos','finfet',
+    'memory','dram','nand','nor','flash','hbm','ddr','lpddr','ssd','nvme','storage',
+    'quality engineering','customer quality','failure analysis','fa','reliability',
+    'validation','verification','characterization','test engineering','ate',
+    'eight disciplines','8d','root cause','six sigma','lean','lean manufacturing',
+    'continuous improvement','spc','dfmea','pfmea','iso9001','iatf',
+    'cloud infrastructure','cloud computing','data center','datacenter','hyperscale',
+    'on-prem','colocation','networking','compute','power systems',
+    'odm','oem','supply chain engineering','manufacturing','operations engineering',
+    'phd','doctorate','research engineer','applied research',
+    // /Hardware
     'supply chain','inventory','warehouse','fulfillment','distribution',
     'healthcare','biotech','fintech','edtech','cleantech','insurtech',
     'nonprofit','social impact','sustainability','esg',
@@ -728,6 +933,37 @@ function parseSalaryMid(salary) {
   return values[0];
 }
 
+// Returns up to 5 human-readable terms from the resume that appear in the job
+// posting — used by the UI to show "why this matches" on each user-search card.
+function matchedTermsForJob(job, keywords) {
+  const jobText = ((job.title || '') + ' ' + (job.description || '') + ' ' +
+    (Array.isArray(job.tags) ? job.tags.join(' ') : '') + ' ' +
+    (job.category || '')).toLowerCase();
+  const LOW_SIGNAL = new Set(['marketing','sales','operations','strategy','analytics','growth',
+    'finance','leadership','management','consulting','accounting','education',
+    'reporting','training','research','analysis','stakeholder','pipeline',
+    'acquisition','onboarding','retention','budget','startup','founder',
+    'community','brand','communications']);
+  const hits = new Set();
+  // Prefer bigrams first (more specific), then domain skills, then titles
+  (keywords.specificBigrams || []).forEach(bg => {
+    if (hits.size >= 5) return;
+    if (bg.length >= 8 && jobText.includes(bg)) hits.add(bg);
+  });
+  (keywords.domainSkills || []).forEach(s => {
+    if (hits.size >= 5) return;
+    // Skip 2-char abbreviations like 'fa' (Failure Analysis) that match random
+    // substrings in job descriptions ("manufacturing", "california", etc.).
+    if (s.length < 3) return;
+    if (!LOW_SIGNAL.has(s) && jobText.includes(s)) hits.add(s);
+  });
+  (keywords.titles || []).forEach(t => {
+    if (hits.size >= 5) return;
+    if (jobText.includes(t)) hits.add(t);
+  });
+  return [...hits].slice(0, 5);
+}
+
 function scoreFit(job, keywords) {
   const jobTitle = (job.title || '').toLowerCase();
   const jobDesc = (job.description || '').toLowerCase();
@@ -736,31 +972,60 @@ function scoreFit(job, keywords) {
     (job.category || '')).toLowerCase();
 
   // ═══ STEP 1: Does the job title match the resume's career field? ═══
+  // Generic words that match too many unrelated jobs ("Customer Success Manager"
+  // shouldn't score on "customer" from "Customer Quality Engineer").
   const LOW_SIGNAL = new Set(['marketing','sales','operations','strategy','analytics','growth',
     'finance','leadership','management','consulting','accounting','education',
     'reporting','training','research','analysis','stakeholder','pipeline',
-    'acquisition','onboarding','retention','budget','startup','founder']);
+    'acquisition','onboarding','retention','budget','startup','founder',
+    'customer','senior','junior','principal','staff','team','lead','manager',
+    'director','engineer','analyst','specialist','coordinator','associate',
+    'partner','executive','assistant','intern','project','product','program',
+    'global','international','regional','national','chief','head','vp',
+    'business','corporate','service','support','success','experience','process']);
 
-  // Gather title-relevant words from resume
+  // Gather title-relevant words from resume (single words, weaker signal)
   const titleKeywords = new Set();
-  keywords.titles.forEach(t => t.split(/\s+/).filter(w => w.length >= 4).forEach(w => titleKeywords.add(w)));
+  keywords.titles.forEach(t => t.split(/\s+/).filter(w => w.length >= 5 && !LOW_SIGNAL.has(w)).forEach(w => titleKeywords.add(w)));
   keywords.domainSkills.forEach(s => {
-    if (!LOW_SIGNAL.has(s)) s.split(/\s+/).filter(w => w.length >= 4).forEach(w => titleKeywords.add(w));
+    if (!LOW_SIGNAL.has(s) && s.length >= 3) {
+      s.split(/\s+/).filter(w => w.length >= 5 && !LOW_SIGNAL.has(w)).forEach(w => titleKeywords.add(w));
+    }
   });
-  // Also add resume-specific words that appear 2+ times
-  keywords.specificWords.slice(0, 10).forEach(w => { if (w.length >= 5) titleKeywords.add(w); });
+  keywords.specificWords.slice(0, 10).forEach(w => { if (w.length >= 5 && !LOW_SIGNAL.has(w)) titleKeywords.add(w); });
+
+  // Multi-word phrases from resume titles — stronger signal. Used to require
+  // real alignment on e.g. "customer quality" or "yield engineer" rather than
+  // matching individual generic words.
+  // (Intentionally uses em-dash literal, not escaped.)
+  const titlePhrases = new Set();
+  keywords.titles.forEach(t => {
+    const words = t.split(/\s+/).filter(Boolean);
+    for (let i = 0; i + 1 < words.length; i++) {
+      const bg = words[i] + ' ' + words[i + 1];
+      // Skip bigrams composed entirely of LOW_SIGNAL words
+      if (LOW_SIGNAL.has(words[i]) && LOW_SIGNAL.has(words[i + 1])) continue;
+      if (bg.length >= 8) titlePhrases.add(bg);
+    }
+  });
 
   const titleHits = [...titleKeywords].filter(w => jobTitle.includes(w));
+  const phraseHits = [...titlePhrases].filter(p => jobTitle.includes(p));
   let titleRelevance = 0;
-  if (titleHits.length >= 2) titleRelevance = 2;
-  else if (titleHits.length === 1) titleRelevance = 1;
+  if (phraseHits.length >= 1 || titleHits.length >= 2) titleRelevance = 2;
+  else if (titleHits.length >= 1) titleRelevance = 1;
 
   // ═══ STEP 2: Wrong career field detection ═══
   let wrongField = false;
-  const resumeIsTech = keywords.domainSkills.some(s =>
-    ['javascript','python','java','react','node','aws','kubernetes','docker',
-     'machine learning','data science','ci/cd','devops','sql','terraform',
-     'golang','rust','typescript','c++','ruby','php'].includes(s));
+  // True SWE signal — must include code/framework terms, not just cloud provider
+  // names. An EE resume mentioning "AWS" as a customer shouldn't read as SWE.
+  const resumeIsSoftware = keywords.domainSkills.some(s =>
+    ['javascript','python','java','react','angular','vue','node','express',
+     'kubernetes','docker','machine learning','data science','ci/cd','devops',
+     'sql','terraform','golang','rust','typescript','c++','ruby','php'].includes(s));
+  const resumeIsCloudUser = keywords.domainSkills.some(s =>
+    ['aws','azure','gcp'].includes(s));
+  const resumeIsTech = resumeIsSoftware || resumeIsCloudUser;
   const resumeIsFinance = keywords.domainSkills.some(s =>
     ['accounting','finance','financial reporting','budgeting','forecasting'].includes(s));
   const resumeIsDesign = keywords.domainSkills.some(s =>
@@ -769,27 +1034,85 @@ function scoreFit(job, keywords) {
     ['sales','account management','business development'].includes(s));
   const resumeIsContent = keywords.domainSkills.some(s =>
     ['seo','content marketing','copywriting','editorial'].includes(s));
-  const resumeIsOps = keywords.domainSkills.some(s =>
-    ['supply chain','inventory','warehouse','fulfillment','distribution','logistics','procurement'].includes(s));
+  // True ops signal needs an actual ops title. Passing mentions of
+  // "supply chain", "distribution", etc. in an EE/semi resume shouldn't make
+  // them an ops/supply-chain professional.
+  const resumeIsOps = keywords.titles.some(t =>
+      /\b(supply chain|logistics|warehouse|fulfillment|distribution|procurement|operations)\s+(manager|director|lead|analyst|specialist|coordinator|planner|associate)\b/i.test(t))
+    || keywords.titles.some(t => /\b(supply chain|logistics|warehouse|fulfillment|procurement)\b/i.test(t));
+  // Hardware / semiconductor / EE signal — if any of these hit, hardware jobs are
+  // in-field and cloud-infrastructure jobs get treated as on-domain.
+  const resumeIsHardware = keywords.domainSkills.some(s =>
+    ['electrical engineering','electrical','electronics','semiconductor','semiconductors',
+     'silicon','chip','chips','chipset','asic','fpga','soc','vlsi','rtl','hardware',
+     'firmware','embedded','analog','mixed signal','foundry','wafer','yield',
+     'tape-out','tapeout','cmos','finfet','memory','dram','nand','hbm','ddr','ssd',
+     'customer quality','failure analysis','reliability','characterization',
+     'data center','datacenter','hyperscale','cloud infrastructure','7nm','5nm',
+     '14nm','10nm','3nm'].includes(s))
+    || keywords.titles.some(t =>
+        /(customer quality|yield|product|hardware|firmware|electrical|semiconductor|applications|systems|reliability|test|validation|silicon)\s+engineer/i.test(t));
+  const resumeIsHR = keywords.domainSkills.some(s =>
+    ['recruiting','talent acquisition','human resources','people operations'].includes(s));
+  // "Communications" alone is too permissive (matches journal names like
+  // "Nature Communications"). Require an actual comms role / context.
+  const resumeIsComms = keywords.domainSkills.some(s =>
+    ['public relations','copywriting','editorial','journalism'].includes(s))
+    || keywords.titles.some(t => /\b(internal|corporate|employee|external|brand)\s+communications\b/i.test(t))
+    || keywords.titles.some(t => /\bcommunications\s+(manager|director|lead|specialist|strategist|officer)\b/i.test(t));
+  // Same pattern for marketing — a "Persuasive Marketing" adjunct course
+  // shouldn't make someone a marketer. Only trust an actual marketing title
+  // in the extracted titles list.
+  // Marketing detection — require an actual marketing title (not "growth manager"
+  // alone, which can be fabricated from a domain mention of "growth"). The
+  // last-resort fallback in extractResumeKeywords adds "growth manager" /
+  // "product manager" etc. for any domain word in the resume, so trusting
+  // that as a marketing signal flips Kyle (community/ops) to marketer.
+  const resumeIsMarketing = keywords.domainSkills.some(s =>
+    ['content marketing','seo','demand generation','go-to-market','gtm'].includes(s))
+    || keywords.titles.some(t => /\bmarketing\b/i.test(t))
+    || keywords.titles.some(t => /\b(demand generation|lifecycle marketing|performance marketing|product marketing|brand manager|brand director)\b/i.test(t));
 
-  // Engineering/tech roles for non-tech resumes
-  if (!resumeIsTech && /\b(software|data|ml|ai|backend|frontend|full.?stack|devops|cloud|platform|infrastructure|security|systems|site reliability|sre|analytics)\s*(engineer|developer|scientist|architect)\b/i.test(jobTitle)) wrongField = true;
-  if (!resumeIsTech && /\b(engineering manager|tech lead|cto|vp engineering|head of engineering)\b/i.test(jobTitle)) wrongField = true;
+  // Engineering/tech roles for non-tech, non-hardware resumes
+  if (!resumeIsTech && !resumeIsHardware && /\b(software|data|ml|ai|backend|frontend|full.?stack|devops|cloud|platform|infrastructure|security|systems|site reliability|sre|analytics)\s*(engineer|developer|scientist|architect)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsTech && !resumeIsHardware && /\b(engineering manager|tech lead|cto|vp engineering|head of engineering)\b/i.test(jobTitle)) wrongField = true;
+  // Hardware resume without true SWE signal: pure software roles are off-field
+  // (AWS/Azure mentions alone don't qualify a customer-quality EE as a coder).
+  if (resumeIsHardware && !resumeIsSoftware) {
+    if (/\b(software|front.?end|back.?end|full.?stack|ios|android|mobile|web|application|backend|frontend|ml|ai|data|site reliability|sre|infrastructure|platform|devops)\s*(engineer|developer|scientist|architect|engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(staff|principal|senior|lead|distinguished)\s+(software|backend|frontend|platform|systems|app|application|web)\s+(engineer|developer|engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\bpartner\s+(engineer|solutions)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(engineering manager|tech lead|cto|vp engineering|head of engineering|director of engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\bdeveloper\s+(advocate|relations|experience)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(search quality rater|data labeler|annotation specialist)\b/i.test(jobTitle)) wrongField = true;
+  }
   // Finance roles for non-finance resumes
   if (!resumeIsFinance && /\b(fp&a|financial analyst|controller|accountant|bookkeeper|tax|audit|treasury|accounts payable|accounts receivable|payroll|stock administrator)\b/i.test(jobTitle)) wrongField = true;
   // Design roles for non-design resumes
   if (!resumeIsDesign && /\b(product designer|ux designer|ui designer|graphic designer|creative director|visual designer|brand designer|design lead)\b/i.test(jobTitle)) wrongField = true;
   // Sales roles for non-sales resumes
-  if (!resumeIsSales && /\b(account executive|sales development|sales representative|bdr|sdr|business development representative|territory account|inside sales|outside sales)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsSales && /\b(account executive|sales development|sales representative|bdr|sdr|business development representative|territory account|inside sales|outside sales|international sales|regional sales|enterprise sales|sales manager|sales director|head of sales|vp sales|chief revenue officer|revenue operations)\b/i.test(jobTitle)) wrongField = true;
   // Content/SEO for non-content resumes
   if (!resumeIsContent && /\b(seo manager|seo specialist|content marketing manager|content strategist|copywriter|editorial director)\b/i.test(jobTitle)) wrongField = true;
+  // HR / employee communications / recruiting for non-HR, non-comms resumes (Avinash miss)
+  if (!resumeIsHR && !resumeIsComms && /\b(employee communications|internal communications|people partner|hr business partner|hrbp|talent acquisition|recruiter|recruiting manager|head of people|chief people officer|people operations manager)\b/i.test(jobTitle)) wrongField = true;
+  // Generic "Communications Manager/Director" — off-field for non-comms resumes
+  if (!resumeIsComms && /\b(communications|pr|public relations)\s+(manager|director|lead|specialist)\b/i.test(jobTitle)) wrongField = true;
+  // Marketing roles for non-marketing resumes (product marketing manager, growth marketing, etc.)
+  if (!resumeIsMarketing && /\b(product marketing manager|pmm|growth marketing manager|marketing manager|marketing director|brand manager|brand director|head of marketing|demand generation|lifecycle marketing|performance marketing|content marketing manager|marketing lead|marketing strategist)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsMarketing && /\b(vp|svp|evp|vice president|chief|head|director)[\s,]+(of\s+)?marketing\b/i.test(jobTitle)) wrongField = true;
   // Legal roles for non-legal resumes
   if (/\b(counsel|attorney|paralegal|legal director|general counsel|litigation|compliance counsel)\b/i.test(jobTitle)) wrongField = true;
-  // Always wrong field regardless of resume
-  if (/\b(nurse|pharmacist|physician|dental|veterinary|actuary|underwriter|truck driver|forklift|custodian|janitor|security guard|receptionist|data center|footwear|apparel|solar|electrical|mechanical|civil|chemical)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
-  // Ops/supply-chain roles wrong only for non-ops resumes
-  if (!resumeIsOps && /\b(warehouse|supply chain|procurement)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
-  if (/\b(it security|it director|network engineer|database administrator|helpdesk|desktop support)\b/i.test(jobTitle)) wrongField = true;
+  // Always wrong field regardless of resume — but NOT electrical/mechanical if the resume has
+  // a hardware/EE signal, since those are the exact roles Avinash/hardware resumes want.
+  if (/\b(nurse|pharmacist|physician|dental|veterinary|actuary|underwriter|truck driver|forklift|custodian|janitor|security guard|receptionist|footwear|apparel)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsHardware && /\b(solar|electrical|mechanical|civil|chemical)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
+  // Ops/supply-chain roles wrong only for non-ops resumes. Hardware resume IS NOT
+  // exempt — "Warehouse Management Systems Consultant" at a SaaS company is not a
+  // semiconductor ops role, even if the resume mentions ODM supply chain.
+  if (!resumeIsOps && /\b(warehouse|supply chain|procurement|logistics|fulfillment)\s*(engineer|technician|specialist|outreach|strategy|analyst|consultant|manager)?\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsOps && /\b(dashmart|grocery|last[- ]mile|delivery operations)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsHardware && /\b(it security|it director|network engineer|database administrator|helpdesk|desktop support)\b/i.test(jobTitle)) wrongField = true;
 
   // ═══ STEP 3: Content match score ═══
   let contentScore = 0;
@@ -885,6 +1208,7 @@ app.get('/api/company-info', (req, res) => {
 module.exports = {
   app,
   scoreFit,
+  matchedTermsForJob,
   extractResumeKeywords,
   parseDaysAgo,
   daysAgoFromJob,
@@ -893,6 +1217,7 @@ module.exports = {
   looksLikePdf,
   selectCompaniesForResume,
   timeAgo,
+  rankHunterContacts,
   ATS_COMPANIES,
   COMPANY_INFO,
 };
