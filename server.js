@@ -538,47 +538,46 @@ app.post('/api/find-jobs', async (req, res) => {
       llmFailed = true;
     }
 
-    // Phase 3 — location-aware ranking. The LLM gave us career-fit scores;
-    // now we shape those scores by the user's location preference.
-    // "anywhere" → no change. "austin" → Austin jobs get a big boost so
-    // they surface when relevant (without hard-excluding great remote
-    // matches the user could work from Austin). Same idea for "remote".
-    // Scores are still clamped to 100 so a 95 doesn't become a 107.
-    function locationBoost(job) {
-      if (location === 'anywhere' || !location) return 0;
+    // Phase 3 — location filtering. The pill labels in the UI ("Anywhere",
+    // "Remote", "Austin, TX") are categorical, not soft preferences, so we
+    // treat them as hard filters: "austin" keeps only Austin-located jobs
+    // (plus remote, which can be worked from Austin); "remote" keeps only
+    // remote-tagged jobs; "anywhere" keeps everything. An earlier build
+    // treated these as +12/+4 score boosts on top of the full candidate
+    // pool, which let Palo Alto/Sunnyvale jobs surface when the user had
+    // clicked "Austin, TX" — confusing.
+    function locationMatches(job) {
+      if (location === 'anywhere' || !location) return true;
       const loc = (job.location || '').toLowerCase();
       const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
-      if (location === 'austin') {
-        if (/austin/i.test(loc)) return 12;   // exact Austin listing
-        if (isRemote) return 4;               // remote — can work from Austin
-        return 0;
-      }
-      if (location === 'remote') {
-        if (isRemote) return 10;
-        return 0;
-      }
-      return 0;
+      if (location === 'austin') return /austin/i.test(loc) || isRemote;
+      if (location === 'remote') return isRemote;
+      return true;
     }
 
     const scoresById = new Map((llmScores || []).map(s => [s.id, s]));
-    let top = llmCandidates.map(j => {
-      const llm = scoresById.get(j.id);
-      const rawFit = llm ? llm.fit : j.keywordFit;
-      const boost = locationBoost(j);
-      return {
-        ...j,
-        rawFit,
-        locationBoost: boost,
-        fit: Math.min(100, rawFit + boost),
-        fitReason: llm ? llm.reason : null,
-        scoredBy: llm ? 'llm' : 'keyword'
-      };
-    }).sort((a, b) => b.fit - a.fit);
+    let top = llmCandidates
+      .filter(locationMatches)
+      .map(j => {
+        const llm = scoresById.get(j.id);
+        const rawFit = llm ? llm.fit : j.keywordFit;
+        // Small nudge for exact-Austin over remote when Austin is selected,
+        // so local listings outrank "work from anywhere" roles.
+        const loc = (j.location || '').toLowerCase();
+        const boost = location === 'austin' && /austin/i.test(loc) ? 6 : 0;
+        return {
+          ...j,
+          rawFit,
+          locationBoost: boost,
+          fit: Math.min(100, rawFit + boost),
+          fitReason: llm ? llm.reason : null,
+          scoredBy: llm ? 'llm' : 'keyword'
+        };
+      })
+      .sort((a, b) => b.fit - a.fit);
 
     // Minimum fit threshold. LLM scores are calibrated differently from
-    // keyword scores — use 55 for LLM, 40 for keyword fallback. Threshold
-    // applies to boosted `fit` so a borderline (53) LLM match in Austin
-    // surfaces when Austin was selected (53 + 12 = 65).
+    // keyword scores — use 55 for LLM, 40 for keyword fallback.
     const minFit = llmFailed ? 40 : 55;
     top = top.filter(j => j.fit >= minFit).slice(0, 20);
     // Score-based tiers matching stat card labels
