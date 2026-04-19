@@ -247,12 +247,20 @@ app.get('/api/company-contacts', hunterLimiter, async (req, res) => {
   if (!domain) return res.json({ contacts: [] });
   try {
     const fetch = (await import('node-fetch')).default;
-    // Pull a wider net (limit=20) than the legacy endpoint so we have something
-    // to rank — Hunter's first 5 are usually whoever's most public, not the
-    // hiring-side people we want.
-    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=20&type=personal`;
+    // Hunter's free plan caps domain-search at 10 emails per request and
+    // rejects anything higher with a pagination_error. limit=10 is the max
+    // we can ask for on the free tier; we drop type=personal so we get the
+    // full set of results to rank (filtering by department happens in our
+    // ranker, not Hunter's filter — Hunter's department filter is too strict).
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=10`;
     const response = await fetch(url);
     const data = await response.json();
+    if (data && data.errors && data.errors.length) {
+      // Surface upstream errors instead of silently returning [] — without
+      // this we couldn't tell whether Hunter actually had no results or our
+      // request was malformed.
+      return res.json({ contacts: [], total: 0, hunterError: data.errors[0].details || data.errors[0].id });
+    }
     const emails = (data && data.data && data.data.emails) || [];
     const contacts = rankHunterContacts(emails, jobTitle);
     res.json({ contacts, total: emails.length });
