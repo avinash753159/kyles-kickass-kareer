@@ -495,15 +495,19 @@ app.post('/api/find-jobs', async (req, res) => {
       return true;
     });
 
+    const { scoreJobsWithLLM } = require('./lib/llm-scorer');
+
+    // Phase 1 — coarse keyword pre-filter. The LLM is expensive per job
+    // and the job universe is large; keyword scoring narrows ~500 jobs
+    // to ~60 candidates cheaply, then the LLM ranks those 60 by career fit.
     let scored = allJobs
       .map(job => ({
         ...job,
-        fit: scoreFit(job, keywords),
+        keywordFit: scoreFit(job, keywords),
         matchedTerms: matchedTermsForJob(job, keywords)
       }))
-      .sort((a, b) => b.fit - a.fit);
+      .sort((a, b) => b.keywordFit - a.keywordFit);
 
-    // Filter out clearly non-English-market jobs from all results
     scored = scored.filter(j => {
       if (!isAllowedMarketLocation(j.location)) return false;
       if (!isAllowedMarketTitle(j.title)) return false;
@@ -511,17 +515,50 @@ app.post('/api/find-jobs', async (req, res) => {
     });
 
     if (location === 'remote') {
-      scored = scored.filter(j => {
-        const loc = (j.location || '').toLowerCase();
-        return /remote/i.test(loc) || j.remote;
-      });
+      scored = scored.filter(j => /remote/i.test((j.location || '').toLowerCase()) || j.remote);
     } else if (location === 'austin') {
       scored = scored.filter(j => /austin/i.test(j.location || ''));
     }
 
-    // Only show jobs with meaningful relevance (40%+ fit)
-    scored = scored.filter(j => j.fit >= 40);
-    const top = scored.slice(0, 40);
+    // Take up to 60 candidates for the LLM to rank. Keep keyword-top-20
+    // plus a mid-tier sample to give the LLM enough diversity to surface
+    // jobs the keyword scorer under-ranked (the whole point of this system).
+    const llmCandidates = scored.slice(0, 60);
+
+    // Phase 2 — LLM scoring. Fall back to keyword scores if the call fails
+    // or the API key is missing, so search never fully breaks.
+    let llmScores = null;
+    let llmFailed = false;
+    try {
+      if (process.env.ANTHROPIC_API_KEY) {
+        const t0 = Date.now();
+        llmScores = await scoreJobsWithLLM(resumeText, llmCandidates);
+        console.log('LLM scored', llmScores.length, 'jobs in', Date.now() - t0, 'ms');
+      } else {
+        console.warn('ANTHROPIC_API_KEY missing — falling back to keyword scoring');
+        llmFailed = true;
+      }
+    } catch (e) {
+      console.error('LLM scoring failed:', e.message, '— falling back to keyword');
+      llmFailed = true;
+    }
+
+    // Merge scores back onto job objects.
+    const scoresById = new Map((llmScores || []).map(s => [s.id, s]));
+    let top = llmCandidates.map(j => {
+      const llm = scoresById.get(j.id);
+      return {
+        ...j,
+        fit: llm ? llm.fit : j.keywordFit,
+        fitReason: llm ? llm.reason : null,
+        scoredBy: llm ? 'llm' : 'keyword'
+      };
+    }).sort((a, b) => b.fit - a.fit);
+
+    // Minimum fit threshold. LLM scores are calibrated differently from
+    // keyword scores — use 55 for LLM, 40 for keyword fallback.
+    const minFit = llmFailed ? 40 : 55;
+    top = top.filter(j => j.fit >= minFit).slice(0, 20);
     // Score-based tiers matching stat card labels
     top.forEach((j, i) => {
       if (j.fit >= 75) j.tier = 'hot';
