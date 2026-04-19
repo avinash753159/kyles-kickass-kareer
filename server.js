@@ -975,12 +975,19 @@ const EXCLUSIVE_NON_ENGLISH_RE = /\b(india|bengaluru|bangalore|hyderabad|mumbai|
 function isAllowedMarketLocation(location) {
   if (!location) return true; // empty → keep
   const loc = String(location).toLowerCase();
-  if (ALLOWED_MARKET_RE.test(loc) && !EXCLUSIVE_NON_ENGLISH_RE.test(loc)) return true;
-  // Pure non-English city/country → drop
+  // Drop only when the location names an unambiguously non-English-primary
+  // market (e.g. Bengaluru, Paris, Tokyo). Everything else passes — US
+  // state names, US cities not in the small curated allowlist (Palo Alto,
+  // Mountain View, Santa Clara, Redmond, …), ATS placeholders ("Various",
+  // "Unknown", "Hybrid"), and remote/anywhere.
+  //
+  // Previous implementation used ALLOWED_MARKET_RE as a hard allowlist and
+  // silently dropped every US location not in the ~60-entry list, including
+  // the exact semiconductor-company HQs (SambaNova, Astera Labs, Cerebras,
+  // Lightmatter, PsiQuantum, IonQ) that the EE-resume golden path depends
+  // on. That regression is covered by tests in test/filters.test.js.
   if (EXCLUSIVE_NON_ENGLISH_RE.test(loc)) return false;
-  // No allowlist match and no explicit blocklist match → keep if purely remote
-  if (/\bremote\b/.test(loc) || /\banywhere\b/.test(loc)) return true;
-  return false;
+  return true;
 }
 
 // Titles in non-English postings (German "m/w/d" etc.) are dropped regardless

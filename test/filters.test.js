@@ -82,6 +82,39 @@ test('isAllowedMarketLocation — drops mixed locations with explicit non-Englis
   }
 });
 
+test('isAllowedMarketLocation — keeps US cities not in the explicit allowlist (regression from hard-allowlist)', () => {
+  // The previous implementation dropped every city not explicitly enumerated
+  // in ALLOWED_MARKET_RE. That silently killed every semiconductor-company
+  // posting (Palo Alto/Mountain View/Santa Clara/Redmond HQs), which is the
+  // exact path the EE-resume golden path depends on.
+  for (const loc of [
+    'Palo Alto, CA',
+    'Mountain View, CA',
+    'Santa Clara, CA',
+    'Redmond, WA',
+    'College Park, MD',
+    'Sunnyvale, CA',
+    'Bellevue, WA',
+    'California',
+    'Texas',
+    'CA',
+  ]) {
+    assert.equal(isAllowedMarketLocation(loc), true, `expected kept: ${loc}`);
+  }
+});
+
+test('isAllowedMarketLocation — keeps ATS placeholders ("Various", "Unknown", "Hybrid")', () => {
+  for (const loc of [
+    'Various',
+    'Unknown',
+    'Hybrid',
+    'On-site',
+    'Multiple Locations',
+  ]) {
+    assert.equal(isAllowedMarketLocation(loc), true, `expected kept: ${loc}`);
+  }
+});
+
 test('isAllowedMarketLocation — empty / missing passes (benefit of doubt)', () => {
   assert.equal(isAllowedMarketLocation(''), true);
   assert.equal(isAllowedMarketLocation(null), true);
