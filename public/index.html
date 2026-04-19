@@ -115,18 +115,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .main{min-width:0;}
 .sidebar{display:flex;flex-direction:column;gap:16px;}
 
-/* === STAT CARDS === */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;}
-.stat-card{
-  background:var(--card);
-  border-radius:var(--radius);
-  padding:20px 22px;
-  box-shadow:var(--card-shadow);
-  position:relative;
-  overflow:hidden;
-  transition:all .3s;
-  border:1px solid transparent;
+/* === SUMMARY STRIP (replaces the hero-metric 2x2 grid) === */
+.results-summary{
+  display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;
+  padding:6px 2px 22px;margin-bottom:18px;
+  border-bottom:1px solid var(--border);
 }
+.results-summary .ttl-num{font-family:var(--display);font-size:52px;font-weight:700;line-height:0.95;letter-spacing:-2px;color:var(--text);}
+.results-summary .ttl-label{font-size:15px;color:var(--text-secondary);font-weight:500;letter-spacing:-0.1px;align-self:center;}
+.results-summary .ttl-breakdown{font-family:var(--mono);font-size:11.5px;color:var(--text-muted);letter-spacing:0.2px;align-self:center;margin-left:auto;}
+.results-summary .ttl-breakdown .pip{color:var(--text);font-weight:600;}
+.results-summary .ttl-breakdown .dot{color:var(--text-muted);margin:0 8px;opacity:0.6;}
+@media(max-width:680px){
+  .results-summary{gap:12px;}
+  .results-summary .ttl-num{font-size:42px;}
+  .results-summary .ttl-breakdown{margin-left:0;flex-basis:100%;}
+}
+/* Legacy stat-card rules retained only for Kyle's board (view-examples); the user board uses results-summary above */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--card-shadow);position:relative;overflow:hidden;transition:all .3s;border:1px solid transparent;}
 .stat-card:hover{box-shadow:var(--card-shadow-lg);transform:translateY(-2px);}
 .stat-card.primary{background:#15803d;color:#fff;}
 .stat-card.primary .stat-label{color:rgba(255,255,255,0.78);}
@@ -136,7 +143,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .stat-sub{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:8px;display:flex;align-items:center;gap:4px;}
 .stat-sub .up{color:var(--green);}
 .stat-chart{position:absolute;bottom:0;right:0;width:120px;height:50px;opacity:.2;}
-.stat-card.primary .stat-chart{opacity:.15;}
 .mini-pills{display:flex;gap:6px;margin-top:12px;}
 .mini-pill{font-size:10px;padding:3px 10px;border-radius:6px;font-family:var(--mono);font-weight:500;}
 .mini-pill.g{background:var(--green-light);color:var(--green);}
@@ -164,6 +170,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .job-card.hot{border-color:color-mix(in oklch, var(--green) 25%, transparent);}
 .job-card.strong{border-color:color-mix(in oklch, var(--blue) 20%, transparent);}
 .job-card.good{border-color:color-mix(in oklch, var(--amber) 18%, transparent);}
+
+/* The single best match gets a richer shape — bigger padding, bigger title,
+   and a visible "top match" eyebrow. Not identical to every other card. */
+.job-card.hot-hero{background:#f6fef9;border-color:color-mix(in oklch, var(--green) 35%, transparent);}
+.job-card.hot-hero .jc-header{padding:22px 26px;}
+.job-card.hot-hero .jc-title{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-0.4px;line-height:1.2;margin-bottom:4px;}
+.job-card.hot-hero .company-logo{width:52px;height:52px;}
+.job-card.hot-hero .fit-ring{width:60px;height:60px;}
+.job-card.hot-hero .fit-ring svg{width:60px;height:60px;}
+.job-card.hot-hero .fit-num{font-size:14px;}
+.job-card.hot-hero .top-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.9px;color:var(--green);margin-bottom:6px;}
+.job-card.hot-hero .top-eyebrow::before{content:"";width:14px;height:1px;background:var(--green);display:inline-block;}
 
 .jc-header{padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;user-select:none;}
 .company-logo{width:42px;height:42px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:var(--bg);border:1px solid var(--border);}
@@ -404,10 +422,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="brand-text">Your <em>Job Board</em> <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:500;margin-left:6px;letter-spacing:0;">– A Kyle-Avi Project</span></div>
     </div>
     <div class="header-right">
-      <div id="visitor-ticker" title="Unique visitors who've used Your Job Board" style="display:none;font-family:var(--mono);font-size:11px;color:var(--text-secondary);background:#f1f5f9;border:1px solid var(--border);border-radius:14px;padding:4px 10px;align-items:center;gap:6px;">
-        <span style="font-size:13px;line-height:1;">&#128065;</span>
-        <span><strong id="visitor-count" style="color:var(--text);">&mdash;</strong> visitors</span>
-      </div>
       <div class="live-label"><div class="live-dot"></div>Live</div>
       <div class="cmd-btn" onclick="openCmd()"><kbd>Ctrl</kbd>+<kbd>K</kbd> Search</div>
     </div>
@@ -469,29 +483,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </label>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card primary">
-        <div class="stat-value" id="ur-total">0</div>
-        <div class="stat-label">Jobs Matched</div>
-        <div class="stat-sub">Updated just now</div>
-        <svg class="stat-chart" viewBox="0 0 120 50"><polyline points="0,40 20,35 40,38 60,25 80,28 100,15 120,8" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/><polygon points="0,40 20,35 40,38 60,25 80,28 100,15 120,8 120,50 0,50" fill="rgba(255,255,255,0.1)"/></svg>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
-        <div class="stat-label">Hot Matches</div>
-        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">75%+ fit</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
-        <div class="stat-label">Strong Fit</div>
-        <div class="stat-sub">60–74% fit</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
-        <div class="stat-label">Good Fit</div>
-        <div class="stat-sub">Below 60%</div>
-      </div>
+    <!-- Summary strip (replaces 4-card hero-metric grid) -->
+    <div class="results-summary" role="status" aria-live="polite">
+      <span class="ttl-num" id="ur-total">0</span>
+      <span class="ttl-label">roles match your resume</span>
+      <span class="ttl-breakdown"><span class="pip" id="ur-hot">0</span> hot<span class="dot">·</span><span class="pip" id="ur-strong">0</span> strong<span class="dot">·</span><span class="pip" id="ur-good">0</span> good</span>
     </div>
 
     <!-- Last run -->
@@ -1456,12 +1452,18 @@ function renderUserResults(jobs){
 
   // Job cards
   const list=document.getElementById('ur-job-list');list.innerHTML='';
-  jobs.forEach(j=>{
+  // The single highest-fit hot-tier card gets visible elevation. One card,
+  // not three — scarcity is what makes the distinction read.
+  let heroAssigned=false;
+  jobs.forEach((j,idx)=>{
     const R=21,crc=2*Math.PI*R,off=crc*(1-j.fit/100);
     const colorVar=j.color==='g'?'var(--green)':j.color==='b'?'var(--blue)':'var(--amber)';
-    const tierClass=j.tier;
+    const isHero=!heroAssigned && j.tier==='hot' && idx===0;
+    if(isHero)heroAssigned=true;
+    const tierClass=j.tier+(isHero?' hot-hero':'');
     const tagClass=j.tier==='hot'?'tag-hot':j.tier==='strong'?'tag-strong':'tag-good';
     const tagLabel=j.tier==='hot'?'hot match':j.tier==='strong'?'strong fit':'good fit';
+    const eyebrow=isHero?`<div class="top-eyebrow">Top match for your resume</div>`:'';
     const locPill=j.location.includes('Remote')?'b':j.location.includes('Austin')?'g':'';
     const domain=safeDomain(j.url);
     const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
@@ -1496,7 +1498,7 @@ function renderUserResults(jobs){
     // Hiring-manager contact block (filled async by loadHunterContacts)
     const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
 
-    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:10px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta">${eyebrow}<div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:10px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
   window.scrollTo({top:0,behavior:'smooth'});
