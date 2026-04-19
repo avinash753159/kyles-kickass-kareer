@@ -1,0 +1,509 @@
+================================================================================
+KYLE JOB BOARD — SENIOR ENGINEERING CODE REVIEW
+Date: 2026-04-17
+Reviewer role: Independent second-opinion, no code changes made
+Scope: server.js (1081 LOC), public/index.html (1478 LOC), generate_all_resumes.py,
+       deployment config, docs/superpowers/{specs,plans}, all session logs.
+================================================================================
+
+STATED INTENT (pieced together from specs, plans, and session logs)
+--------------------------------------------------------------------
+1. Upload a resume → extract text → extract keywords → search real job APIs
+   (RemoteOK, Arbeitnow, Jobicy, Remotive, The Muse) + ATS portals
+   (Greenhouse, Ashby, Lever) → score fit → display ranked jobs.
+2. "Sources of Me" — upload multiple resumes / LinkedIn / freeform text;
+   clicking "Update" should RE-SCORE jobs AND regenerate tailored resumes.
+3. Tailor a resume per job (scrape posting → render PDF via Puppeteer →
+   email it to the user via `gws gmail +send`) with SSE progress updates.
+4. Ghost-job detection (freshness, reposts, layoffs) as badges.
+5. Follow-up countdown once a job is moved to "Applied" in the pipeline.
+6. Interview-prep panel (company facts + STAR prompts) when stage="Interview".
+7. Hunter.io email lookups per job.
+8. Hosted on Railway; also works standalone from a local start script.
+9. Multi-tenant "My Board" tab alongside Kyle's curated "Example" tab.
+
+OVERALL VERDICT
+---------------
+The app delivers the surface feature list, but several core promises are
+either half-wired, silently broken, or quietly unreachable in production.
+This is classic "shipped fast, never closed the loop" technical debt.
+The most important intent gap is that **Sources of Me does not actually
+re-score jobs or re-tailor anything user-specific** — the session log from
+2026-04-15 acknowledged this ("ballerina test") and the gap is still open.
+The second is that **Puppeteer and Python both run on Railway without the
+required runtime dependencies configured in nixpacks.toml**, so the resume
+tailoring and extraction fallbacks will throw in prod.
+
+================================================================================
+SECTION 1 — INTENT vs IMPLEMENTATION GAPS (what was promised but is not working)
+================================================================================
+
+[G1] SEVERITY: HIGH
+Where: generate_all_resumes.py + server.js:87-98 + public/index.html:957-963
+Intent: "Sources of Me" Update button should re-ingest uploaded resumes /
+        LinkedIn / text notes and drive match % + resume content.
+Reality:
+  - POST /api/update-sources writes sources.json, then shells out to
+    `python generate_all_resumes.py` (server.js:93). That Python script has
+    Kyle's profile HARD-CODED (name, email, LinkedIn, bullets). Running it
+    produces the same 18 PDFs regardless of what was uploaded.
+  - The client's runUpdate() (index.html:957-963) just POSTs and then
+    `location.reload()`s the page — no re-search is triggered. Reload
+    restores localStorage cached state; Top 5 does not change.
+  - Two different localStorage keys exist for sources: `kyle_sources_v1`
+    (line 912) and `yjb_user_sources_v1` (line 1044). initUserBoard() clears
+    the second one on every load; the first is actually the one rendered in
+    the sidebar. Confusing state management.
+Practical fix:
+  - Either delete Sources of Me entirely (it is currently cosmetic), or
+    finish the wiring:
+      a) Read the concatenated sources text on the client, pass it as the
+         resumeText to /api/find-jobs alongside the uploaded resume.
+      b) Remove the exec('python ...') call until the Python script accepts
+         a profile blob as input. Leaving it in triggers a 60s worker job
+         every click for zero user-visible effect.
+  - Consolidate on ONE localStorage key (pick yjb_user_sources_v1, delete
+    kyle_sources_v1, migrate old data once).
+
+[G2] SEVERITY: HIGH
+Where: server.js:119-287  (/api/tailor-resume endpoint)
+Intent: One-click "Tailor" button generates a customized PDF per job and
+        emails it via SSE-reported progress steps.
+Reality: Nothing in public/index.html calls POST /api/tailor-resume. The
+        ~170 lines of scraping + PDF rendering + gws gmail send are DEAD
+        CODE. The "Tailored resumes" downloads on Example Board are the
+        static pre-generated PDFs from generate_all_resumes.py, not this
+        endpoint. Same story for the SSE /api/progress/:jobId channel.
+Practical fix:
+  - Either wire a Tailor button in the job card expanded body that POSTs
+    to /api/tailor-resume and subscribes to /api/progress/:jobId, OR
+    delete the endpoint, the SSE code, and the progressClients map.
+    Dead code that executes Puppeteer in background is a production hazard.
+
+[G3] SEVERITY: HIGH
+Where: server.js:38, 136, 224 (Puppeteer) + nixpacks.toml + railway.json
+Intent: Server-side PDF extraction, job-page scraping, and resume PDF
+        rendering all rely on Puppeteer's bundled Chromium.
+Reality: nixpacks.toml has no Chromium install directive. Railway's default
+        Node image does not ship Chromium. First Puppeteer call will throw
+        "Failed to launch the browser process" and fall through to silent
+        catch blocks, which is why these flows have been "mostly working"
+        but quietly degrading.
+Practical fix: Add to nixpacks.toml:
+    [phases.setup]
+    nixPkgs = ["nodejs_20", "chromium", "python3"]
+    [variables]
+    PUPPETEER_SKIP_DOWNLOAD = "true"
+    PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
+  Then in code, pass `executablePath: process.env.PUPPETEER_EXECUTABLE_PATH`
+  into every puppeteer.launch() call.
+
+[G4] SEVERITY: MEDIUM
+Where: server.js:93  exec('python generate_all_resumes.py', ...)
+Intent: Regenerate tailored resumes on source update.
+Reality: Railway nixpacks does not install Python by default. Even if it
+        did, generate_all_resumes.py requires PyMuPDF (fitz), which requires
+        system libs. No requirements.txt committed. Silent failure.
+Practical fix: Either add python3 + PyMuPDF to nixpacks as above and commit
+  a requirements.txt, or — since the script produces static PDFs for Kyle —
+  pre-generate locally, commit the PDFs to public/resumes/ (they already
+  are), and remove the exec() call entirely. The exec() is only useful if
+  the script becomes dynamic-input aware (see G1).
+
+[G5] SEVERITY: MEDIUM
+Where: server.js:87-98 (POST /api/update-sources — no auth)
+       server.js:72-75 (POST /api/update-run — no auth)
+Intent: "Multi-tenant My Board tab" (per commit message 97cfe48).
+Reality: sources.json is a single global file on the server. Any user of
+        the deployed URL writes into the same file, and every POST
+        triggers the Python regeneration. Not multi-tenant at all.
+Practical fix: If multi-tenancy is a real goal, add tenant scoping via a
+  session ID in the client → namespace sources per tenant in an in-memory
+  map or a SQLite db. If it is NOT a real goal, remove the multi-tenant
+  framing from README and commits; otherwise future changes will cement
+  the bad assumption further.
+
+================================================================================
+SECTION 2 — CORRECTNESS BUGS (code is running but producing wrong results)
+================================================================================
+
+[B1] SEVERITY: HIGH — contradictory scoring logic
+Where: server.js:978-993 (scoreFit wrongField block)
+What: The wrongField regex flags titles containing "supply chain",
+      "procurement", or "data center" as wrong-field regardless of resume.
+      But server.js:860 includes "supply chain", and line 862 includes
+      "procurement" in the domainTerms list — meaning a resume that has
+      supply chain experience will still be told ALL supply chain jobs are
+      wrong-field and capped at score 25.
+How it bites: Kyle's resume mentions procurement/supply chain → genuine
+      matching roles get near-zero fit → filtered out at the `fit >= 40`
+      floor on line 596.
+Practical fix: Gate wrongField on whether the resume lacks that term:
+      if (!resumeIsOps && /\b(supply chain|procurement|logistics ...)\b/...)
+  i.e., add a `resumeIsOps` flag analogous to resumeIsTech/Finance/Design.
+
+[B2] SEVERITY: HIGH — title-relevance uses full-string match
+Where: server.js:961  `keywords.titles.forEach(t => { if (jobTitle.includes(t)) titleRelevance = 2; });`
+What: `keywords.titles` contains phrases like "senior product engineer".
+      `jobTitle.includes("senior product engineer")` is true only when
+      the job title is ≥3 words matching exactly. Most real job titles
+      ("Senior Product Manager", "Product Engineer II", "Staff Engineer")
+      will NOT match, so titleRelevance drops to 1 (or 0 for tokens not in
+      titleKeywords), and score falls into the 30-78 band instead of 65-98.
+Practical fix: Match on title HEADS, not full phrases:
+      - Extract the noun (manager/engineer/lead/director) from each resume
+        title AND the job title, require at least one head match PLUS one
+        modifier match (e.g. both have "product" + both have "manager").
+      - The existing token-based fallback at lines 956-959 already does
+        something like this; just delete line 961 so the strong rule
+        doesn't override the correct weak rule.
+
+[B3] SEVERITY: MEDIUM — non-English-market filter is over-broad
+Where: server.js:566  nonEnglishMarket regex
+What: The regex matches "europe", "asia", "apac", "emea" as standalone
+      words. Many US-headquartered remote roles list multiple regions
+      ("US / Europe", "Remote (Americas / EMEA)") and will be dropped even
+      when the candidate is eligible.
+      Also: "s[aã]o paulo" is correct but "india" appears standalone, which
+      matches legitimately US-based companies with "India" in descriptions
+      (unlikely in `location` field, so mostly fine, but still brittle).
+Practical fix: Move from "block list of foreign markets" to "allow list of
+  acceptable locations" — e.g. keep jobs whose location matches
+  /\b(remote|united states|usa|us|canada|austin|tx|texas|ca|ny|...|anywhere)\b/
+  OR where `j.remote === true` AND description does not claim a non-US
+  restriction. Cleaner, fewer false negatives.
+
+[B4] SEVERITY: MEDIUM — ATS isTitleRelevant is effectively a no-op
+Where: server.js:441-449 (broadRoles list)
+What: `broadRoles` includes "associate", "analyst", "manager", "director",
+      "lead", "specialist", "coordinator", "operations", "strategy",
+      "growth", "marketing", "product", "community", "customer", "success",
+      "program", "project", "sales", "account", "business", "experience".
+      Approximately 95% of US corporate job titles contain at least one of
+      those tokens, so the filter passes nearly everything. Not harmful
+      per se, but it means the "Filter ATS results by relevance" comment
+      in the spec is not actually being honored — scoring is what carries
+      the weight.
+Practical fix: Drop the isTitleRelevant filter from fetchATSJobs and let
+  scoreFit do the work on the full set; OR tighten broadRoles to only
+  tokens that appear in the CURRENT resume's derived keywords.
+
+[B5] SEVERITY: MEDIUM — duplicate wrongField rules
+Where: server.js:993 "machine learning engineer|ml engineer" is listed
+       alongside line 979 which already blocks all `<domain> engineer`
+       titles via the `(software|data|ml|ai|...)` regex when resume is
+       not tech. Same rule counted twice.
+Practical fix: Delete line 993; it is already covered.
+
+[B6] SEVERITY: MEDIUM — parseDaysAgo is lossy
+Where: server.js:914-923
+What: Handles "today", "Nd ago", "Nmo ago", returns null otherwise.
+      timeAgo() (line 782) produces exactly these strings, so the internal
+      round-trip works. But RemoteOK / Remotive posted dates are passed
+      through timeAgo so they'll render "1d ago" for anything less than
+      24h, which parses to 1, not 0 — minor off-by-one on freshness.
+      Also "1mo ago" → 30 days, losing whether it was 30 or 59 days.
+      This matters because ghost detection and freshness scoring bucket
+      things at 7/14/30/45 day thresholds.
+Practical fix: Carry `postedDate` (ISO) separately from `posted` (display
+  string) through the pipeline. The spec and the plan already specify
+  `postedDate`, but the implementation only uses `posted` (see scoreFit
+  line 1025 and the tier classification at 617-622). Re-wire to use the
+  raw date for math and keep timeAgo() for display.
+
+[B7] SEVERITY: LOW — Austin boost applied after filter, then re-sort
+Where: server.js:586-593
+What: Austin-matched jobs get +5 fit AFTER the main sort, and the code
+      re-sorts. That works, but other downstream effects (tier tags at
+      line 599-603, ghost risk signals) run on the re-sorted list, which
+      is fine — but means a "good" job that crosses into "strong" via
+      the +5 keeps the OLD tier badge if tier was computed earlier.
+Practical fix: Apply ALL scoring adjustments before tier classification.
+  Move the Austin boost to inside scoreFit (it already adds +2 there —
+  consolidate to avoid the double boost).
+
+[B8] SEVERITY: LOW — double Austin boost
+Where: server.js:1031 (+2 in scoreFit) AND server.js:590 (+5 in location
+       filter)
+What: A job in Austin gets +7 total — likely unintended, exceeds the
+      5-point cap mentioned in the design spec (specs section 1).
+Practical fix: Pick one — the in-scoreFit +2 should probably be removed
+  since the design doc explicitly specifies +5 at the location filter.
+
+[B9] SEVERITY: LOW — lastRunTime resets on every Railway restart
+Where: server.js:63
+What: In-memory variable, reset every cold start. The "last run" display
+      in the UI will show server boot time, not the user's last search.
+Practical fix: Store lastRunTime in localStorage on the client, or persist
+  to a small JSON file on the server, or drop the feature (it is
+  cosmetic).
+
+[B10] SEVERITY: LOW — RECENT_LAYOFFS list is stale-by-design
+Where: server.js:375-396
+What: Hardcoded 2025 dates. Today is 2026-04-17. 6-month window means
+      layoffs older than 2025-10-17 are filtered out on line 402-408.
+      By 2026-05-17 the list will be nearly empty; by 2026-10-17 fully
+      empty. Silent decay.
+Practical fix: Either hit a live source (layoffs.fyi has RSS), or add a
+  scheduled task to refresh this file quarterly, or delete the feature
+  and replace it with a one-line note on each card.
+
+================================================================================
+SECTION 3 — SECURITY ISSUES (beyond what the 2026-04-15 fixes caught)
+================================================================================
+
+[S1] SEVERITY: HIGH — shell command injection in /api/tailor-resume
+Where: server.js:254  `const gwsCmd = \`gws gmail +send --to "${email}" ... -a "${pdfPath}"\`;`
+What: The code escapes `"` → `\"` and `\n` → `\n`, but does NOT escape:
+      backticks, `$(...)`, `;`, `&`, `|`, `<`, `>`, `\`, or unicode
+      quotes. A malicious `email` or `jobTitle` input → arbitrary shell
+      execution as the Railway process user.
+      Mitigation today: endpoint is dead (see G2). Still HIGH because if
+      wired in the future, this is a direct RCE.
+Practical fix: Use gws's JSON interface: `gws gmail users messages send
+  --json '<json>'` with JSON.stringify-built payload, executed via
+  child_process.execFile (array args, no shell). Never interpolate user
+  input into a shell string.
+
+[S2] SEVERITY: HIGH — /api/find-email and /api/domain-search have no auth
+Where: server.js:292-318
+What: Anyone on the internet can burn Kyle's Hunter.io quota by hitting
+      the Railway endpoint in a loop. 50 free lookups/month; easily
+      exhausted in seconds by a bot scanner.
+Practical fix: Gate the endpoints on either (a) a session cookie set on
+  first load, (b) a simple shared-secret header that the client reads
+  from the server-rendered index page, or (c) rate-limit by IP (an
+  `express-rate-limit` middleware, 10 req/min/IP). Option (c) is
+  smallest-effort and addresses 90% of the risk.
+
+[S3] SEVERITY: MEDIUM — /api/update-sources has no auth + triggers exec
+Where: server.js:87-98
+What: Public POST writes to sources.json AND spawns a 60s Python process.
+      Trivial DoS: POST 10 requests/sec → pile up 60s python children.
+      Also, sources.json has no size cap; submitting a 10 MB body fills
+      disk.
+Practical fix: Rate-limit the endpoint, validate `sources` is an array of
+  max N items, cap the total JSON size, and drop (or defer) the python
+  exec until G1 is addressed.
+
+[S4] SEVERITY: MEDIUM — XSS via user-controlled sources in sidebar
+Where: public/index.html:919-927 (renderSources)
+What: `label` (derived from src.value — user-entered LinkedIn URL or free
+      text — or src.name from a filename) is injected into innerHTML at
+      line 924 without escapeHtml(). A filename like
+      `<img src=x onerror=alert(1)>.pdf` executes.
+Impact: Self-XSS only (user attacks themselves), low real-world impact —
+      but if sources.json is ever rendered for another user (multi-tenant)
+      this becomes stored XSS.
+Practical fix: Wrap every ${label} and ${src.id} in escapeHtml() (function
+  already exists in the codebase at ~line 1135). Same treatment for
+  renderUserResumes output.
+
+[S5] SEVERITY: MEDIUM — XSS via Hunter.io response in findMoreEmails
+Where: public/index.html:987
+What: Renders `e.first_name`, `e.last_name`, `e.position`, `e.value`
+      directly into innerHTML. Hunter's API is a trusted source today,
+      but if an attacker plants a malicious email record (e.g. by owning
+      a domain and injecting HTML in the "position" field of their
+      public signature), this becomes stored XSS.
+Practical fix: escapeHtml each interpolated field, or build DOM nodes via
+  document.createElement + textContent.
+
+[S6] SEVERITY: LOW — /api/extract-text has no size / file-type sanity
+Where: server.js:12-60
+What: Accepts up to 10 MB base64 blob (express.json limit), pipes into
+      pdfjs, writes to disk for Puppeteer fallback. A weaponized PDF
+      could exploit a pdfjs-dist CVE (version 3.11.174 is from mid-2025;
+      there have been several CVEs in older 3.x). Nothing validates the
+      Content-Type or magic bytes either.
+Practical fix: Check magic bytes before processing (first 4 bytes of a
+  PDF are `%PDF`), and pin to latest pdfjs-dist or move to an
+  alternative like `pdf-parse`.
+
+[S7] SEVERITY: LOW — personal email in client source
+Where: server.js:197 + public/index.html
+What: `kylegaarder@gmail.com` is hardcoded in the resume PDF template and
+      the "Example" tab. Fine for a single-user board, a leak for a
+      multi-tenant one.
+Practical fix: If multi-tenant, read from user profile. Otherwise, leave
+  and remove the "multi-tenant" framing.
+
+================================================================================
+SECTION 4 — ARCHITECTURE / CODE QUALITY ISSUES
+================================================================================
+
+[A1] Repository is littered with stale and ambiguous files.
+     Root folder has:
+       - standalone-dashboard.html (73 KB) — session log says this was
+         replaced by public/index.html but the file is still committed
+         and .railwayignore excludes it.
+       - Kyle_Dashboard.html (1.4 KB) — redirect shim from April 13.
+       - Kyle-Dashboard.desktop — Chromebook launcher, superseded.
+       - Kyles-Dashboard.zip (15 MB) and Kyles-Dashboard/ folder —
+         distributable artifact, checked in.
+       - test_result.json + test_result2.json — captured API output, not
+         a test harness.
+       - analyze_pdf.py — one-off diagnostic script.
+       - KyleGaarder_Resume_Tailored_Kindred.pdf at root.
+     None of these are referenced by the running server.
+     Practical fix: git rm the zip + the Kyles-Dashboard/ folder (15 MB
+     in repo is a sin); move analyze_pdf.py, Kyle_Dashboard.html, and the
+     .desktop file into a /legacy/ folder with a README.md explaining
+     "kept for reference"; delete standalone-dashboard.html or mark it
+     clearly as the offline build target. Delete test_result*.json.
+
+[A2] server.js and public/index.html are monoliths.
+     server.js = 1081 lines with zero modules. The scoring logic alone
+     is ~220 lines inline with the API plumbing. index.html = 1478 lines
+     with CSS + vanilla JS + HTML inlined.
+     This is not a "rewrite it all in React" recommendation — the app
+     is small and vanilla JS is fine — but splitting into files would
+     catch most of the bugs above at review time.
+     Practical fix (incremental, 1-2 hours):
+       - server.js → split into routes/jobs.js, routes/sources.js,
+         routes/tailor.js, lib/scoring.js, lib/keywords.js,
+         lib/ats.js, data/companies.js, data/layoffs.js
+       - index.html → extract public/app.js and public/app.css;
+         keep the HTML skeleton only.
+
+[A3] No test suite, no CI, no lint.
+     package.json has `"test": "echo ..."`. There are no unit tests for
+     scoreFit, extractResumeKeywords, or the wrongField logic — the very
+     code that has been rewritten in each of the last 5 commits.
+     Practical fix: Add a minimal Vitest/Jest setup with 20-30 unit tests
+     for:
+       - extractResumeKeywords: given fixture resume X, returns expected
+         titles/domain/bigrams.
+       - scoreFit: given fixture resume + fixture job, produces expected
+         score buckets. Include the "ballerina resume" case as a
+         regression test against B1/B2.
+       - parseDaysAgo: round-trip with timeAgo.
+     The recent commit messages ("rewrite scoring", "dramatically improve
+     scoring") scream for a test suite — without one you are rewriting
+     on vibes every time.
+
+[A4] Commit pattern is "fix → fix → fix" on the same subsystem.
+     git log shows 3 consecutive commits touching scoring in the last two
+     days. That is the signature of no-feedback-loop development.
+     Practical fix: Before the next scoring tweak, write the test case
+     that reproduces the current miss, then change code until it passes.
+
+[A5] Defensive String() coercions are a smell.
+     server.js:604-614 wraps every field in String(). This is a symptom
+     of not trusting the data pipeline. Either fix the source (make
+     fetchers return clean strings always — they already do — and drop
+     the coercion) or validate at one boundary with a schema
+     (zod/typebox). The current scatter-shot defensiveness obscures
+     where the trust boundary actually is.
+
+[A6] Two tabs ("My Board" and "Example Board — Kyle's") have diverged.
+     Example Board uses static JOBS[] hardcoded in index.html with
+     pre-generated tailored PDFs; My Board uses live API results with no
+     tailored PDFs (since G2 is dead). The user experience of the two
+     tabs is therefore very different, which confuses new users and
+     erodes trust in scoring ("why did Example work but My Board show
+     me different stuff?") — exactly the complaint in session log 2.
+     Practical fix: Either unify (regenerate Kyle's Example Board from
+     the live pipeline the first time he loads it, then cache the
+     output), or rename the tabs to make the distinction explicit:
+     "Kyle's Curated Picks" vs "Live Search".
+
+[A7] Magic numbers scattered throughout scoreFit.
+     65, 33, 0.55, 30, 48, 0.8, 10, 30, 0.5 — all tuned by feel. If any
+     of them move, the score distribution swings wildly. No reference
+     for what "good" looks like.
+     Practical fix: Define them as named constants at the top of the
+     scoring module (`TITLE_MATCH_BASE`, `TITLE_MATCH_CAP_MULT`, etc.)
+     and back them with the tests from A3.
+
+[A8] `COMPANY_INFO` lookup (server.js:1038-1062) covers ~22 companies.
+     The ATS portals list (line 325-372) has ~45 companies. The live
+     APIs return hundreds. So for 95%+ of cards, the interview-prep
+     panel renders "Unknown / Unknown / N/A / Technology / ''". That's
+     worse than not having the feature — it looks broken.
+     Practical fix: Hide the panel when the lookup falls through to the
+     default, OR backfill with a cheap live call (e.g. Clearbit logo is
+     already used; Clearbit also has a company autocomplete endpoint).
+
+================================================================================
+SECTION 5 — DEPLOYMENT / OPS RISKS
+================================================================================
+
+[D1] See G3 and G4 above (Puppeteer + Python missing in nixpacks).
+[D2] HUNTER_API_KEY now env-driven (correct per 2026-04-15 fix), but the
+     deployed Railway instance needs it set or /api/find-email and
+     /api/domain-search return 500. Confirm with `railway variables`.
+[D3] No healthcheck endpoint. Railway will consider the service up if
+     the port is open, even when Node is deadlocked in a Puppeteer
+     call. Add GET /healthz → 200 and reference it in railway.json.
+[D4] server.log (11 KB) is in the repo. Not catastrophic but noisy. Add
+     `server.log` to .gitignore and remove it from HEAD.
+[D5] session_logs/ and output/ are inside the working directory and
+     excluded via .railwayignore, which is correct. But `output/` is
+     where /api/tailor-resume writes per-request PDFs. On Railway's
+     ephemeral filesystem these disappear on every redeploy, AND
+     express.static('/output') will 404 after that. If the endpoint is
+     revived (G2), migrate PDF storage to S3 / Railway volume.
+
+================================================================================
+SECTION 6 — UX / PRODUCT QUALITY
+================================================================================
+
+[U1] The `fit >= 40` hard filter (server.js:596) on a resume that mostly
+     mismatches the tech-heavy API pool can produce 0-3 results. There
+     is no empty-state UI explaining this; the loading screen just ends
+     with a sparse list. Add: "We found N matching jobs. Raise the noise
+     floor to see more →" as a slider.
+[U2] Follow-up countdown and Interview Prep panel code are present but
+     are only triggered when the user manually moves a card to
+     Applied/Interview in the stage dropdown. There is no nudging or
+     inline hint that these features exist. A one-line "tip" under
+     the pipeline dropdown would surface both.
+[U3] The standalone build (standalone-dashboard.html) was last edited on
+     April 15 and is not rebuilt when index.html changes. If you keep
+     it, add a build step: `cp public/index.html standalone-dashboard.html`
+     plus a post-processing sed for the 3 differences noted in session
+     log 2026-04-13. If you don't keep it, delete it.
+
+================================================================================
+PRIORITIZED FIX LIST (senior-engineer recommendation, ordered by ROI)
+================================================================================
+
+Must fix this week (correctness + security):
+  1. [B1] Gate wrongField on missing resume domain (5 min change).
+  2. [B2] Drop the too-strict title-includes-full-phrase rule (5 min).
+  3. [S2] Rate-limit Hunter endpoints (10 min, npm i express-rate-limit).
+  4. [S3] Rate-limit + size-cap /api/update-sources (10 min).
+  5. [S4] Wrap renderSources innerHTML in escapeHtml (5 min).
+  6. [G1] Decide: finish Sources of Me wiring OR remove it (1-3 hrs).
+  7. [G3] Add Chromium + python3 to nixpacks.toml (15 min) OR accept and
+     delete the Puppeteer + Python code paths (faster, cleaner).
+
+Should fix this sprint (maintenance + UX):
+  8. [A1] Clean up the root folder — delete the zip, move legacy files
+     to /legacy/, remove test_result*.json (30 min).
+  9. [G2] Delete or finish /api/tailor-resume (30 min if deleting).
+  10. [A3] Add a test suite around scoreFit and extractResumeKeywords
+      (2 hours, will prevent the fix-on-top-of-fix cycle).
+  11. [B3] Rewrite non-English filter as allow-list (30 min).
+  12. [A8] Hide interview-prep panel when COMPANY_INFO misses (15 min).
+  13. [D3] Add /healthz for Railway (5 min).
+
+Nice to have (polish):
+  14. [A2] Split server.js + index.html into modules (2 hours).
+  15. [A5] Remove defensive String() coercions (15 min).
+  16. [U1] Empty-state UX on tight filter results (30 min).
+  17. [B10] Pull RECENT_LAYOFFS from a live source OR delete it.
+
+================================================================================
+ONE-LINE SUMMARY OF THE CODEBASE'S CURRENT STATE
+================================================================================
+A clever, feature-rich prototype that looks polished on the Example tab
+but has 3-4 silently broken promises on the My Board tab, plus deploy-time
+runtime risks that have not yet bitten only because the user has not
+exercised the failing paths in production. Fix the Sources-of-Me wiring,
+the scoring contradiction, the Puppeteer/Python deploy gap, and the
+shell-injection / auth-less endpoints, and this goes from "demo-ware" to
+"legitimately shippable."
+
+End of review.

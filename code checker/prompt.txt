@@ -1,0 +1,22 @@
+Act as a senior engineer doing an independent second-opinion code review of the project in the current working directory. Do NOT change any code.
+
+Scope: read the main source files, config/deploy files (package.json, Dockerfile, railway/nixpacks/vercel config, CI workflows, .env.example), any docs/, specs/, plans/, and session logs. Piece together the STATED INTENT from docs + recent commits + session logs, then compare it against what the code actually does.
+
+Output the review as plain text with these sections:
+
+1. STATED INTENT — numbered list of what the project claims to do.
+2. OVERALL VERDICT — 3-5 sentences, blunt.
+3. INTENT vs IMPLEMENTATION GAPS — features promised but silently broken, half-wired, or unreachable in prod. Tag each [G#] with SEVERITY: HIGH/MED/LOW, file:line refs, Intent, Reality, Fix.
+4. CORRECTNESS BUGS — same format [B#].
+5. SECURITY ISSUES — same format [S#]. Cover: hardcoded secrets, injection (SQL/command/template), auth gaps, CORS, SSRF, path traversal, unsafe deserialization, missing input validation, dependency CVEs visible from package manifests.
+6. DEPLOY / RUNTIME RISKS — missing runtime deps, env var assumptions, cold-start failures, platform config mismatches (Railway/Vercel/Docker/nixpacks).
+7. QUALITY / MAINTAINABILITY — duplication, dead code, unused deps, inconsistent patterns, missing error handling at system boundaries.
+8. TOP 5 THINGS TO FIX FIRST — ranked, with rough effort estimate (S/M/L).
+
+Rules:
+- Cite file:line for every finding.
+- If a claim in docs cannot be verified in code, say so explicitly.
+- No speculation — flag anything you cannot confirm as "UNVERIFIED".
+- Be blunt. This is a second-opinion review, not a cheerleading exercise.
+
+Print the full review to stdout. Do not write any files.

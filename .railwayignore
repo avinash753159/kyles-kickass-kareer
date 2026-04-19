@@ -1,0 +1,12 @@
+node_modules
+output
+session_logs
+legacy
+memory
+*.log
+*.zip
+.git
+KyleGaarder_Resume_Tailored_Kindred.pdf
+KyleGaarder_Resume_0426*
+start-dashboard.sh
+start-dashboard.bat

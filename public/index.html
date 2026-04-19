@@ -452,17 +452,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="stat-card">
         <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
         <div class="stat-label">Hot Matches</div>
-        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">85%+ fit</span></div>
+        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">75%+ fit</span></div>
       </div>
       <div class="stat-card">
         <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
         <div class="stat-label">Strong Fit</div>
-        <div class="stat-sub">70–84% fit</div>
+        <div class="stat-sub">60–74% fit</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
         <div class="stat-label">Good Fit</div>
-        <div class="stat-sub">Below 70%</div>
+        <div class="stat-sub">Below 60%</div>
       </div>
     </div>
 
@@ -544,7 +544,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <div class="stat-card">
         <div class="stat-value" style="color:var(--green);" id="stat-hot">0</div>
         <div class="stat-label">Hot Matches</div>
-        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">85%+ fit score</span></div>
+        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">75%+ fit score</span></div>
         <svg class="stat-chart" viewBox="0 0 120 50"><polyline points="0,38 20,32 40,36 60,20 80,24 100,12 120,6" fill="none" stroke="rgba(22,163,74,0.3)" stroke-width="2"/><polygon points="0,38 20,32 40,36 60,20 80,24 100,12 120,6 120,50 0,50" fill="rgba(22,163,74,0.06)"/></svg>
       </div>
       <div class="stat-card">
@@ -616,11 +616,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
     <!-- Sources of Me -->
     <div class="side-card">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Sources of Me</span>
-        <button id="sources-update-btn" onclick="runUpdate()" style="background:var(--green);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Update</button>
-      </h3>
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Add resumes, LinkedIn, and notes about you. Everything here feeds resume tailoring + match scores. Delete anything to remove it.</div>
+      <h3>Sources of Me</h3>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>My Board</strong> tab to get live matches from an uploaded resume.</div>
       <div id="sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
@@ -710,85 +707,85 @@ const JOBS=[
     contact:{name:'Hiring Team',initials:'TR',role:'Teero Recruiting',domain:'teero.com'},
     gaps:[{label:'Full P&L ownership',sub:'Revenue, costs, vendor procurement at Revillage',pts:5,on:true},{label:'Multi-hat early-stage operator',sub:'Strategy, ops, partnerships, product \u2014 their profile',pts:4,on:true},{label:'Territory or market scaling',sub:'Van Village explored 5 states',pts:3,on:false},{label:'Rapid experimentation',sub:'A/B pricing tests show this instinct',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com \u00b7 linkedin.com/in/kylegaarder\n\nSUMMARY\nEarly-stage operator with P&L ownership experience. Built and scaled operations from zero across multiple ventures.\n\nEXPERIENCE\nFounder \u00b7 Revillage Coliving \u00b7 2022\u20132024\n\u00b7 Full P&L: financial reporting, vendor procurement, revenue optimization\n\u00b7 48% revenue growth via dynamic pricing\n\u00b7 212% operational efficiency improvement YoY\n\nCo-Founder \u00b7 Van Village \u00b7 2021\u20132022\n\u00b7 Partnerships across 5 states, investor-backed pilot\n\nCo-Founder \u00b7 Lake Barcroft Boats \u00b7 2011\u20132016\n\u00b7 Zero to 140+ clients, 82% retention, 46% YoY growth\n\nWHY TEERO: I've been the 'CEO of my territory' three times \u2014 building from zero, owning P&L, scaling with constraints."},
-  {id:'airbnb',company:'Airbnb',domain:'airbnb.com',title:'Program Manager, Community Support',location:'Remote (US)',salary:'$120\u2013170k est.',type:'Full-time',posted:'4d ago',fit:86,tier:'strong',color:'b',url:'https://careers.airbnb.com/positions/',
+  {id:'airbnb',company:'Airbnb',domain:'airbnb.com',title:'Program Manager, Community Support',location:'Remote (US)',salary:'$120\u2013170k est.',type:'Full-time',posted:'4d ago',fit:86,tier:'hot',color:'g',url:'https://careers.airbnb.com/positions/',
     whyFit:"Airbnb's Community Support bridges Product, Design, Engineering, and Policy \u2014 Kyle's cross-functional instinct is right. His conflict resolution systems and community programming map to the support ecosystem. Coliving-to-Airbnb is a legible career move.",
     blurb:"Airbnb's Community Support runs programs driving strategic goals. This PM implements cross-functional programs bridging CS, Product, Design, Engineering, and Policy. Remote, 4+ years experience.",
     contact:{name:'Hiring Team',initials:'AB',role:'Airbnb',domain:'airbnb.com'},
     gaps:[{label:'Cross-functional program management',sub:'Worked across ops, community, product at Revillage',pts:4,on:true},{label:'Community building at scale',sub:'Coliving community work is the foundation',pts:4,on:true},{label:'Conflict resolution systems',sub:'Designed these at Revillage \u2014 Airbnb CS deals with this',pts:3,on:false},{label:'Program design with KPIs',sub:'Did you track metrics for your programs?',pts:4,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com \u00b7 linkedin.com/in/kylegaarder\n\nSUMMARY\nCommunity-focused program designer with hands-on experience building support systems, conflict resolution, and cross-functional programs.\n\nEXPERIENCE\nFounder \u00b7 Revillage Coliving \u00b7 2022\u20132024\n\u00b7 Designed conflict-resolution and communication systems\n\u00b7 48 weekly community programs, 4 masterminds, 6 work-trade programs\n\u00b7 Facilitated acquisition transition with positive stakeholder relationships\n\nWHY AIRBNB: I've built community support systems from the ground up. I'd bring that operator's perspective to Airbnb's Community Support."},
-  {id:'capfactory-events',company:'Capital Factory',domain:'capitalfactory.com',title:'Events Specialist',location:'Austin, TX',salary:'$50\u201365k',type:'Full-time',posted:'3d ago',fit:85,tier:'strong',color:'b',url:'https://jobs.capitalfactory.com/companies/capital-factory/jobs/60573937-events-specialist',
+  {id:'capfactory-events',company:'Capital Factory',domain:'capitalfactory.com',title:'Events Specialist',location:'Austin, TX',salary:'$50\u201365k',type:'Full-time',posted:'3d ago',fit:85,tier:'hot',color:'g',url:'https://jobs.capitalfactory.com/companies/capital-factory/jobs/60573937-events-specialist',
     whyFit:"Austin's flagship startup accelerator needs someone to plan events including SXSW programming and Austin Tech Week. Kyle's 48 community dinners, masterminds, and work-trade programs are exactly this skillset in a startup context.",
     blurb:"Capital Factory is Austin's center of gravity for startups \u2014 accelerator, coworking, event space. The Events Specialist plans Capital Cornerstones, CF House during SXSW, and Austin Tech Week.",
     contact:{name:'Hiring Team',initials:'CF',role:'Capital Factory',domain:'capitalfactory.com'},
     gaps:[{label:'Community event programming (48+ events)',sub:'Weekly dinners, masterminds, work-trade \u2014 massive portfolio',pts:5,on:true},{label:'Community building in shared spaces',sub:'Coliving \u2192 coworking is a natural bridge',pts:4,on:true},{label:'Large-scale event production',sub:'SXSW-scale is bigger than house dinners. Any large events?',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nCommunity programmer and event designer \u2014 48+ recurring events, 4 masterminds, 6 work-trade programs from scratch.\n\nWHY CAPITAL FACTORY: I've run more community events from scratch than most people attend in a year."},
-  {id:'hipcamp-growth',company:'Hipcamp',domain:'hipcamp.com',title:'Product Manager, Growth',location:'Remote (US)',salary:'$110\u2013140k est.',type:'Full-time',posted:'6d ago',fit:84,tier:'strong',color:'b',url:'https://startup.jobs/product-manager-growth-hipcamp-2062878',
+  {id:'hipcamp-growth',company:'Hipcamp',domain:'hipcamp.com',title:'Product Manager, Growth',location:'Remote (US)',salary:'$110\u2013140k est.',type:'Full-time',posted:'6d ago',fit:84,tier:'hot',color:'g',url:'https://startup.jobs/product-manager-growth-hipcamp-2062878',
     whyFit:"Community-driven outdoor hospitality marketplace. Growth PM leads guest acquisition and retention \u2014 Kyle's 3,140-subscriber demand pipeline and 94% retention are directly transferable.",
     blurb:"Hipcamp connects people with unique outdoor stays. Growth PM owns guest acquisition and retention. 2+ years in PM or Growth. Remote, mission-driven.",
     contact:{name:'Hiring Team',initials:'HC',role:'Hipcamp',domain:'hipcamp.com'},
     gaps:[{label:'Demand pipeline from zero (3,140 subs)',sub:'Built this at Van Village \u2014 direct proof point',pts:5,on:true},{label:'Retention-driven operations (94%)',sub:'Occupancy rate proves retention skill',pts:4,on:true},{label:'Marketplace experience',sub:'Any two-sided marketplace exposure?',pts:4,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nGrowth-minded builder with proven demand generation and retention. 3,140-subscriber pipeline from zero, 94% occupancy for 19 months.\n\nWHY HIPCAMP: I've built demand from nothing and kept people coming back."},
-  {id:'kindred-pm',company:'Kindred',domain:'livekindred.com',title:'Staff Product Manager',location:'Remote (Austin HQ)',salary:'$150\u2013200k est.',type:'Full-time',posted:'3d ago',fit:83,tier:'strong',color:'b',url:'https://jobs.ashbyhq.com/kindred/bddb0540-b27d-457c-8993-40497b551e51',
+  {id:'kindred-pm',company:'Kindred',domain:'livekindred.com',title:'Staff Product Manager',location:'Remote (Austin HQ)',salary:'$150\u2013200k est.',type:'Full-time',posted:'3d ago',fit:83,tier:'hot',color:'g',url:'https://jobs.ashbyhq.com/kindred/bddb0540-b27d-457c-8993-40497b551e51',
     whyFit:"Senior product leadership at a community-based home-swapping network. Kyle's community product experience and 48 customer interviews are relevant. Stretch role seniority-wise but worth applying.",
     blurb:"Kindred is a members-only home-swapping network. Staff PM leads the community platform product strategy. Austin HQ, fully remote.",
     contact:{name:'Justine Palefsky',initials:'JP',role:'Co-founder & CEO',domain:'livekindred.com'},
     gaps:[{label:'Community product ownership',sub:'The community experience was the product at Revillage',pts:4,on:true},{label:'Customer interviews (48 at Van Village)',sub:'Core PM skill \u2014 validated',pts:4,on:true},{label:'Technical product management',sub:'Experience writing specs, working with engineers?',pts:4,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nProduct builder who designs community-driven experiences. 48 customer interviews, coliving product from zero, iterated on real feedback.\n\nWHY KINDRED: I've lived inside the product Kindred is building \u2014 community-based housing where trust and belonging are the value prop."},
-  {id:'hipcamp-staff',company:'Hipcamp',domain:'hipcamp.com',title:'Staff PM, Camper Experience',location:'Remote (US)',salary:'$140\u2013180k est.',type:'Full-time',posted:'5d ago',fit:82,tier:'strong',color:'b',url:'https://www.linkedin.com/jobs/view/staff-product-manager-at-hipcamp-4375130082',
+  {id:'hipcamp-staff',company:'Hipcamp',domain:'hipcamp.com',title:'Staff PM, Camper Experience',location:'Remote (US)',salary:'$140\u2013180k est.',type:'Full-time',posted:'5d ago',fit:82,tier:'hot',color:'g',url:'https://www.linkedin.com/jobs/view/staff-product-manager-at-hipcamp-4375130082',
     whyFit:"Senior PM managing consumer app. Synthesize camper needs, optimize journey, partner with Analytics. Kyle's experience design and retention focus map well \u2014 stretch role but worth the shot.",
     blurb:"Staff PM for Camper Experience owns the consumer app and website. Synthesize user needs, prioritize features, partner with Analytics and Ops. They want a 'consumer animal.'",
     contact:{name:'Hiring Team',initials:'HC',role:'Hipcamp',domain:'hipcamp.com'},
     gaps:[{label:'Customer experience from scratch',sub:'Designed the entire resident experience at Revillage',pts:4,on:true},{label:'Retention & engagement (94%)',sub:'Proof of engagement',pts:4,on:true},{label:'Consumer product management',sub:'Tech PM framing needed',pts:4,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nExperience designer \u2014 complete customer experience from scratch, 94% retention.\n\nWHY HIPCAMP: I'm the 'consumer animal' \u2014 I obsess over experience, test constantly, measure by whether people come back."},
-  {id:'drillbit',company:'Drillbit',domain:'drillbit.com',title:'Operations Lead',location:'Austin, TX',salary:'$100\u2013175k',type:'Full-time',posted:'1d ago',fit:81,tier:'good',color:'y',url:'https://www.ycombinator.com/companies/drillbit/jobs/W3NauY3-operations-lead-manager',
+  {id:'drillbit',company:'Drillbit',domain:'drillbit.com',title:'Operations Lead',location:'Austin, TX',salary:'$100\u2013175k',type:'Full-time',posted:'1d ago',fit:72,tier:'strong',color:'b',url:'https://www.ycombinator.com/companies/drillbit/jobs/W3NauY3-operations-lead-manager',
     whyFit:"YC-backed Austin startup automating office work for residential contractors. Broad operational scope \u2014 Kyle's full-cycle ops (financial reporting to vendor procurement) maps well.",
     blurb:"Drillbit is a YC-backed startup automating back-office for residential contractors. Austin, early-stage, well-funded.",
     contact:{name:'Hiring Team',initials:'DB',role:'Drillbit',domain:'drillbit.com'},
     gaps:[{label:'Full-cycle operations management',sub:'Financial reporting, vendor procurement, efficiency \u2014 Revillage',pts:5,on:true},{label:'212% efficiency improvement',sub:'This number is your headline for ops roles',pts:4,on:true},{label:'Process automation',sub:'What systems did you build at Revillage?',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nOperations leader building efficient systems from zero. 212% efficiency YoY, full-cycle ops management.\n\nWHY DRILLBIT: I've built operational systems from scratch in residential housing and scaled them fast."},
-  {id:'homeward',company:'Homeward',domain:'homeward.com',title:'Senior Product Manager',location:'Remote (Austin HQ)',salary:'$125\u2013145k',type:'Full-time',posted:'5d ago',fit:80,tier:'good',color:'y',url:'https://www.homeward.com/jobs',
+  {id:'homeward',company:'Homeward',domain:'homeward.com',title:'Senior Product Manager',location:'Remote (Austin HQ)',salary:'$125\u2013145k',type:'Full-time',posted:'5d ago',fit:70,tier:'strong',color:'b',url:'https://www.homeward.com/jobs',
     whyFit:"Austin proptech making homebuying less stressful. Remote-first with Austin HQ. Kyle's housing experience and product instincts from Revillage are relevant.",
     blurb:"Homeward takes the 'what ifs' out of homebuying \u2014 cash-backed offers, buy-before-you-sell. Austin HQ, remote-first, Series B.",
     contact:{name:'Hiring Team',initials:'HW',role:'Homeward',domain:'homeward.com'},
     gaps:[{label:'Housing industry knowledge',sub:'Coliving experience shows residential understanding',pts:4,on:true},{label:'Product experimentation',sub:'A/B pricing tests show product instincts',pts:3,on:true},{label:'Software product management',sub:'This is a tech PM role',pts:4,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nProduct-minded housing operator who has designed, tested, and iterated on residential products.\n\nWHY HOMEWARD: I've been on the ground in residential housing \u2014 I know what makes people choose, stay, and recommend."},
-  {id:'industrious-mem',company:'Industrious',domain:'industriousoffice.com',title:'Member Experience Manager',location:'Multiple US',salary:'$65\u201385k est.',type:'Full-time',posted:'2d ago',fit:79,tier:'good',color:'y',url:'https://job-boards.greenhouse.io/industrious/jobs/7191737',
+  {id:'industrious-mem',company:'Industrious',domain:'industriousoffice.com',title:'Member Experience Manager',location:'Multiple US',salary:'$65\u201385k est.',type:'Full-time',posted:'2d ago',fit:68,tier:'strong',color:'b',url:'https://job-boards.greenhouse.io/industrious/jobs/7191737',
     whyFit:"12+ openings for MEM across the US. Ground-level community role at the largest premium coworking company. Kyle's resident experience design is a direct qualification.",
     blurb:"Member Experience Managers are the face of Industrious \u2014 day-to-day member experience, ops excellence, community programming. 12+ positions open.",
     contact:{name:'Hiring Team',initials:'IN',role:'Industrious',domain:'industriousoffice.com'},
     gaps:[{label:'Member experience design',sub:'Designed entire resident experience at Revillage',pts:4,on:true},{label:'Community programming',sub:'48 dinners, masterminds \u2014 extensive portfolio',pts:4,on:true},{label:'Customer service orientation',sub:'82% retention shows service mindset',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nMember experience designer who builds community programming from scratch.\n\nWHY INDUSTRIOUS: I've designed intentional, relationship-driven, operationally excellent member experiences."},
-  {id:'capfactory-mentor',company:'Capital Factory',domain:'capitalfactory.com',title:'Mentor Coordinator',location:'Austin, TX',salary:'$50\u201370k est.',type:'Full-time',posted:'4d ago',fit:78,tier:'good',color:'y',url:'https://apply.workable.com/capital-factory/j/74400E92C7',
+  {id:'capfactory-mentor',company:'Capital Factory',domain:'capitalfactory.com',title:'Mentor Coordinator',location:'Austin, TX',salary:'$50\u201370k est.',type:'Full-time',posted:'4d ago',fit:65,tier:'strong',color:'b',url:'https://apply.workable.com/capital-factory/j/74400E92C7',
     whyFit:"Community connector at Austin's flagship startup hub. Mentor relationships, fostering connections \u2014 Kyle's facilitation skills and mastermind programs are directly relevant.",
     blurb:"Manages the mentor network \u2014 onboarding, scheduling, KPIs, connections between mentors and startups.",
     contact:{name:'Hiring Team',initials:'CF',role:'Capital Factory',domain:'capitalfactory.com'},
     gaps:[{label:'Facilitation & program coordination',sub:'4 mastermind programs designed and run',pts:4,on:true},{label:'Relationship management at scale',sub:'140+ clients, stakeholder relationships',pts:4,on:true}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nCommunity facilitator who has designed masterminds, managed 140+ relationships, and built connection-driven communities.\n\nWHY CAPITAL FACTORY: I've built the programs Capital Factory runs. As a founder, I understand both sides of mentorship."},
-  {id:'closinglock',company:'Closinglock',domain:'closinglock.com',title:'Customer Success Manager',location:'Austin, TX',salary:'$70\u201390k est.',type:'Full-time',posted:'2d ago',fit:77,tier:'good',color:'y',url:'https://www.builtinaustin.com/job/customer-success-manager/7669700',
+  {id:'closinglock',company:'Closinglock',domain:'closinglock.com',title:'Customer Success Manager',location:'Austin, TX',salary:'$70\u201390k est.',type:'Full-time',posted:'2d ago',fit:62,tier:'strong',color:'b',url:'https://www.builtinaustin.com/job/customer-success-manager/7669700',
     whyFit:"Austin proptech startup. Kyle's 82% client retention and relationship-building from coliving operations are directly applicable.",
     blurb:"Closinglock secures real estate transactions. Austin, growing fast (11 open positions). CSM builds mid-market relationships, drives adoption, minimizes churn.",
     contact:{name:'Hiring Team',initials:'CL',role:'Closinglock',domain:'closinglock.com'},
     gaps:[{label:'82% customer retention',sub:'Lake Barcroft Boats \u2014 relationship-driven service',pts:5,on:true},{label:'Client management (140+ clients)',sub:'Concurrent relationship management',pts:4,on:true},{label:'SaaS product experience',sub:'Software customer experience?',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\n82% retention across 140+ client relationships. Relationship-driven service.\n\nWHY CLOSINGLOCK: I've built my career on keeping customers \u2014 82% retention, 94% occupancy, relationships that last."},
-  {id:'vuka',company:'Vuka Collective',domain:'vuka.co',title:'Coworking Community & Sales',location:'Austin, TX',salary:'$55\u201370k + commission',type:'Full-time',posted:'7d ago',fit:77,tier:'good',color:'y',url:'https://vuka.co/',
+  {id:'vuka',company:'Vuka Collective',domain:'vuka.co',title:'Coworking Community & Sales',location:'Austin, TX',salary:'$55\u201370k + commission',type:'Full-time',posted:'7d ago',fit:58,tier:'good',color:'y',url:'https://vuka.co/',
     whyFit:"Austin coworking space for mission-driven orgs. Community building + sales \u2014 Kyle's coliving community and client acquisition (30-40 per summer) map directly.",
     blurb:"Vuka Collective operates Impact Hub Austin. Grow membership, plan events, manage client relationships. Community-driven sales role.",
     contact:{name:'Hiring Team',initials:'VK',role:'Vuka Collective',domain:'vuka.co'},
     gaps:[{label:'Direct client acquisition (30-40/summer)',sub:'Door-to-door relationship building',pts:4,on:true},{label:'Community event planning',sub:'48 community dinners + programs',pts:4,on:true},{label:'Sales experience',sub:'46% YoY revenue growth \u2014 sales instinct',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nCommunity builder and relationship-driven seller. 30-40 clients/summer through direct outreach, 46% YoY revenue growth.\n\nWHY VUKA: I build communities through real relationships and programming that matters. I bring both the instinct and the hustle."},
-  {id:'industrious-events',company:'Industrious',domain:'industriousoffice.com',title:'Sr. Community Events & Marketing',location:'Dallas, TX',salary:'$80\u2013100k est.',type:'Full-time',posted:'3d ago',fit:80,tier:'good',color:'y',url:'https://job-boards.greenhouse.io/industrious/jobs/7378644',
+  {id:'industrious-events',company:'Industrious',domain:'industriousoffice.com',title:'Sr. Community Events & Marketing',location:'Dallas, TX',salary:'$80\u2013100k est.',type:'Full-time',posted:'3d ago',fit:55,tier:'good',color:'y',url:'https://job-boards.greenhouse.io/industrious/jobs/7378644',
     whyFit:"Lead community events and marketing. Kyle's program design and event experience is a direct match \u2014 community building meets marketing/growth. Dallas is close.",
     blurb:"Senior Community Events & Marketing Manager in Dallas. Design events that drive member satisfaction and acquisition.",
     contact:{name:'Hiring Team',initials:'IN',role:'Industrious',domain:'industriousoffice.com'},
     gaps:[{label:'Event programming at scale',sub:'48 community dinners, masterminds, work-trade programs',pts:5,on:true},{label:'Marketing / growth experience',sub:'3,140-subscriber pipeline \u2014 marketing adjacent',pts:3,on:true},{label:'Brand marketing',sub:'Premium brand experience?',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nCommunity event designer and growth operator. 48+ events, 3,140-subscriber pipeline, 94% retention.\n\nWHY INDUSTRIOUS: I've designed programming that makes people choose one space over another."},
-  {id:'clipboard',company:'Clipboard Health',domain:'clipboardhealth.com',title:'Strategy & Operations',location:'Remote (US)',salary:'$80\u2013160k',type:'Full-time',posted:'3d ago',fit:76,tier:'good',color:'y',url:'https://www.clipboardhealth.com/careers',
+  {id:'clipboard',company:'Clipboard Health',domain:'clipboardhealth.com',title:'Strategy & Operations',location:'Remote (US)',salary:'$80\u2013160k',type:'Full-time',posted:'3d ago',fit:52,tier:'good',color:'y',url:'https://www.clipboardhealth.com/careers',
     whyFit:"YC-backed, high-growth. Broad S&O role \u2014 Kyle's multi-hat founder experience and 212% efficiency gain show the generalist operator skills they want.",
     blurb:"YC-backed marketplace connecting healthcare facilities with workers. Strategy & Ops works with leadership on personnel, audits, and cross-functional initiatives. Remote.",
     contact:{name:'Hiring Team',initials:'CH',role:'Clipboard Health',domain:'clipboardhealth.com'},
     gaps:[{label:'Multi-hat operator experience',sub:'Strategy, ops, product, community \u2014 every hat at Revillage',pts:4,on:true},{label:'Operational efficiency (212% YoY)',sub:'Strong signal',pts:4,on:true},{label:'Healthcare or marketplace',sub:'Different industry but ops patterns transfer',pts:3,on:false}],
     resume:"KYLE GAARDER\nAustin, TX \u00b7 kylegaarder@gmail.com\n\nSUMMARY\nGeneralist operator building organizational systems from scratch. 212% efficiency YoY.\n\nWHY CLIPBOARD HEALTH: I thrive in ambiguous environments \u2014 built three companies from zero."},
-  {id:'sonder',company:'Sonder',domain:'sonder.com',title:'General Manager',location:'Washington, DC',salary:'$90\u2013130k est.',type:'Full-time',posted:'4d ago',fit:75,tier:'good',color:'y',url:'https://sonder.wd1.myworkdayjobs.com/en-US/Join_Sonder',
+  {id:'sonder',company:'Sonder',domain:'sonder.com',title:'General Manager',location:'Washington, DC',salary:'$90\u2013130k est.',type:'Full-time',posted:'4d ago',fit:48,tier:'good',color:'y',url:'https://sonder.wd1.myworkdayjobs.com/en-US/Join_Sonder',
     whyFit:"Leading hospitality/living company. GM role \u2014 guest experience, growth, revenue, P&L \u2014 maps to everything Kyle did at Revillage. Not Austin, but could open doors.",
     blurb:"Sonder offers hotel-meets-apartment stays. GM ensures market success: five-star experience, revenue growth, cost control. Full P&L ownership. ~800 people.",
     contact:{name:'Hiring Team',initials:'SD',role:'Sonder',domain:'sonder.com'},
@@ -919,10 +916,12 @@ function renderSources(){
   list.innerHTML=s.map(src=>{
     const icon=src.type==='file'?'📄':src.type==='linkedin'?'🔗':'📝';
     const label=src.type==='file'?src.name:src.type==='linkedin'?src.value:(src.value.slice(0,50)+(src.value.length>50?'...':''));
+    const safeLabel=escapeHtml(label||'');
+    const safeId=encodeURIComponent(src.id||'');
     return `<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;">
       <span>${icon}</span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(label||'').replace(/"/g,'&quot;')}">${label||''}</span>
-      <button onclick="removeSource('${src.id}')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${safeLabel}">${safeLabel}</span>
+      <button onclick="removeSource(decodeURIComponent('${safeId}'))" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
     </div>`;
   }).join('');
 }
@@ -954,13 +953,6 @@ function addSourceText(){
   saveSources(s);el.value='';
 }
 function removeSource(id){saveSources(loadSources().filter(x=>x.id!==id));}
-function runUpdate(){
-  const btn=document.getElementById('sources-update-btn');
-  btn.textContent='Updating...';btn.disabled=true;
-  fetch('/api/update-sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sources:loadSources()})})
-    .then(r=>r.json()).catch(()=>null)
-    .finally(()=>{setTimeout(()=>{btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='Update';btn.disabled=false;location.reload();},1200);},600);});
-}
 document.addEventListener('DOMContentLoaded',renderSources);
 setTimeout(renderSources,100);
 
@@ -1050,7 +1042,6 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){ }}
 function initUserBoard(){
   // Clear ALL user state from previous sessions — always start fresh
   try{localStorage.removeItem(U_RESUMES_KEY);}catch(_){}
-  try{localStorage.removeItem(U_SOURCES_KEY);}catch(_){}
   lastResumeText='';
   extractionPromise=null;
   const saved=(()=>{try{return localStorage.getItem(TAB_KEY);}catch(_){return null;}})();
@@ -1133,8 +1124,12 @@ async function searchJobs(){
 
   const loc=selectedLocation||'anywhere';
 
+  const sources=lsGet(U_SOURCES_KEY);
+  const sourceText=sources.map(s=>s.text||'').filter(Boolean).join('\n\n');
+  const combinedResume=sourceText?(lastResumeText+'\n\n'+sourceText):lastResumeText;
+
   try{
-    const r=await fetch('/api/find-jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resumeText:lastResumeText,location:loc})});
+    const r=await fetch('/api/find-jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resumeText:combinedResume,location:loc})});
     const data=await r.json();
     if(data.error)throw new Error(data.error);
     if(!data.jobs||!data.jobs.length){
@@ -1461,16 +1456,31 @@ function renderUserSources(){
   list.innerHTML=s.map(src=>{
     const icon=src.type==='file'?'📄':src.type==='linkedin'?'🔗':'📝';
     const label=src.type==='file'?src.name:src.type==='linkedin'?src.value:(src.value.slice(0,50)+(src.value.length>50?'...':''));
-    return `<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;"><span>${icon}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(label||'')}">${escapeHtml(label||'')}</span><button onclick="removeUserSource('${src.id}')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button></div>`;
+    const safeId=encodeURIComponent(src.id||'');
+    return `<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;"><span>${icon}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(label||'')}">${escapeHtml(label||'')}</span><button onclick="removeUserSource(decodeURIComponent('${safeId}'))" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button></div>`;
   }).join('');
 }
 function addUserSourceFile(e){
-  const files=Array.from(e.target.files||[]);const s=lsGet(U_SOURCES_KEY);let pending=files.length;
-  files.forEach(f=>{const reader=new FileReader();reader.onload=ev=>{s.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),type:'file',name:f.name,value:ev.target.result,size:f.size});if(--pending===0){lsSet(U_SOURCES_KEY,s);renderUserSources();}};reader.readAsDataURL(f);});
+  const files=Array.from(e.target.files||[]);
+  let pending=files.length;
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      const src={id:'s'+Date.now()+Math.random().toString(36).slice(2,6),type:'file',name:f.name,value:ev.target.result,size:f.size,text:''};
+      try{
+        const r=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:ev.target.result,fileName:f.name})});
+        const d=await r.json();
+        if(d&&d.text&&d.text.trim().length>20)src.text=d.text.trim();
+      }catch(_){}
+      const s=lsGet(U_SOURCES_KEY);s.push(src);lsSet(U_SOURCES_KEY,s);
+      if(--pending===0)renderUserSources();
+    };
+    reader.readAsDataURL(f);
+  });
   e.target.value='';
 }
-function addUserSourceLinkedIn(){const el=document.getElementById('user-src-linkedin');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'linkedin',value:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
-function addUserSourceText(){const el=document.getElementById('user-src-text');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'text',value:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
+function addUserSourceLinkedIn(){const el=document.getElementById('user-src-linkedin');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'linkedin',value:v,text:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
+function addUserSourceText(){const el=document.getElementById('user-src-text');const v=el.value.trim();if(!v)return;const s=lsGet(U_SOURCES_KEY);s.push({id:'s'+Date.now(),type:'text',value:v,text:v});lsSet(U_SOURCES_KEY,s);el.value='';renderUserSources();}
 function removeUserSource(id){lsSet(U_SOURCES_KEY,lsGet(U_SOURCES_KEY).filter(x=>x.id!==id));renderUserSources();}
 
 </script>
