@@ -16,6 +16,11 @@ const hunterLimiter = rateLimit({
 
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, uptime: process.uptime() }));
 
+// PDF magic bytes: `%PDF` at offset 0
+function looksLikePdf(buf) {
+  return buf && buf.length >= 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46;
+}
+
 // Server-side PDF text extraction
 app.post('/api/extract-text', async (req, res) => {
   try {
@@ -26,6 +31,9 @@ app.post('/api/extract-text', async (req, res) => {
     const buf = Buffer.from(b64, 'base64');
 
     if (/\.pdf$/i.test(fileName)) {
+      if (!looksLikePdf(buf)) {
+        return res.status(400).json({ text: '', error: 'File does not appear to be a valid PDF (missing %PDF header).' });
+      }
       try {
         const pdfjs = require('pdfjs-dist');
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
@@ -147,42 +155,11 @@ const ATS_COMPANIES = [
   { slug: 'bumble', name: 'Bumble', platform: 'ashby', tags: ['consumer', 'social', 'community', 'product', 'growth'] },
 ];
 
-// ── Ghost Job Detection Data ─────────────────────────────────────
-const RECENT_LAYOFFS = [
-  { company: 'meta', date: '2025-11' },
-  { company: 'amazon', date: '2025-09' },
-  { company: 'google', date: '2025-10' },
-  { company: 'microsoft', date: '2025-08' },
-  { company: 'salesforce', date: '2025-10' },
-  { company: 'snap', date: '2025-07' },
-  { company: 'spotify', date: '2025-06' },
-  { company: 'discord', date: '2025-09' },
-  { company: 'twitch', date: '2025-08' },
-  { company: 'bumble', date: '2025-11' },
-  { company: 'zillow', date: '2025-07' },
-  { company: 'redfin', date: '2025-08' },
-  { company: 'opendoor', date: '2025-09' },
-  { company: 'compass', date: '2025-10' },
-  { company: 'sonder', date: '2025-11' },
-  { company: 'vacasa', date: '2025-06' },
-  { company: 'wayfair', date: '2025-07' },
-  { company: 'robinhood', date: '2025-08' },
-  { company: 'coinbase', date: '2025-09' },
-  { company: 'block', date: '2025-10' },
-];
-
-function getLayoffMatch(company) {
-  if (!company) return false;
-  const norm = company.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  return RECENT_LAYOFFS.some(l => {
-    const lNorm = l.company.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!norm.includes(lNorm) && !lNorm.includes(norm)) return false;
-    const layoffDate = new Date(l.date + '-01');
-    return layoffDate >= sixMonthsAgo;
-  });
-}
+// Ghost-job layoff signal removed 2026-04-18: the hardcoded RECENT_LAYOFFS
+// array decayed as its 2025 dates fell out of the 6-month window, producing
+// a silently-dead signal. Ghost risk is now based on freshness + reposts only.
+// A future owner-approved reintroduction could wire a live source (layoffs.fyi)
+// with a short TTL cache. See handoff docs §7.2 [B10].
 
 function selectCompaniesForResume(keywords) {
   const allKw = [
@@ -214,15 +191,9 @@ async function fetchATSJobs(companies, keywords) {
     ...keywords.domainSkills.slice(0, 10)
   ].map(t => t.toLowerCase());
 
-  function isTitleRelevant(title) {
-    if (!title) return false;
-    const t = title.toLowerCase();
-    // Broad match: any resume keyword word (4+ chars) in the title
-    if (titleTerms.some(term => t.includes(term) || term.split(/\s+/).some(w => w.length >= 4 && t.includes(w)))) return true;
-    // Also match common business roles that most resumes relate to
-    const broadRoles = ['manager', 'director', 'lead', 'coordinator', 'specialist', 'analyst', 'associate', 'operations', 'strategy', 'growth', 'marketing', 'product', 'community', 'customer', 'success', 'program', 'project', 'sales', 'account', 'business', 'experience'];
-    return broadRoles.some(r => t.includes(r));
-  }
+  // 2026-04-18 [B4]: removed broad `isTitleRelevant` pre-filter; it matched
+  // ~95% of corporate titles (no-op) and obscured the trust boundary between
+  // fetching and scoring. scoreFit carries the full filtering weight now.
 
   // Process in batches of 10 concurrent
   for (let i = 0; i < companies.length; i += 10) {
@@ -233,60 +204,72 @@ async function fetchATSJobs(companies, keywords) {
         if (co.platform === 'greenhouse') {
           url = `https://boards-api.greenhouse.io/v1/boards/${co.slug}/jobs`;
           parseJobs = (data) => {
-            return (data.jobs || []).filter(j => isTitleRelevant(j.title)).map(j => ({
-              id: `gh-${co.slug}-${j.id}`,
-              title: j.title || '',
-              company: co.name,
-              location: (j.location && j.location.name) || 'Unknown',
-              remote: /remote/i.test((j.location && j.location.name) || ''),
-              url: j.absolute_url || '',
-              logo: '',
-              salary: '',
-              posted: j.updated_at ? timeAgo(new Date(j.updated_at)) : '',
-              type: 'Full-time',
-              description: '',
-              tags: co.tags || [],
-              source: 'Greenhouse'
-            }));
+            return (data.jobs || []).map(j => {
+              const d = j.updated_at ? new Date(j.updated_at) : null;
+              return {
+                id: `gh-${co.slug}-${j.id}`,
+                title: j.title || '',
+                company: co.name,
+                location: (j.location && j.location.name) || 'Unknown',
+                remote: /remote/i.test((j.location && j.location.name) || ''),
+                url: j.absolute_url || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: '',
+                tags: co.tags || [],
+                source: 'Greenhouse'
+              };
+            });
           };
         } else if (co.platform === 'ashby') {
           url = `https://api.ashbyhq.com/posting-api/job-board/${co.slug}`;
           parseJobs = (data) => {
-            return (data.jobs || []).filter(j => isTitleRelevant(j.title)).map(j => ({
-              id: `ab-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
-              title: j.title || '',
-              company: co.name,
-              location: j.location || 'Unknown',
-              remote: /remote/i.test(j.location || ''),
-              url: j.jobUrl || '',
-              logo: '',
-              salary: '',
-              posted: j.publishedAt ? timeAgo(new Date(j.publishedAt)) : '',
-              type: 'Full-time',
-              description: (j.descriptionPlain || '').substring(0, 1500),
-              tags: co.tags || [],
-              source: 'Ashby'
-            }));
+            return (data.jobs || []).map(j => {
+              const d = j.publishedAt ? new Date(j.publishedAt) : null;
+              return {
+                id: `ab-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
+                title: j.title || '',
+                company: co.name,
+                location: j.location || 'Unknown',
+                remote: /remote/i.test(j.location || ''),
+                url: j.jobUrl || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: (j.descriptionPlain || '').substring(0, 1500),
+                tags: co.tags || [],
+                source: 'Ashby'
+              };
+            });
           };
         } else if (co.platform === 'lever') {
           url = `https://api.lever.co/v0/postings/${co.slug}`;
           parseJobs = (data) => {
             if (!Array.isArray(data)) return [];
-            return data.filter(j => isTitleRelevant(j.text)).map(j => ({
-              id: `lv-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
-              title: j.text || '',
-              company: co.name,
-              location: (j.categories && j.categories.location) || 'Unknown',
-              remote: /remote/i.test((j.categories && j.categories.location) || ''),
-              url: j.hostedUrl || '',
-              logo: '',
-              salary: '',
-              posted: j.createdAt ? timeAgo(new Date(j.createdAt)) : '',
-              type: 'Full-time',
-              description: (j.descriptionPlain || '').substring(0, 1500),
-              tags: co.tags || [],
-              source: 'Lever'
-            }));
+            return data.map(j => {
+              const d = j.createdAt ? new Date(j.createdAt) : null;
+              return {
+                id: `lv-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
+                title: j.text || '',
+                company: co.name,
+                location: (j.categories && j.categories.location) || 'Unknown',
+                remote: /remote/i.test((j.categories && j.categories.location) || ''),
+                url: j.hostedUrl || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: (j.descriptionPlain || '').substring(0, 1500),
+                tags: co.tags || [],
+                source: 'Lever'
+              };
+            });
           };
         } else {
           return;
@@ -339,14 +322,9 @@ app.post('/api/find-jobs', async (req, res) => {
       .sort((a, b) => b.fit - a.fit);
 
     // Filter out clearly non-English-market jobs from all results
-    const nonEnglishMarket = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france|paris|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|s[aã]o paulo|nigeria|lagos|philippines|manila|pakistan|karachi|latam|latin america|asia|africa|middle east|emea|apac|europe|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|mexico|colombia|bogota|argentina|buenos aires|chile|santiago|peru|lima|egypt|cairo|turkey|istanbul|dubai|uae|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal)\b/i;
     scored = scored.filter(j => {
-      const loc = (j.location || '').toLowerCase();
-      const title = (j.title || '').toLowerCase();
-      // Filter location
-      if (nonEnglishMarket.test(loc)) return false;
-      // Filter titles with non-English markers
-      if (/\b(all genders|m\/w\/d|m\/f\/d)\b/i.test(title)) return false;
+      if (!isAllowedMarketLocation(j.location)) return false;
+      if (!isAllowedMarketTitle(j.title)) return false;
       return true;
     });
 
@@ -380,15 +358,15 @@ app.post('/api/find-jobs', async (req, res) => {
       j.source = String(j.source || '');
       j.tags = Array.isArray(j.tags) ? j.tags.map(String) : [];
 
-      // Ghost detection fields
-      j.daysAgo = parseDaysAgo(j.posted);
+      // Ghost detection fields — prefer real Date, fall back to parseDaysAgo
+      j.daysAgo = daysAgoFromJob(j);
       if (j.daysAgo === null) j.freshness = 'unknown';
       else if (j.daysAgo <= 7) j.freshness = 'fresh';
       else if (j.daysAgo <= 14) j.freshness = 'normal';
       else if (j.daysAgo <= 30) j.freshness = 'aging';
       else j.freshness = 'stale';
 
-      j.layoffSignal = getLayoffMatch(j.company);
+      j.layoffSignal = false; // [B10] removed 2026-04-18; see note above
     });
 
     // Repost detection: group by company, flag if same company appears 2+ times
@@ -402,11 +380,11 @@ app.post('/api/find-jobs', async (req, res) => {
       j.reposted = companyCount[co] >= 2;
     });
 
-    // Ghost risk assessment
+    // Ghost risk assessment (freshness + reposts only; layoff signal removed)
     top.forEach(j => {
       let signals = 0;
-      if (j.freshness === 'stale' || j.freshness === 'aging') signals++;
-      if (j.layoffSignal) signals++;
+      if (j.freshness === 'stale') signals += 2;
+      else if (j.freshness === 'aging') signals += 1;
       if (j.reposted) signals++;
       j.ghostRisk = signals === 0 ? 'low' : signals === 1 ? 'medium' : 'high';
     });
@@ -433,13 +411,14 @@ async function fetchAllJobs() {
         const data = await r.json();
         data.slice(1).forEach(j => {
           if (!j.position) return;
+          const d = j.date ? new Date(j.date) : null;
           results.push({
             id: 'rok-' + (j.id || j.slug), title: j.position, company: j.company || 'Unknown',
             location: j.location || 'Remote', remote: true,
             url: j.url || ('https://remoteok.com/remote-jobs/' + j.slug),
             logo: j.company_logo || j.logo || '',
             salary: j.salary_min && j.salary_max ? '$' + Math.round(j.salary_min / 1000) + 'k\u2013$' + Math.round(j.salary_max / 1000) + 'k' : '',
-            posted: j.date ? timeAgo(new Date(j.date)) : '', type: 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'RemoteOK'
           });
@@ -453,11 +432,12 @@ async function fetchAllJobs() {
         const r = await fetch('https://www.arbeitnow.com/api/job-board-api', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.data || []).forEach(j => {
+          const d = j.created_at ? new Date(j.created_at * 1000) : null;
           results.push({
             id: 'abn-' + j.slug, title: j.title, company: j.company_name || 'Unknown',
             location: j.location || (j.remote ? 'Remote' : ''), remote: !!j.remote,
             url: j.url, logo: '', salary: '',
-            posted: j.created_at ? timeAgo(new Date(j.created_at * 1000)) : '', type: (j.job_types || []).join(', ') || 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: (j.job_types || []).join(', ') || 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'Arbeitnow'
           });
@@ -471,11 +451,12 @@ async function fetchAllJobs() {
         const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.jobs || []).forEach(j => {
+          const d = j.pubDate ? new Date(j.pubDate) : null;
           results.push({
             id: 'jcy-' + j.id, title: j.jobTitle, company: j.companyName || 'Unknown',
             location: j.jobGeo || 'Remote', remote: true,
             url: j.url, logo: j.companyLogo || '', salary: j.annualSalaryMin && j.annualSalaryMax ? '$' + Math.round(j.annualSalaryMin / 1000) + 'k\u2013$' + Math.round(j.annualSalaryMax / 1000) + 'k' : '',
-            posted: j.pubDate ? timeAgo(new Date(j.pubDate)) : '', type: j.jobType || 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: j.jobType || 'Full-time',
             description: (j.jobDescription || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: [], source: 'Jobicy'
           });
@@ -489,11 +470,13 @@ async function fetchAllJobs() {
         const r = await fetch('https://remotive.com/api/remote-jobs?limit=100', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.jobs || []).forEach(j => {
+          const d = j.publication_date ? new Date(j.publication_date) : null;
           results.push({
             id: 'rmt-' + j.id, title: j.title, company: j.company_name || 'Unknown',
             location: j.candidate_required_location || 'Remote', remote: true,
             url: j.url, logo: j.company_logo_url || j.company_logo || '',
-            salary: j.salary || '', posted: j.publication_date ? timeAgo(new Date(j.publication_date)) : '',
+            salary: j.salary || '',
+            postedDate: d, posted: d ? timeAgo(d) : '',
             type: j.job_type || 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'Remotive',
@@ -513,12 +496,13 @@ async function fetchAllJobs() {
             const data = await r.json();
             (data.results || []).forEach(j => {
               const loc = (j.locations || []).map(l => l.name).join(', ') || 'Various';
+              const d = j.publication_date ? new Date(j.publication_date) : null;
               results.push({
                 id: 'muse-' + j.id, title: j.name, company: (j.company || {}).name || 'Unknown',
                 location: loc, remote: loc.toLowerCase().includes('remote'),
                 url: j.refs && j.refs.landing_page ? j.refs.landing_page : '',
                 logo: '', salary: '',
-                posted: j.publication_date ? timeAgo(new Date(j.publication_date)) : '',
+                postedDate: d, posted: d ? timeAgo(d) : '',
                 type: (j.levels || []).map(l => l.name).join(', ') || 'Full-time',
                 description: (j.contents || '').replace(/<[^>]+>/g, '').substring(0, 1500),
                 tags: (j.categories || []).map(c => c.name), source: 'The Muse'
@@ -668,12 +652,14 @@ function extractResumeKeywords(text) {
     .slice(0, 20)
     .map(([bg]) => bg);
 
-  console.log('Resume keywords:', {
-    titles: titles.slice(0, 5),
-    domain: matchedDomain.slice(0, 10),
-    words: specificWords.slice(0, 10),
-    bigrams: specificBigrams.slice(0, 5)
-  });
+  if (process.env.NODE_ENV !== 'test') {
+    console.log('Resume keywords:', {
+      titles: titles.slice(0, 5),
+      domain: matchedDomain.slice(0, 10),
+      words: specificWords.slice(0, 10),
+      bigrams: specificBigrams.slice(0, 5)
+    });
+  }
 
   return { titles, domainSkills: matchedDomain, specificWords, specificBigrams };
 }
@@ -687,6 +673,50 @@ function parseDaysAgo(posted) {
   const moMatch = p.match(/^(\d+)mo\s*ago$/);
   if (moMatch) return parseInt(moMatch[1], 10) * 30;
   return null;
+}
+
+// [B6] Prefer a real Date on the job (set by every fetcher as `postedDate`)
+// so ghost-freshness isn't limited by the lossy `Nd ago` / `Nmo ago` string
+// bucket. Falls back to parseDaysAgo for legacy jobs.
+function daysAgoFromJob(job) {
+  if (job && job.postedDate instanceof Date && !Number.isNaN(job.postedDate.getTime())) {
+    return Math.max(0, Math.floor((Date.now() - job.postedDate.getTime()) / 86400000));
+  }
+  return parseDaysAgo(job && job.posted);
+}
+
+// [B3] English-speaking-market ALLOWLIST (2026-04-18 rewrite).
+// The previous blocklist dropped legitimate US-headquartered remote jobs whose
+// location string mentioned "US / EMEA" or "Remote (Americas / EMEA)" and also
+// leaked through Rome, Phnom Penh, Costa Rica, etc. because those were not in
+// the list. The allowlist keeps a job iff its location clearly references a
+// primary English-speaking market OR remote/worldwide/anywhere. Empty or
+// missing locations pass (benefit of doubt — many ATS portals leave it blank).
+const ALLOWED_MARKET_RE = /\b(united states|u\.s\.a?\.?|usa|us(?=[-/\s,(]|$)|north america|americas|canada|canadian|united kingdom|u\.k\.?|uk(?=[-/\s,(]|$)|england|scotland|wales|ireland|irish|republic of ireland|australia|australian|new zealand|anywhere|worldwide|global|remote|remote-first|remote friendly|work from home|wfh|distributed|austin|dallas|houston|san antonio|san francisco|sf\b|oakland|san jose|silicon valley|los angeles|l\.a\.|san diego|sacramento|seattle|portland|denver|boulder|new york|nyc|ny\b|brooklyn|manhattan|queens|bronx|boston|cambridge(?!,\s*uk)|philadelphia|philly|pittsburgh|washington|d\.c\.|dc\b|baltimore|atlanta|miami|orlando|tampa|jacksonville|charlotte|raleigh|durham|nashville|memphis|louisville|cincinnati|cleveland|columbus|indianapolis|detroit|chicago|milwaukee|minneapolis|st\.? paul|madison|st\.? louis|kansas city|omaha|oklahoma city|phoenix|tucson|albuquerque|salt lake|las vegas|reno|toronto|vancouver|montreal|montr[eé]al|calgary|edmonton|ottawa|london|manchester|leeds|edinburgh|dublin|belfast|cork|sydney|melbourne|brisbane|perth|adelaide|auckland|wellington)\b/i;
+
+// Locations that override the allowlist: an otherwise matching location that
+// also names an unambiguously non-English-market country is dropped. Keeps
+// "Remote - USA / India" off the board while letting "Remote (US/EMEA)" in
+// (EMEA alone is not an exclusive match).
+const EXCLUSIVE_NON_ENGLISH_RE = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france(?!\s+st)|paris|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|brasil|s[aã]o paulo|rio de janeiro|nigeria|lagos|philippines|manila|pakistan|karachi|cambodia|phnom penh|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|mexico|mexico city|colombia|bogota|argentina|buenos aires|chile|santiago|peru|lima|egypt|cairo|turkey|istanbul|dubai|u\.a\.e\.|uae|saudi arabia|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal|costa rica|panama|ecuador|bolivia|paraguay|uruguay|venezuela)\b/i;
+
+function isAllowedMarketLocation(location) {
+  if (!location) return true; // empty → keep
+  const loc = String(location).toLowerCase();
+  if (ALLOWED_MARKET_RE.test(loc) && !EXCLUSIVE_NON_ENGLISH_RE.test(loc)) return true;
+  // Pure non-English city/country → drop
+  if (EXCLUSIVE_NON_ENGLISH_RE.test(loc)) return false;
+  // No allowlist match and no explicit blocklist match → keep if purely remote
+  if (/\bremote\b/.test(loc) || /\banywhere\b/.test(loc)) return true;
+  return false;
+}
+
+// Titles in non-English postings (German "m/w/d" etc.) are dropped regardless
+// of the location string, since the job ad itself isn't written for an
+// English-speaking audience.
+function isAllowedMarketTitle(title) {
+  if (!title) return true;
+  return !/\b(all genders|m\/w\/d|m\/f\/d|w\/m\/d|h\/f|h\/m\/f)\b/i.test(String(title));
 }
 
 function parseSalaryMid(salary) {
@@ -832,19 +862,42 @@ const COMPANY_INFO = {
 
 app.get('/api/company-info', (req, res) => {
   const company = (req.query.company || '').trim().toLowerCase();
-  if (!company) return res.json({ size: 'Unknown', industry: 'Technology' });
+  // [A8] `mapped` tells the client whether this is real data or a placeholder.
+  // Unmapped companies used to render a misleading "Industry: Technology ·
+  // Size: Unknown" panel that looked like signal. The client now hides the
+  // panel entirely when `mapped: false`.
+  if (!company) return res.json({ mapped: false, size: 'Unknown', industry: 'Technology' });
 
   // Exact match
-  if (COMPANY_INFO[company]) return res.json(COMPANY_INFO[company]);
+  if (COMPANY_INFO[company]) return res.json({ mapped: true, ...COMPANY_INFO[company] });
 
   // Partial match fallback
   const partial = Object.keys(COMPANY_INFO).find(k =>
     k.includes(company) || company.includes(k)
   );
-  if (partial) return res.json(COMPANY_INFO[partial]);
+  if (partial) return res.json({ mapped: true, ...COMPANY_INFO[partial] });
 
-  res.json({ size: 'Unknown', funding: 'Unknown', glassdoor: 'N/A', industry: 'Technology', news: '' });
+  res.json({ mapped: false, size: 'Unknown', funding: 'Unknown', glassdoor: 'N/A', industry: 'Technology', news: '' });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
+// Export pure helpers for the test suite. `require.main === module` guards
+// the listen() call so tests can `require('./server')` without opening a port.
+module.exports = {
+  app,
+  scoreFit,
+  extractResumeKeywords,
+  parseDaysAgo,
+  daysAgoFromJob,
+  isAllowedMarketLocation,
+  isAllowedMarketTitle,
+  looksLikePdf,
+  selectCompaniesForResume,
+  timeAgo,
+  ATS_COMPANIES,
+  COMPANY_INFO,
+};
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
+}

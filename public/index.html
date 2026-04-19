@@ -390,14 +390,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
   <div class="tab-bar">
     <div class="tab-inner">
-      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">My Board</button>
-      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Example · Kyle's Board</button>
+      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your Search</button>
+      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Curated Examples · Kyle's Board</button>
     </div>
   </div>
 </div>
 
 <!-- USER: Upload Screen (before search) -->
 <div id="view-user-upload" style="max-width:680px;margin:40px auto;padding:0 32px;">
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--text-secondary);line-height:1.55;">
+    <strong style="color:var(--text);">How matching works:</strong> Your resume drives the search. You can add <strong>Sources of Me</strong> (LinkedIn URL, extra context, additional files) in the right rail once results load — those get blended into the next search to bias results toward what you want. Nothing leaves your browser until you click <em>Search Jobs</em>.
+  </div>
   <div class="user-hero">
     <h1>Welcome to Your Job Board</h1>
     <p style="font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;">Upload your resume and we'll find matching roles from live job boards.</p>
@@ -419,7 +422,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
-    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Example tab</strong> to see what results look like</span>
+    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Curated Examples tab</strong> to see what results look like</span>
+    <div id="user-upload-msg" role="status" aria-live="polite" style="display:none;margin-top:14px;padding:10px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:12px;line-height:1.5;"></div>
   </div>
 </div>
 
@@ -617,7 +621,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <!-- Sources of Me -->
     <div class="side-card">
       <h3>Sources of Me</h3>
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>My Board</strong> tab to get live matches from an uploaded resume.</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>Your Search</strong> tab to get live matches from an uploaded resume.</div>
       <div id="sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
@@ -970,15 +974,37 @@ function findEmail(firstName,lastName,domain,id){
 
 function findMoreEmails(domain,id){
   const box=document.getElementById('hunter-more-'+id);
-  box.innerHTML='<span style="color:#94a3b8;">Searching '+domain+'...</span>';
+  // [S5] escape Hunter's response before injecting it into the DOM. Hunter
+  // occasionally returns user-supplied fields (position titles, etc) that
+  // have historically included angle brackets; without escaping this is an
+  // XSS vector on any company domain search.
+  box.innerHTML='<span style="color:#94a3b8;">Searching '+escapeHtml(domain)+'...</span>';
   fetch('/api/domain-search?domain='+encodeURIComponent(domain))
     .then(r=>r.json())
     .then(d=>{
       const emails=(d.data&&d.data.emails)||[];
       if(!emails.length){box.innerHTML='<span style="color:#94a3b8;">No public emails found. Try LinkedIn search above.</span>';return;}
-      box.innerHTML='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;">'+emails.slice(0,5).map(e=>`<div style="padding:3px 0;"><strong>${e.first_name||''} ${e.last_name||''}</strong> <span style="color:#64748b;">${e.position||''}</span><br><a href="mailto:${e.value}" style="font-family:var(--mono);font-size:10.5px;color:#2563eb;">${e.value}</a></div>`).join('')+'</div>';
+      box.innerHTML='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;">'+emails.slice(0,5).map(e=>{
+        const first=escapeHtml(e.first_name||'');
+        const last=escapeHtml(e.last_name||'');
+        const position=escapeHtml(e.position||'');
+        const value=escapeHtml(e.value||'');
+        return `<div style="padding:3px 0;"><strong>${first} ${last}</strong> <span style="color:#64748b;">${position}</span><br><a href="mailto:${value}" style="font-family:var(--mono);font-size:10.5px;color:#2563eb;">${value}</a></div>`;
+      }).join('')+'</div>';
     })
     .catch(()=>{box.innerHTML='<span style="color:#94a3b8;">Email lookup requires the server running (npm start).</span>';});
+}
+
+// [U1] In-page status message on the upload screen. Replaces alert() for
+// empty-resume, no-results, and search-error states — alerts block the page
+// and are especially jarring on mobile.
+function showUploadMsg(html){
+  const el=document.getElementById('user-upload-msg');
+  if(!el){return;}
+  el.innerHTML=html;
+  el.style.display='block';
+  clearTimeout(showUploadMsg._t);
+  showUploadMsg._t=setTimeout(()=>{el.style.display='none';},9000);
 }
 
 function openCmd(){document.getElementById('cmdOverlay').classList.add('open');document.getElementById('cmdInput').value='';document.getElementById('cmdInput').focus();filterCmd();}
@@ -1114,7 +1140,7 @@ async function searchJobs(){
 
   if(!lastResumeText||lastResumeText.length<20){
     isSearching=false;
-    alert('Please upload a resume first.');
+    showUploadMsg('Please upload a resume first.');
     return;
   }
 
@@ -1134,13 +1160,13 @@ async function searchJobs(){
     if(data.error)throw new Error(data.error);
     if(!data.jobs||!data.jobs.length){
       showUserScreen('upload');
-      alert('No jobs found for "'+loc+'" location. Try "Anywhere".');
+      showUploadMsg('No jobs found for "'+loc+'". Try <strong>Anywhere</strong>, or add more context in <em>Sources of Me</em> and search again.');
     }else{
       renderUserResults(data.jobs);
     }
   }catch(e){
     showUserScreen('upload');
-    alert('Search error: '+e.message);
+    showUploadMsg('Search error: '+escapeHtml(e.message||'unknown'));
   }finally{
     isSearching=false;
     if(btn){btn.disabled=false;btn.textContent='Search Jobs';}
@@ -1176,16 +1202,26 @@ async function loadInterviewPrep(job) {
   try {
     const r = await fetch('/api/company-info?company=' + encodeURIComponent(job.company || ''));
     const info = await r.json();
-    let factsHtml = '<div class="prep-facts">';
-    if (info.size) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Size</div><div class="prep-fact-value">${escapeHtml(info.size)}</div></div>`;
-    if (info.funding) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Funding</div><div class="prep-fact-value">${escapeHtml(info.funding)}</div></div>`;
-    if (info.glassdoor && info.glassdoor !== 'N/A') factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Glassdoor</div><div class="prep-fact-value">${escapeHtml(info.glassdoor)}/5</div></div>`;
-    if (info.industry) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">${escapeHtml(info.industry)}</div></div>`;
-    if (info.news) factsHtml += `<div class="prep-fact" style="grid-column:span 2"><div class="prep-fact-label">Recent News</div><div class="prep-fact-value">${escapeHtml(info.news)}</div></div>`;
-    factsHtml += '</div>';
-    factsEl.innerHTML = factsHtml;
+    // [A8] Hide the facts panel when the company isn't in COMPANY_INFO.
+    // The server returns a sentinel { size: 'Unknown', industry: 'Technology' }
+    // payload in that case (or sets `mapped: false`); showing generic
+    // 'Technology · Unknown' copy on unmapped companies was misleading users
+    // into treating it as real data.
+    const isMapped = info && info.mapped !== false && info.size && info.size !== 'Unknown';
+    if (!isMapped) {
+      factsEl.innerHTML = '';
+    } else {
+      let factsHtml = '<div class="prep-facts">';
+      if (info.size) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Size</div><div class="prep-fact-value">${escapeHtml(info.size)}</div></div>`;
+      if (info.funding) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Funding</div><div class="prep-fact-value">${escapeHtml(info.funding)}</div></div>`;
+      if (info.glassdoor && info.glassdoor !== 'N/A') factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Glassdoor</div><div class="prep-fact-value">${escapeHtml(info.glassdoor)}/5</div></div>`;
+      if (info.industry) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">${escapeHtml(info.industry)}</div></div>`;
+      if (info.news) factsHtml += `<div class="prep-fact" style="grid-column:span 2"><div class="prep-fact-label">Recent News</div><div class="prep-fact-value">${escapeHtml(info.news)}</div></div>`;
+      factsHtml += '</div>';
+      factsEl.innerHTML = factsHtml;
+    }
   } catch (e) {
-    factsEl.innerHTML = '<div class="prep-facts"><div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">Technology</div></div></div>';
+    factsEl.innerHTML = '';
   }
 
   const prompts = generateStarPrompts(job);
