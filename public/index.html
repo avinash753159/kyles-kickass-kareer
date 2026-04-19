@@ -428,21 +428,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <!-- Email gate popup. Shown once per browser (LS flag yjb_email_v1) before
      the user can search jobs. Skippable with a tongue-in-cheek button. -->
 <div id="email-gate" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:28px;">
-    <div style="font-size:32px;line-height:1;margin-bottom:10px;">&#128075;</div>
-    <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 8px;letter-spacing:-0.3px;">Hey, before you dive in&hellip;</h2>
-    <p style="font-size:13.5px;color:#475569;line-height:1.55;margin:0 0 6px;">
-      We built this in a weekend &mdash; no investors, no growth team, no creepy tracking.
-      Just two friends who got tired of LinkedIn job filters.
-    </p>
-    <p style="font-size:13.5px;color:#475569;line-height:1.55;margin:0 0 18px;">
-      Drop your email so we can tell our parents <em>somebody</em> is using it. We promise:
-      <strong>no spam, no newsletters, no &ldquo;just checking in!&rdquo; emails</strong>. Literally just a count.
-    </p>
-    <input id="email-gate-input" type="email" placeholder="you@somewhere.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:var(--mono);outline:none;margin-bottom:6px;" />
+  <div style="background:#fff;border-radius:14px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:22px;">
+    <h2 style="font-size:17px;font-weight:700;color:#0f172a;margin:0 0 10px;letter-spacing:-0.2px;">Email? We won't bug you, pinky promise.</h2>
+    <input id="email-gate-input" type="email" placeholder="you@somewhere.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:var(--mono);outline:none;margin-bottom:6px;" />
     <div id="email-gate-err" style="display:none;font-size:11px;color:#dc2626;margin-bottom:6px;">That email looks off. Try again?</div>
-    <button id="email-gate-submit" onclick="submitEmailGate()" style="width:100%;background:var(--blue);color:#fff;border:0;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;">Continue &rarr;</button>
-    <button onclick="skipEmailGate()" style="width:100%;background:transparent;color:#64748b;border:0;padding:10px;font-size:12px;cursor:pointer;margin-top:4px;text-decoration:underline;">No thanks, my parents already know I'm a disappointment</button>
+    <button id="email-gate-submit" onclick="submitEmailGate()" style="width:100%;background:var(--blue);color:#fff;border:0;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;">Let me in</button>
+    <button onclick="skipEmailGate()" style="width:100%;background:transparent;color:#64748b;border:0;padding:8px;font-size:11.5px;cursor:pointer;margin-top:2px;text-decoration:underline;">nah, I'm a mystery</button>
   </div>
 </div>
 

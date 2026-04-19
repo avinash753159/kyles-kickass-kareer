@@ -331,6 +331,18 @@ const ATS_COMPANIES = [
   { slug: 'lightmatter', name: 'Lightmatter', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'photonics', 'engineering', 'electrical'] },
   { slug: 'psiquantum', name: 'PsiQuantum', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
   { slug: 'ionq', name: 'IonQ', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
+  // Austin-HQ companies (verified 200 on 2026-04-19) — added to improve
+  // Austin-location coverage. The default SV-centric ATS list produced
+  // near-zero Austin results for non-semiconductor resumes.
+  { slug: 'indeed', name: 'Indeed', platform: 'greenhouse', tags: ['consumer', 'marketplace', 'hr tech', 'product', 'engineering', 'operations', 'marketing', 'community', 'austin'] },
+  { slug: 'indeedflex', name: 'Indeed Flex', platform: 'greenhouse', tags: ['marketplace', 'staffing', 'operations', 'product', 'community', 'austin'] },
+  { slug: 'alertmedia', name: 'AlertMedia', platform: 'greenhouse', tags: ['saas', 'b2b', 'operations', 'customer success', 'communications', 'austin'] },
+  { slug: 'icon', name: 'ICON', platform: 'greenhouse', tags: ['hardware', 'construction', 'real estate', 'manufacturing', 'operations', 'engineering', 'austin'] },
+  { slug: 'homeward', name: 'Homeward', platform: 'greenhouse', tags: ['real estate', 'proptech', 'operations', 'product', 'growth', 'austin'] },
+  { slug: 'brex', name: 'Brex', platform: 'greenhouse', tags: ['fintech', 'saas', 'b2b', 'product', 'engineering', 'growth', 'austin'] },
+  { slug: 'opendoor', name: 'Opendoor', platform: 'greenhouse', tags: ['real estate', 'proptech', 'marketplace', 'operations', 'product', 'growth', 'austin'] },
+  { slug: 'aceable', name: 'Aceable', platform: 'greenhouse', tags: ['edtech', 'consumer', 'product', 'operations', 'marketing', 'austin'] },
+  { slug: 'zenbusiness', name: 'ZenBusiness', platform: 'greenhouse', tags: ['saas', 'b2b', 'consumer', 'operations', 'product', 'growth', 'austin'] },
 ];
 
 // Ghost-job layoff signal removed 2026-04-18: the hardcoded RECENT_LAYOFFS
@@ -339,7 +351,7 @@ const ATS_COMPANIES = [
 // A future owner-approved reintroduction could wire a live source (layoffs.fyi)
 // with a short TTL cache. See handoff docs §7.2 [B10].
 
-function selectCompaniesForResume(keywords) {
+function selectCompaniesForResume(keywords, location) {
   const allKw = [
     ...keywords.titles,
     ...keywords.domainSkills,
@@ -358,7 +370,57 @@ function selectCompaniesForResume(keywords) {
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, 15);
+  let picked = scored.slice(0, 15);
+
+  // When the user has chosen Austin as their location pill, force-include
+  // every Austin-HQ company so there's something to filter against — the
+  // SV-heavy default list produced near-zero Austin-located jobs.
+  if (location === 'austin') {
+    const have = new Set(picked.map(c => c.slug));
+    const austin = scored.filter(c => c.tags.includes('austin') && !have.has(c.slug));
+    picked = picked.concat(austin);
+  }
+  return picked;
+}
+
+// Pull Austin-located jobs from The Muse's public API across a broad set
+// of categories. Used only when the user has picked the Austin pill, to
+// pad out the candidate pool — the default general-APIs feed is heavily
+// remote / SF / NYC and rarely surfaces Austin.
+async function fetchAustinMuseJobs() {
+  const fetch = (await import('node-fetch')).default;
+  const cats = [
+    'Business%20Operations', 'Project%20Management', 'Marketing%20%26%20PR',
+    'Customer%20Service', 'Sales', 'Account%20Management', 'Human%20Resources',
+    'Finance', 'Data%20Science', 'Engineering', 'Design%20%26%20UX', 'Product',
+    'Creative%20%26%20Design', 'Retail', 'Education'
+  ];
+  const out = [];
+  const seen = new Set();
+  await Promise.all(cats.map(async (cat) => {
+    try {
+      const r = await fetch(`https://www.themuse.com/api/public/jobs?category=${cat}&location=Austin%2C+TX&page=0`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      (data.results || []).forEach(j => {
+        const loc = (j.locations || []).map(l => l.name).join(', ') || 'Austin, TX';
+        const id = 'muse-austin-' + j.id;
+        if (seen.has(id)) return; seen.add(id);
+        const d = j.publication_date ? new Date(j.publication_date) : null;
+        out.push({
+          id, title: j.name, company: (j.company || {}).name || 'Unknown',
+          location: loc, remote: loc.toLowerCase().includes('remote'),
+          url: j.refs && j.refs.landing_page ? j.refs.landing_page : '',
+          logo: '', salary: '',
+          postedDate: d, posted: d ? timeAgo(d) : '',
+          type: (j.levels || []).map(l => l.name).join(', ') || 'Full-time',
+          description: (j.contents || '').replace(/<[^>]+>/g, '').substring(0, 1500),
+          tags: (j.categories || []).map(c => c.name), source: 'The Muse'
+        });
+      });
+    } catch (_) {}
+  }));
+  return out;
 }
 
 async function fetchATSJobs(companies, keywords) {
@@ -477,16 +539,19 @@ app.post('/api/find-jobs', async (req, res) => {
     const keywords = extractResumeKeywords(resumeText);
 
     // Fetch general APIs + ATS portals in parallel
-    const selectedCompanies = selectCompaniesForResume(keywords);
+    const selectedCompanies = selectCompaniesForResume(keywords, location);
     console.log('ATS: scanning', selectedCompanies.length, 'companies:', selectedCompanies.map(c => c.name).join(', '));
-    const [generalJobs, atsJobs] = await Promise.all([
+    const [generalJobs, atsJobs, austinJobs] = await Promise.all([
       fetchAllJobs(),
-      fetchATSJobs(selectedCompanies, keywords).catch(e => { console.error('ATS scan error:', e.message); return []; })
+      fetchATSJobs(selectedCompanies, keywords).catch(e => { console.error('ATS scan error:', e.message); return []; }),
+      location === 'austin'
+        ? fetchAustinMuseJobs().catch(e => { console.error('Austin Muse error:', e.message); return []; })
+        : Promise.resolve([])
     ]);
-    console.log('Found', generalJobs.length, 'general +', atsJobs.length, 'ATS jobs');
+    console.log('Found', generalJobs.length, 'general +', atsJobs.length, 'ATS +', austinJobs.length, 'Austin Muse jobs');
 
     // Merge and deduplicate
-    const merged = [...generalJobs, ...atsJobs];
+    const merged = [...generalJobs, ...atsJobs, ...austinJobs];
     const seen = new Set();
     const allJobs = merged.filter(j => {
       const key = (j.title + '|' + j.company).toLowerCase().replace(/\s+/g, ' ');
