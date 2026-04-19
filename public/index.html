@@ -458,8 +458,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
 <!-- USER: Upload Screen (before search) -->
 <div id="view-user-upload" style="max-width:680px;margin:40px auto;padding:0 32px;">
-  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--text-secondary);line-height:1.55;">
-    <strong style="color:var(--text);">How matching works:</strong> Your resume drives the search. You can add <strong>Sources of Me</strong> (LinkedIn URL, extra context, additional files) in the right rail once results load — those get blended into the next search to bias results toward what you want. Nothing leaves your browser until you click <em>Search Jobs</em>.
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:var(--text-secondary);line-height:1.6;">
+    <div style="font-weight:600;color:var(--text);margin-bottom:6px;">How matching works</div>
+    <p style="margin:0 0 8px;">Your resume (or your LinkedIn profile) drives the search. We extract the roles you've actually held, the domains you've worked in, and the titles you'd realistically be hired for next. Then we pull live postings from Greenhouse, Lever, Workable, Ashby, The Muse, Remotive, and 20+ ATS portals and score each one for <em style="font-style:normal;font-weight:500;color:var(--text);">career fit</em> — not keyword overlap.</p>
+    <p style="margin:0 0 8px;">Each match comes with a one-line explanation of <em style="font-style:normal;font-weight:500;color:var(--text);">why it fits you</em>, plus optional interview-prep facts and a hiring-side contact (recruiter or hiring manager, never CEO).</p>
+    <p style="margin:0;">You can add <strong>Sources of Me</strong> (LinkedIn URL, extra context, additional files) in the right rail once results load — those get blended into the next search to bias results toward what you want. Nothing leaves your browser until you click <em>Search Jobs</em>.</p>
   </div>
   <div class="user-hero">
     <h1>Jobs that actually fit your resume.</h1>
@@ -471,6 +474,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
       </label>
     </div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:0.6px;">OR</div>
+    <div style="margin-top:10px;display:flex;gap:8px;max-width:480px;margin-left:auto;margin-right:auto;">
+      <input id="linkedin-url-input" type="url" placeholder="https://www.linkedin.com/in/your-handle" autocomplete="url" style="flex:1;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none;" onkeydown="if(event.key==='Enter')submitLinkedIn()"/>
+      <button class="primary-btn" style="padding:10px 16px;font-size:13px;" onclick="submitLinkedIn()">Use LinkedIn</button>
+    </div>
+    <div id="linkedin-status" style="display:none;font-size:11.5px;line-height:1.5;margin-top:8px;max-width:480px;margin-left:auto;margin-right:auto;"></div>
     <div id="user-resume-list" style="margin-top:18px;"></div>
     <div id="go-panel" style="display:none;margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
       <div style="font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;">Location</div>
@@ -1507,6 +1516,63 @@ function renderSearchLinks(){
   wrap.innerHTML=boards.map(([n,u])=>`<a class="source-tag" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join('');
 }
 
+async function submitLinkedIn(){
+  const inp=document.getElementById('linkedin-url-input');
+  const status=document.getElementById('linkedin-status');
+  if(!inp||!status)return;
+  const url=(inp.value||'').trim();
+  const show=(html,kind)=>{
+    const bg=kind==='err'?'#fef2f2':kind==='ok'?'#ecfdf5':'#f8fafc';
+    const bd=kind==='err'?'#fecaca':kind==='ok'?'#86efac':'#cbd5e1';
+    const fg=kind==='err'?'#991b1b':kind==='ok'?'#14532d':'#475569';
+    status.style.cssText='font-size:11.5px;line-height:1.5;margin-top:8px;max-width:480px;margin-left:auto;margin-right:auto;padding:9px 12px;border-radius:8px;background:'+bg+';border:1px solid '+bd+';color:'+fg+';';
+    status.innerHTML=html;status.style.display='block';
+  };
+  if(!/^https?:\/\/(www\.)?linkedin\.com\/in\//i.test(url)){
+    show('That doesn\'t look like a LinkedIn profile URL. Expected: <code>https://www.linkedin.com/in/your-handle</code>','err');
+    return;
+  }
+  show('Fetching profile…','info');
+  try{
+    const r=await fetch('/api/linkedin-to-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data=await r.json();
+    if(!r.ok||!data.ok){
+      if(data&&data.reason==='login_wall'){
+        show('LinkedIn gated that profile behind a login. Paste your headline + experience text below, or upload a PDF instead:<br><textarea id="li-manual" rows="6" style="width:100%;box-sizing:border-box;margin-top:6px;font-family:var(--mono);font-size:12px;padding:8px;border:1px solid #cbd5e1;border-radius:6px;" placeholder="Paste job titles, companies, and a few bullet points — anything you\'d have on a resume."></textarea><button class="primary-btn" style="margin-top:6px;padding:8px 14px;font-size:12px;" onclick="useManualLinkedInText()">Use this text</button>','err');
+        return;
+      }
+      show('Could not fetch that profile ('+((data&&data.error)||'unknown error')+'). Try uploading a PDF instead.','err');
+      return;
+    }
+    lastResumeText=data.text;
+    extractionPromise=Promise.resolve(data.text);
+    lsSet(U_SOURCES_KEY,[]);
+    renderUserSources();
+    const chipName='LinkedIn · '+(data.name||url.split('/in/')[1].replace(/\/$/,''));
+    const chipResume={id:'r-linkedin-'+Date.now(),name:chipName,size:(data.text||'').length,type:'text/linkedin',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(data.text))),uploaded:new Date().toISOString()};
+    lsSet(U_RESUMES_KEY,[chipResume]);
+    renderUserResumes();
+    show('Got '+((data.text||'').length.toLocaleString())+' characters from LinkedIn. Choose a location and Search.','ok');
+    goFindJobs();
+  }catch(e){
+    show('Network error: '+e.message+'. Try again or upload a PDF.','err');
+  }
+}
+function useManualLinkedInText(){
+  const ta=document.getElementById('li-manual');
+  if(!ta||!ta.value.trim()){return;}
+  const txt=ta.value.trim();
+  lastResumeText=txt;
+  extractionPromise=Promise.resolve(txt);
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
+  const chipResume={id:'r-li-manual-'+Date.now(),name:'LinkedIn (pasted)',size:txt.length,type:'text/linkedin',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(txt))),uploaded:new Date().toISOString()};
+  lsSet(U_RESUMES_KEY,[chipResume]);
+  renderUserResumes();
+  const status=document.getElementById('linkedin-status');
+  if(status){status.style.background='#ecfdf5';status.style.borderColor='#86efac';status.style.color='#14532d';status.innerHTML='Got '+txt.length.toLocaleString()+' characters. Choose a location and Search.';}
+  goFindJobs();
+}
 function userUploadResume(e){
   const files=Array.from(e.target.files||[]);
   if(!files.length)return;

@@ -166,6 +166,89 @@ app.post('/api/update-run', (req, res) => {
   res.json({ lastRun: lastRunTime });
 });
 
+// LinkedIn-as-resume-source. We attempt a plain HTTP fetch of the public
+// profile HTML. LinkedIn login-walls ~70% of profiles based on IP/UA, so
+// this is best-effort: when it works (public profiles, low-volume IPs,
+// logged-out-friendly handles) we extract the JSON-LD Person block and
+// return a resume-shaped text blob. When it doesn't we return a
+// structured error so the client can offer a "paste text" fallback
+// instead of silently returning garbage. No Puppeteer, no 3rd-party
+// scraping service — keeping the dep footprint flat per handoff §10.
+app.post('/api/linkedin-to-text', async (req, res) => {
+  try {
+    const url = String((req.body || {}).url || '').trim();
+    if (!/^https?:\/\/(www\.)?linkedin\.com\/in\//i.test(url)) {
+      return res.status(400).json({ ok: false, error: 'Not a LinkedIn profile URL' });
+    }
+    const fetch = (await import('node-fetch')).default;
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'follow',
+    });
+    if (!r.ok) {
+      return res.status(502).json({ ok: false, error: `LinkedIn returned ${r.status}` });
+    }
+    const html = await r.text();
+    // LinkedIn's public-profile login wall serves a page with a prominent
+    // "Sign in" form and no <script type="application/ld+json"> block.
+    const ldJsonMatches = Array.from(html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g));
+    let person = null;
+    for (const m of ldJsonMatches) {
+      try {
+        const parsed = JSON.parse(m[1]);
+        const graph = parsed['@graph'] || (Array.isArray(parsed) ? parsed : [parsed]);
+        for (const node of graph) {
+          if (node && (node['@type'] === 'Person' || (Array.isArray(node['@type']) && node['@type'].includes('Person')))) {
+            person = node; break;
+          }
+        }
+        if (person) break;
+      } catch (_) { /* ignore parse errors */ }
+    }
+    if (!person) {
+      const isLoginWall = /authwall|sign in to view|join linkedin|<form[^>]*sign-in/i.test(html);
+      return res.status(200).json({
+        ok: false,
+        reason: isLoginWall ? 'login_wall' : 'no_profile_data',
+        error: isLoginWall ? 'LinkedIn gated the profile behind login' : 'Could not parse profile data',
+      });
+    }
+    const lines = [];
+    if (person.name) lines.push(person.name);
+    if (person.jobTitle) lines.push(String(person.jobTitle).replace(/\s*,\s*/g, ' · '));
+    if (person.description) lines.push('', person.description);
+    const jobs = [];
+    (person.worksFor || []).forEach(w => {
+      const org = w && w.name ? w.name : '';
+      const role = w && w.member && w.member.jobTitle ? w.member.jobTitle : (w && w.jobTitle) || '';
+      const start = w && w.member && w.member.startDate ? w.member.startDate : '';
+      const end = w && w.member && w.member.endDate ? w.member.endDate : 'Present';
+      if (org || role) jobs.push(`${role || 'Role'} — ${org || 'Company'}${start ? `  (${start} – ${end})` : ''}`);
+    });
+    if (jobs.length) { lines.push('', 'Experience:'); jobs.forEach(j => lines.push('  • ' + j)); }
+    const edus = [];
+    (person.alumniOf || []).forEach(e => {
+      const n = e && e.name ? e.name : '';
+      if (n) edus.push(n);
+    });
+    if (edus.length) { lines.push('', 'Education:'); edus.forEach(e => lines.push('  • ' + e)); }
+    const skills = Array.isArray(person.knowsAbout) ? person.knowsAbout : [];
+    if (skills.length) lines.push('', 'Skills: ' + skills.join(', '));
+    const text = lines.join('\n');
+    if (text.length < 80) {
+      return res.status(200).json({ ok: false, reason: 'too_short', error: 'Profile returned only trivial data — likely login-walled' });
+    }
+    return res.json({ ok: true, name: person.name || null, text, length: text.length });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.get('/api/find-email', hunterLimiter, async (req, res) => {
   if (!HUNTER_API_KEY) return res.status(500).json({ error: 'HUNTER_API_KEY not configured' });
   const { firstName, lastName, domain } = req.query;
