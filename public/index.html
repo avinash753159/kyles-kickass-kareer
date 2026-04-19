@@ -51,10 +51,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .header-inner{max-width:1200px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-icon{width:32px;height:32px;background:var(--text);border-radius:9px;display:flex;align-items:center;justify-content:center;}
-.brand-icon svg{width:17px;height:17px;fill:var(--green-light);}
-.brand-text{font-family:var(--display);font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.5px;}
-.brand-text em{color:var(--green);font-style:normal;}
+/* Wordmark-first brand: no square icon, just typography. The green
+   bullet between words replaces the old logo mark — smaller, quieter,
+   more confident. Reduces the "generic SaaS with square app icon" look. */
+.brand-icon{display:none;}
+.brand-text{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.6px;display:inline-flex;align-items:baseline;gap:8px;}
+.brand-text::before{content:"●";color:var(--green);font-size:11px;line-height:0;transform:translateY(-1px);}
+.brand-text em{color:var(--text);font-style:normal;}
 .header-right{display:flex;align-items:center;gap:14px;}
 .cmd-btn{font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);transition:all .2s;display:flex;align-items:center;gap:6px;}
 .cmd-btn:hover{border-color:#c1c5ce;color:var(--text-secondary);}
@@ -71,18 +74,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
 @media(max-width:900px){.tab-inner{padding:0 16px;}.tab-btn{padding:12px 12px;font-size:12px;}}
 
-/* === USER BOARD EMPTY + UI === */
-.user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:36px 32px;margin-bottom:24px;text-align:center;border:1px solid var(--border);}
-.user-hero h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:-1.1px;margin-bottom:8px;color:var(--text);line-height:1.05;}
-.user-hero p{font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;}
-.user-hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+/* === USER BOARD EMPTY + UI ===
+   Hero is left-aligned (impeccable: "Don't center everything. Left-aligned
+   text with asymmetric layouts feels more designed."). Wider max-width so
+   the headline can breathe and the subtitle doesn't wrap awkwardly. */
+.user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:44px 40px 36px;margin-bottom:24px;text-align:left;border:1px solid var(--border);}
+.user-hero h1{font-family:var(--display);font-size:clamp(28px,3.2vw,38px);font-weight:700;letter-spacing:-1.4px;margin-bottom:12px;color:var(--text);line-height:1.02;max-width:22ch;}
+.user-hero p{font-size:15px;color:var(--text-secondary);max-width:58ch;margin:0 0 24px;line-height:1.55;}
+.user-hero-actions{display:flex;gap:10px;flex-wrap:wrap;}
 .primary-btn{background:var(--green);color:#fff;border:none;padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
 .primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 3px 10px rgba(20,40,30,0.12);}
 .secondary-btn{background:var(--card);color:var(--text);border:1px solid var(--border);padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;}
 .secondary-btn:hover{border-color:#c1c5ce;background:var(--bg);}
-.resume-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-bg);color:var(--green);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:var(--mono);margin:6px 4px 0 0;}
-.resume-chip button{background:none;border:none;color:var(--green);cursor:pointer;padding:0;font-size:14px;opacity:0.6;}
-.resume-chip button:hover{opacity:1;}
+.resume-chip{display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:500;font-family:var(--mono);margin:8px 6px 0 0;letter-spacing:-0.1px;}
+.resume-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.resume-chip a{color:var(--text);text-decoration:none;}
+.resume-chip a:hover{color:var(--text-secondary);}
+.resume-chip button{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 0 0 4px;font-size:14px;line-height:1;margin-left:2px;transition:color .15s;}
+.resume-chip button:hover{color:var(--red);}
 .add-job-form{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:20px 22px;margin-bottom:16px;border:1px solid var(--border);}
 .add-job-form h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text);}
 .add-job-form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
@@ -102,13 +111,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .icon-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:14px;}
 .icon-btn:hover{background:var(--bg);color:var(--red);}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;}
-.loc-opt{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);}
-.loc-opt:hover{border-color:#c1c5ce;color:var(--text);}
-.loc-opt input{accent-color:var(--blue);margin:0;}
-.loc-opt:has(input:checked){background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
-.loc-chip{display:inline-flex;align-items:center;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);font-family:var(--sans);}
-.loc-chip:hover{border-color:#c1c5ce;color:var(--text);}
-.loc-chip.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
+/* Location chips — two class names (.loc-opt is a radio label, .loc-chip
+   is a button) for the same visual. Selected state is neutral-dark (not
+   blue) to keep the palette restrained. */
+.loc-opt,.loc-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);font-family:var(--sans);letter-spacing:-0.1px;}
+.loc-opt:hover,.loc-chip:hover{border-color:var(--text-muted);color:var(--text);}
+.loc-opt input{accent-color:var(--text);margin:0;}
+.loc-opt:has(input:checked),.loc-chip.active{background:var(--text);border-color:var(--text);color:var(--card);font-weight:600;}
 
 /* === LAYOUT === */
 .layout{max-width:1200px;margin:0 auto;padding:24px 32px 60px;display:grid;grid-template-columns:1fr 320px;gap:24px;}
@@ -299,11 +308,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .source-tag:hover{color:var(--blue);border-color:var(--blue);background:var(--blue-light);}
 .sources-note{font-size:10.5px;color:var(--text-muted);font-family:var(--mono);line-height:1.5;}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
-.abtn{font-size:12px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .2s;}
-.abtn:hover{box-shadow:0 1px 3px rgba(0,0,0,0.06);color:var(--text);transform:translateY(-1px);}
-.abtn.g{background:var(--green);color:#fff;border-color:var(--green);}.abtn.g:hover{background:#15803d;}
-.abtn.b{background:var(--blue);color:#fff;border-color:var(--blue);}.abtn.b:hover{background:#1d4ed8;}
-.abtn.y{background:var(--amber);color:#fff;border-color:var(--amber);}.abtn.y:hover{background:#b45309;}
+/* Primary action button — neutral dark rather than tier-colored. The card
+   already carries its tier (ring color, optional hero styling); firing the
+   CTA in green/blue/amber just makes every card's footer shout. One color
+   across all cards reads as "the CTA," the ring reads as "the fit." */
+.abtn{font-size:13px;padding:9px 18px;border-radius:var(--radius-sm);border:1px solid var(--text);background:var(--text);color:var(--card);cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .18s;letter-spacing:-0.1px;}
+.abtn:hover{background:transparent;color:var(--text);transform:translateY(-1px);}
+/* .abtn.g/.b/.y kept as no-op overrides so the existing class attribute
+   doesn't break — color is neutral regardless of tier now. */
+.abtn.g,.abtn.b,.abtn.y{background:var(--text);color:var(--card);border-color:var(--text);}
+.abtn.g:hover,.abtn.b:hover,.abtn.y:hover{background:transparent;color:var(--text);}
 
 /* === SIDEBAR CARDS === */
 .side-card{
@@ -467,13 +481,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </label>
     </div>
     <div id="user-resume-list" style="margin-top:18px;"></div>
-    <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:center;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;" id="loc-options">
+    <div id="go-panel" style="display:none;margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;">Location</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;" id="loc-options">
         <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked onchange="setLoc('anywhere')"><span>Anywhere</span></label>
         <label class="loc-opt"><input type="radio" name="loc" value="remote" onchange="setLoc('remote')"><span>Remote</span></label>
         <label class="loc-opt"><input type="radio" name="loc" value="austin" onchange="setLoc('austin')"><span>Austin, TX</span></label>
       </div>
-      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;font-family:var(--display);font-weight:600;letter-spacing:-0.2px;" onclick="searchJobs()">Search jobs</button>
+      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:15px;padding:14px 20px;font-family:var(--display);font-weight:600;letter-spacing:-0.3px;" onclick="searchJobs()">Search jobs</button>
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
