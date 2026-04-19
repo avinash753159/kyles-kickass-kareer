@@ -2,8 +2,9 @@
 
 **Date authored:** 2026-04-18
 **Authored for:** Devin AI (or any senior engineer receiving cold handoff)
-**Git repo:** https://github.com/avinash753159/kyles-kickass-kareer.git
+**Git repo:** https://github.com/avinash753159/your-job-board.git
 **Historical / legacy remote (do not push to):** https://github.com/avinash753159/kyles-job-board.git
+*(Repo was renamed from `your-job-board` on 2026-04-18; GitHub auto-redirects the old URL.)*
 **Main branch:** `master`
 **Deployed at:** Railway (public URL owned by repo owner)
 **Stack:** Node 20 + Express 5 + vanilla JS/HTML (no framework), deployed via Nixpacks on Railway
@@ -598,8 +599,8 @@ No other vars. The app does not read `.env` files at runtime; `dotenv` is not ev
 
 **Locally:**
 ```
-git clone https://github.com/avinash753159/kyles-kickass-kareer.git
-cd kyles-kickass-kareer
+git clone https://github.com/avinash753159/your-job-board.git
+cd your-job-board
 npm install
 HUNTER_API_KEY=<key> node server.js
 # open http://localhost:3000
@@ -671,7 +672,7 @@ Not in scope for this pass (explicit):
 - **Do not change the Example tab's static dataset.** It is a showcase. It is pinned to Kyle. Separate concern.
 - **Do not restructure the folder layout without the owner's approval.** The docs/superpowers layout is intentional (plan → spec → implementation). Keep this file in `docs/superpowers/specs/`.
 - **Do not modify `.gitignore` to commit session logs, `output/`, or the `KyleGaarder_Resume_*` PDFs.** They are deliberately untracked — some contain conversation logs or personal resume PDFs and should not be pushed.
-- **Do not push to the old remote `old-repo` (kyles-job-board.git).** It is legacy. Only `origin` (`kyles-kickass-kareer.git`) is live.
+- **Do not push to the old remote `old-repo` (kyles-job-board.git).** It is legacy. Only `origin` (`your-job-board.git`) is live.
 
 ---
 
