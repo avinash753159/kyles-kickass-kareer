@@ -440,8 +440,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <strong style="color:var(--text);">How matching works:</strong> Your resume drives the search. You can add <strong>Sources of Me</strong> (LinkedIn URL, extra context, additional files) in the right rail once results load — those get blended into the next search to bias results toward what you want. Nothing leaves your browser until you click <em>Search Jobs</em>.
   </div>
   <div class="user-hero">
-    <h1>Welcome to Your Job Board</h1>
-    <p style="font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;">Upload your resume and we'll find matching roles from live job boards.</p>
+    <h1>Jobs that actually fit your resume.</h1>
+    <p style="font-size:14px;color:var(--text-secondary);max-width:520px;margin:0 auto 22px;line-height:1.55;">Upload your resume. We score live postings by <em style="font-style:normal;font-weight:500;color:var(--text);">career fit</em> — the roles you've actually held — not keyword overlap. Each match comes with a one-line explanation of <em style="font-style:normal;font-weight:500;color:var(--text);">why it fits you.</em></p>
     <div class="user-hero-actions">
       <label class="primary-btn" style="cursor:pointer;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -456,7 +456,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         <label class="loc-opt"><input type="radio" name="loc" value="remote" onchange="setLoc('remote')"><span>Remote</span></label>
         <label class="loc-opt"><input type="radio" name="loc" value="austin" onchange="setLoc('austin')"><span>Austin, TX</span></label>
       </div>
-      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
+      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;font-family:var(--display);font-weight:600;letter-spacing:-0.2px;" onclick="searchJobs()">Search jobs</button>
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
@@ -527,8 +527,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <!-- LOADING overlay -->
 <div id="user-loading" style="display:none;max-width:680px;margin:80px auto;text-align:center;padding:40px 20px;">
   <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 16px;"></div>
-  <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Scanning job boards...</div>
-  <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">Matching your resume against live postings</div>
+  <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;font-family:var(--display);letter-spacing:-0.2px;">Scoring jobs by career fit</div>
+  <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">Fetching 5 job APIs · ranking candidates · ≈ 15s</div>
 </div>
 
 <!-- EXAMPLE BOARD VIEW (Kyle's) -->
