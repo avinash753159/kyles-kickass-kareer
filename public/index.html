@@ -1276,9 +1276,12 @@ async function searchJobs(){
 
   if(!lastResumeText||lastResumeText.length<50){
     const resumes=lsGet(U_RESUMES_KEY);
-    if(resumes.length&&resumes[0].data){
+    // Use the NEWEST resume on fallback, not the oldest — otherwise a stale
+    // prior-session upload at index 0 overrides the one the user just added.
+    const latest=resumes.length?resumes[resumes.length-1]:null;
+    if(latest&&latest.data){
       try{
-        const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:resumes[0].data,fileName:resumes[0].name})});
+        const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:latest.data,fileName:latest.name})});
         const result=await resp.json();
         if(result.text&&result.text.trim().length>50)lastResumeText=result.text.trim();
       }catch(_){}
@@ -1527,8 +1530,15 @@ function userUploadResume(e){
   // Clear old text — new upload = fresh extraction
   lastResumeText='';
   extractionPromise=null;
+  // A new resume means a new search context: wipe any prior-user
+  // "Sources of Me" text that would otherwise silently contaminate scoring.
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
 
-  const r=lsGet(U_RESUMES_KEY);
+  // Replace the resume list (was: append) — the upload button reads
+  // "Upload another" but product intent is a fresh search; keeping old
+  // resumes in localStorage let the fallback re-extract the wrong one.
+  const r=[];
   let pending=files.length;
   files.forEach(f=>{
     const reader=new FileReader();
@@ -1580,6 +1590,10 @@ function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=
 async function userUploadAndSearch(e){
   const files=Array.from(e.target.files||[]);if(!files.length)return;
   lastResumeText='';extractionPromise=null;
+  // A new resume means a new search context: wipe any prior-user sources
+  // that would otherwise silently contaminate the next search.
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
   // Replace old resumes — fresh search with new resume only
   const r=[];
   for(const f of files){
