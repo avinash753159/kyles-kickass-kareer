@@ -562,14 +562,38 @@ app.post('/api/find-jobs', async (req, res) => {
 
     const { scoreJobsWithLLM, MAX_JOBS_PER_CALL } = require('./lib/llm-scorer');
 
+    // Phase 3 (hoisted) — location filtering. The pill labels in the UI
+    // ("Anywhere", "Remote", "Austin, TX") are categorical, not soft
+    // preferences, so we treat them as hard filters: "austin" keeps only
+    // Austin-located jobs; "remote" keeps only remote-tagged jobs;
+    // "anywhere" keeps everything. This filter is used twice below —
+    // before Phase 1 (to focus LLM budget) and after Phase 2 (as the
+    // final guarantee that no off-location jobs leak through).
+    function locationMatches(job) {
+      if (location === 'anywhere' || !location) return true;
+      const loc = (job.location || '').toLowerCase();
+      const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
+      // Austin = Austin-located only. Earlier passes also admitted remote
+      // jobs on the theory "remote can be worked from Austin", but that
+      // surfaced Donorbox Europe and Stripe Chicago-Remote under an
+      // "Austin, TX" pill, which was confusing. Use Remote pill for that.
+      if (location === 'austin') return /austin/i.test(loc);
+      if (location === 'remote') return isRemote;
+      return true;
+    }
+
     // Phase 1 — coarse keyword pre-filter. The LLM is expensive per job
     // and the job universe is large; keyword scoring narrows ~500 jobs
-    // to MAX_JOBS_PER_CALL candidates. Location is NOT filtered here —
-    // it's applied as a soft preference AFTER LLM scoring so a narrow
-    // location (e.g. Austin) doesn't collapse the candidate pool before
-    // the LLM ever sees it. A resume may produce 3 Austin-listed jobs
-    // but 50 remote+US-wide jobs that are equally applicable; the LLM
-    // should rank all 53 and the location preference shapes the top 20.
+    // to MAX_JOBS_PER_CALL candidates.
+    //
+    // Location handling: for narrow pills (Austin, Remote) we apply the
+    // location filter BEFORE the keyword pre-filter. Earlier we let the
+    // full 500-job pool through and filtered post-scoring, but that
+    // spent the LLM's ~60-candidate budget on jobs that would then be
+    // dropped — leaving e.g. zero Austin-located jobs in the final set
+    // even when we'd fetched ~150 Austin candidates. Applying the
+    // filter here focuses the LLM budget on jobs that can actually
+    // survive the final filter.
     let scored = allJobs
       .map(job => ({
         ...job,
@@ -584,7 +608,13 @@ app.post('/api/find-jobs', async (req, res) => {
       return true;
     });
 
-    const llmCandidates = scored.slice(0, MAX_JOBS_PER_CALL);
+    // Pre-filter by location so the LLM candidate budget is spent on
+    // jobs that survive the final hard filter.
+    const preFiltered = (location === 'austin' || location === 'remote')
+      ? scored.filter(locationMatches)
+      : scored;
+
+    const llmCandidates = preFiltered.slice(0, MAX_JOBS_PER_CALL);
 
     // Phase 2 — LLM scoring (global, location-agnostic).
     let llmScores = null;
@@ -601,27 +631,6 @@ app.post('/api/find-jobs', async (req, res) => {
     } catch (e) {
       console.error('LLM scoring failed:', e.message, '— falling back to keyword');
       llmFailed = true;
-    }
-
-    // Phase 3 — location filtering. The pill labels in the UI ("Anywhere",
-    // "Remote", "Austin, TX") are categorical, not soft preferences, so we
-    // treat them as hard filters: "austin" keeps only Austin-located jobs
-    // (plus remote, which can be worked from Austin); "remote" keeps only
-    // remote-tagged jobs; "anywhere" keeps everything. An earlier build
-    // treated these as +12/+4 score boosts on top of the full candidate
-    // pool, which let Palo Alto/Sunnyvale jobs surface when the user had
-    // clicked "Austin, TX" — confusing.
-    function locationMatches(job) {
-      if (location === 'anywhere' || !location) return true;
-      const loc = (job.location || '').toLowerCase();
-      const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
-      // Austin = Austin-located only. An earlier pass also admitted remote
-      // jobs on the theory "remote can be worked from Austin", but that
-      // surfaced Donorbox Europe and Stripe Chicago-Remote under an
-      // "Austin, TX" pill, which is confusing. Use the Remote pill for that.
-      if (location === 'austin') return /austin/i.test(loc);
-      if (location === 'remote') return isRemote;
-      return true;
     }
 
     const scoresById = new Map((llmScores || []).map(s => [s.id, s]));
@@ -646,8 +655,13 @@ app.post('/api/find-jobs', async (req, res) => {
       .sort((a, b) => b.fit - a.fit);
 
     // Minimum fit threshold. LLM scores are calibrated differently from
-    // keyword scores — use 55 for LLM, 40 for keyword fallback.
-    const minFit = llmFailed ? 40 : 55;
+    // keyword scores — use 55 for LLM, 40 for keyword fallback. Narrow
+    // location pills get a lower threshold so that tight geographic
+    // filters don't collapse to zero results; the pill already says
+    // "Austin, TX" so a 48% "maybe relevant" Austin job is more useful
+    // than an empty page.
+    let minFit = llmFailed ? 40 : 55;
+    if (location === 'austin') minFit = llmFailed ? 30 : 45;
     top = top.filter(j => j.fit >= minFit).slice(0, 20);
     // Score-based tiers matching stat card labels
     top.forEach((j, i) => {
