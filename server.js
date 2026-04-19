@@ -550,7 +550,11 @@ app.post('/api/find-jobs', async (req, res) => {
       if (location === 'anywhere' || !location) return true;
       const loc = (job.location || '').toLowerCase();
       const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
-      if (location === 'austin') return /austin/i.test(loc) || isRemote;
+      // Austin = Austin-located only. An earlier pass also admitted remote
+      // jobs on the theory "remote can be worked from Austin", but that
+      // surfaced Donorbox Europe and Stripe Chicago-Remote under an
+      // "Austin, TX" pill, which is confusing. Use the Remote pill for that.
+      if (location === 'austin') return /austin/i.test(loc);
       if (location === 'remote') return isRemote;
       return true;
     }
