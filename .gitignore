@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.local
+.env.*.local
 
 # Local analytics state (emails + visitor hashes). Lives on Railway volume in prod.
 data/
