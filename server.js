@@ -1034,7 +1034,7 @@ function extractResumeKeywords(text) {
     'signal integrity','power integrity','rf','mixed signal','analog design',
     'verilog','systemverilog','vhdl','cadence','synopsys','mentor graphics',
     'foundry','fabrication','wafer','lithography','photolithography','yield','tape-out','tapeout',
-    'process technology','7nm','5nm','14nm','10nm','3nm','node','cmos','finfet',
+    'process technology','7nm','5nm','14nm','10nm','3nm','cmos','finfet',
     'memory','dram','nand','nor','flash','hbm','ddr','lpddr','ssd','nvme','storage',
     'quality engineering','customer quality','failure analysis','fa','reliability',
     'validation','verification','characterization','test engineering','ate',
@@ -1266,12 +1266,13 @@ function scoreFit(job, keywords) {
   let wrongField = false;
   // True SWE signal — must include code/framework terms, not just cloud provider
   // names. An EE resume mentioning "AWS" as a customer shouldn't read as SWE.
-  // 'node' is intentionally excluded — it collides with the semiconductor
-  // "process node" term ("14nm node") that domainTerms also accepts, which
-  // would otherwise flip an EE resume into software-mode and skip the
-  // hardware wrong-field guard below.
+  // `'node'` used to appear in both the software and semiconductor sections of
+  // domainTerms. The duplicate has been removed (it now lives only in the
+  // software section), so including it in resumeIsSoftware is fine again —
+  // a true Node.js developer's resume will still trip this check via
+  // co-occurring 'javascript' / 'express' / 'typescript'.
   const resumeIsSoftware = keywords.domainSkills.some(s =>
-    ['javascript','python','java','react','angular','vue','node.js','nodejs','express',
+    ['javascript','python','java','react','angular','vue','node','express',
      'kubernetes','docker','machine learning','data science','ci/cd','devops',
      'sql','terraform','golang','rust','typescript','c++','ruby','php'].includes(s));
   const resumeIsCloudUser = keywords.domainSkills.some(s =>
