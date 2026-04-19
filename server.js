@@ -1,10 +1,103 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '';
+
+// ── Lightweight analytics (no DB; flat files on Railway volume) ──
+// Persists to DATA_DIR if set (mounted Railway volume), else local ./data.
+// Two artifacts:
+//   emails.jsonl   → append-only, one JSON record per signup
+//   visitors.json  → set of hashed-IP+UA strings (unique-visitor count)
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { /* ignore */ }
+const EMAILS_FILE = path.join(DATA_DIR, 'emails.jsonl');
+const VISITORS_FILE = path.join(DATA_DIR, 'visitors.json');
+
+function loadVisitorSet() {
+  try {
+    const raw = fs.readFileSync(VISITORS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed.hashes) ? parsed.hashes : []);
+  } catch (e) { return new Set(); }
+}
+let __visitorSet = loadVisitorSet();
+function saveVisitorSet() {
+  try { fs.writeFileSync(VISITORS_FILE, JSON.stringify({ hashes: [...__visitorSet] })); }
+  catch (e) { console.error('visitor save failed:', e.message); }
+}
+function hashVisitor(ip, ua) {
+  return crypto.createHash('sha256').update(String(ip || '') + '|' + String(ua || '')).digest('hex').slice(0, 16);
+}
+
+// Public visitor ticker — increments unique count, returns the running total.
+const visitorLimiter = rateLimit({ windowMs: 10 * 1000, max: 5 });
+app.post('/api/visit', visitorLimiter, (req, res) => {
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+  const ua = (req.headers['user-agent'] || '').toString();
+  const h = hashVisitor(ip, ua);
+  const fresh = !__visitorSet.has(h);
+  if (fresh) {
+    __visitorSet.add(h);
+    saveVisitorSet();
+  }
+  res.json({ count: __visitorSet.size, fresh });
+});
+
+// Read-only counter (no write — used for the header ticker poll).
+app.get('/api/visit-count', (req, res) => {
+  res.json({ count: __visitorSet.size });
+});
+
+// Email capture — append to emails.jsonl. We do not de-dupe at write time so
+// repeat submissions are still discoverable in audit logs; the admin endpoint
+// dedupes at read time.
+const emailLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
+app.post('/api/capture-email', emailLimiter, (req, res) => {
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 200) {
+    return res.status(400).json({ ok: false, error: 'invalid email' });
+  }
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim();
+  const ua = (req.headers['user-agent'] || '').toString();
+  const record = {
+    email,
+    ts: new Date().toISOString(),
+    ipHash: hashVisitor(ip, ''),  // store IP hash only, not raw IP
+    uaHash: hashVisitor('', ua),
+  };
+  try {
+    fs.appendFileSync(EMAILS_FILE, JSON.stringify(record) + '\n');
+  } catch (e) {
+    console.error('email capture write failed:', e.message);
+    return res.status(500).json({ ok: false, error: 'write_failed' });
+  }
+  res.json({ ok: true });
+});
+
+// Admin readout — list captured emails. Behind ADMIN_TOKEN env var.
+// curl -H "X-Admin-Token: <token>" /api/admin/emails
+app.get('/api/admin/emails', (req, res) => {
+  const required = process.env.ADMIN_TOKEN;
+  if (!required) return res.status(503).json({ error: 'ADMIN_TOKEN not configured' });
+  const provided = req.headers['x-admin-token'];
+  if (provided !== required) return res.status(401).json({ error: 'unauthorized' });
+  let lines = [];
+  try { lines = fs.readFileSync(EMAILS_FILE, 'utf8').split('\n').filter(Boolean); }
+  catch (e) { return res.json({ emails: [], total: 0 }); }
+  const records = lines.map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+  // De-dupe by email, keep earliest timestamp
+  const seen = new Map();
+  records.forEach(r => { if (!seen.has(r.email) || r.ts < seen.get(r.email).ts) seen.set(r.email, r); });
+  const unique = [...seen.values()].sort((a, b) => b.ts.localeCompare(a.ts));
+  res.json({ emails: unique, total: unique.length, totalSubmissions: records.length });
+});
 
 const hunterLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -16,6 +109,11 @@ const hunterLimiter = rateLimit({
 
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, uptime: process.uptime() }));
 
+// PDF magic bytes: `%PDF` at offset 0
+function looksLikePdf(buf) {
+  return buf && buf.length >= 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46;
+}
+
 // Server-side PDF text extraction
 app.post('/api/extract-text', async (req, res) => {
   try {
@@ -26,6 +124,9 @@ app.post('/api/extract-text', async (req, res) => {
     const buf = Buffer.from(b64, 'base64');
 
     if (/\.pdf$/i.test(fileName)) {
+      if (!looksLikePdf(buf)) {
+        return res.status(400).json({ text: '', error: 'File does not appear to be a valid PDF (missing %PDF header).' });
+      }
       try {
         const pdfjs = require('pdfjs-dist');
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
@@ -65,6 +166,89 @@ app.post('/api/update-run', (req, res) => {
   res.json({ lastRun: lastRunTime });
 });
 
+// LinkedIn-as-resume-source. We attempt a plain HTTP fetch of the public
+// profile HTML. LinkedIn login-walls ~70% of profiles based on IP/UA, so
+// this is best-effort: when it works (public profiles, low-volume IPs,
+// logged-out-friendly handles) we extract the JSON-LD Person block and
+// return a resume-shaped text blob. When it doesn't we return a
+// structured error so the client can offer a "paste text" fallback
+// instead of silently returning garbage. No Puppeteer, no 3rd-party
+// scraping service — keeping the dep footprint flat per handoff §10.
+app.post('/api/linkedin-to-text', async (req, res) => {
+  try {
+    const url = String((req.body || {}).url || '').trim();
+    if (!/^https?:\/\/(www\.)?linkedin\.com\/in\//i.test(url)) {
+      return res.status(400).json({ ok: false, error: 'Not a LinkedIn profile URL' });
+    }
+    const fetch = (await import('node-fetch')).default;
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'follow',
+    });
+    if (!r.ok) {
+      return res.status(502).json({ ok: false, error: `LinkedIn returned ${r.status}` });
+    }
+    const html = await r.text();
+    // LinkedIn's public-profile login wall serves a page with a prominent
+    // "Sign in" form and no <script type="application/ld+json"> block.
+    const ldJsonMatches = Array.from(html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g));
+    let person = null;
+    for (const m of ldJsonMatches) {
+      try {
+        const parsed = JSON.parse(m[1]);
+        const graph = parsed['@graph'] || (Array.isArray(parsed) ? parsed : [parsed]);
+        for (const node of graph) {
+          if (node && (node['@type'] === 'Person' || (Array.isArray(node['@type']) && node['@type'].includes('Person')))) {
+            person = node; break;
+          }
+        }
+        if (person) break;
+      } catch (_) { /* ignore parse errors */ }
+    }
+    if (!person) {
+      const isLoginWall = /authwall|sign in to view|join linkedin|<form[^>]*sign-in/i.test(html);
+      return res.status(200).json({
+        ok: false,
+        reason: isLoginWall ? 'login_wall' : 'no_profile_data',
+        error: isLoginWall ? 'LinkedIn gated the profile behind login' : 'Could not parse profile data',
+      });
+    }
+    const lines = [];
+    if (person.name) lines.push(person.name);
+    if (person.jobTitle) lines.push(String(person.jobTitle).replace(/\s*,\s*/g, ' · '));
+    if (person.description) lines.push('', person.description);
+    const jobs = [];
+    (person.worksFor || []).forEach(w => {
+      const org = w && w.name ? w.name : '';
+      const role = w && w.member && w.member.jobTitle ? w.member.jobTitle : (w && w.jobTitle) || '';
+      const start = w && w.member && w.member.startDate ? w.member.startDate : '';
+      const end = w && w.member && w.member.endDate ? w.member.endDate : 'Present';
+      if (org || role) jobs.push(`${role || 'Role'} — ${org || 'Company'}${start ? `  (${start} – ${end})` : ''}`);
+    });
+    if (jobs.length) { lines.push('', 'Experience:'); jobs.forEach(j => lines.push('  • ' + j)); }
+    const edus = [];
+    (person.alumniOf || []).forEach(e => {
+      const n = e && e.name ? e.name : '';
+      if (n) edus.push(n);
+    });
+    if (edus.length) { lines.push('', 'Education:'); edus.forEach(e => lines.push('  • ' + e)); }
+    const skills = Array.isArray(person.knowsAbout) ? person.knowsAbout : [];
+    if (skills.length) lines.push('', 'Skills: ' + skills.join(', '));
+    const text = lines.join('\n');
+    if (text.length < 80) {
+      return res.status(200).json({ ok: false, reason: 'too_short', error: 'Profile returned only trivial data — likely login-walled' });
+    }
+    return res.json({ ok: true, name: person.name || null, text, length: text.length });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.get('/api/find-email', hunterLimiter, async (req, res) => {
   if (!HUNTER_API_KEY) return res.status(500).json({ error: 'HUNTER_API_KEY not configured' });
   const { firstName, lastName, domain } = req.query;
@@ -90,6 +274,81 @@ app.get('/api/domain-search', hunterLimiter, async (req, res) => {
     res.json(data);
   } catch (e) {
     res.json({ error: e.message });
+  }
+});
+
+// Rank Hunter contacts toward hiring-manager / recruiter titles, away from
+// CEO/founder/exec assistant noise. Returns the top 3 most-relevant people.
+function rankHunterContacts(emails, jobTitle) {
+  const jt = (jobTitle || '').toLowerCase();
+  const score = (e) => {
+    const pos = (e.position || '').toLowerCase();
+    const dep = (e.department || '').toLowerCase();
+    const sen = (e.seniority || '').toLowerCase();
+    if (!pos && !dep) return -50; // skip empty rows
+    let s = 0;
+    // STRONG positive — actual hiring-side roles
+    if (/\b(recruit|talent|hiring|people\s*ops|people\s*partner|head\s+of\s+people|people\s+team)\b/.test(pos)) s += 60;
+    if (dep.includes('hr') || dep.includes('people')) s += 30;
+    // Senior people who would interview but aren't C-suite founders
+    if (/\b(head\s+of|director|vp|vice\s+president|svp|evp|principal|staff)\b/.test(pos)) s += 25;
+    if (sen === 'senior' || sen === 'executive') s += 8;
+    // Match the job's domain — prefer same-discipline manager (engineering manager
+    // for an engineer role, marketing director for a PMM role, etc.)
+    const jtTokens = jt.split(/[,\s/&]+/).filter(t => t.length >= 4);
+    const overlap = jtTokens.filter(t => pos.includes(t)).length;
+    s += overlap * 10;
+    // NEGATIVE — generic exec assistants, founders, board members
+    if (/\b(ceo|founder|co.?founder|chief\s+executive|owner|board|investor|chairman)\b/.test(pos)) s -= 30;
+    if (/\b(executive\s+assistant|administrative\s+assistant|receptionist|office\s+manager)\b/.test(pos)) s -= 35;
+    if (/\b(intern|coordinator|associate)\b/.test(pos) && !/recruit|talent|hiring/.test(pos)) s -= 5;
+    // Dead emails / no verifiable contact
+    if (e.confidence !== null && e.confidence !== undefined && e.confidence < 50) s -= 8;
+    return s;
+  };
+  const ranked = (emails || [])
+    .map(e => ({ ...e, _score: score(e) }))
+    .filter(e => e._score > -20 && e.value)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 3);
+  return ranked.map(e => ({
+    name: [e.first_name, e.last_name].filter(Boolean).join(' ') || e.value.split('@')[0],
+    role: e.position || e.department || '—',
+    department: e.department || '',
+    seniority: e.seniority || '',
+    email: e.value,
+    confidence: e.confidence,
+    linkedin: e.linkedin,
+    twitter: e.twitter,
+  }));
+}
+
+// Returns ranked hiring-manager-preferring contacts for a given company domain.
+app.get('/api/company-contacts', hunterLimiter, async (req, res) => {
+  if (!HUNTER_API_KEY) return res.json({ contacts: [], error: 'no_key' });
+  const { domain, jobTitle } = req.query;
+  if (!domain) return res.json({ contacts: [] });
+  try {
+    const fetch = (await import('node-fetch')).default;
+    // Hunter's free plan caps domain-search at 10 emails per request and
+    // rejects anything higher with a pagination_error. limit=10 is the max
+    // we can ask for on the free tier; we drop type=personal so we get the
+    // full set of results to rank (filtering by department happens in our
+    // ranker, not Hunter's filter — Hunter's department filter is too strict).
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=10`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data && data.errors && data.errors.length) {
+      // Surface upstream errors instead of silently returning [] — without
+      // this we couldn't tell whether Hunter actually had no results or our
+      // request was malformed.
+      return res.json({ contacts: [], total: 0, hunterError: data.errors[0].details || data.errors[0].id });
+    }
+    const emails = (data && data.data && data.data.emails) || [];
+    const contacts = rankHunterContacts(emails, jobTitle);
+    res.json({ contacts, total: emails.length });
+  } catch (e) {
+    res.json({ contacts: [], error: e.message });
   }
 });
 
@@ -145,46 +404,37 @@ const ATS_COMPANIES = [
   { slug: 'clipboard', name: 'Clipboard Health', platform: 'ashby', tags: ['healthcare', 'marketplace', 'operations', 'growth', 'community'] },
   { slug: 'plaid', name: 'Plaid', platform: 'ashby', tags: ['fintech', 'engineering', 'product', 'b2b', 'developer tools'] },
   { slug: 'bumble', name: 'Bumble', platform: 'ashby', tags: ['consumer', 'social', 'community', 'product', 'growth'] },
+  // Hardware / semiconductor / AI-compute (Greenhouse, verified 200) — added 2026-04-18
+  // to give EE / semiconductor / data-center resumes in-field candidates.
+  { slug: 'sambanovasystems', name: 'SambaNova Systems', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'ai', 'data center', 'engineering', 'electrical'] },
+  { slug: 'tenstorrent', name: 'Tenstorrent', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'ai', 'engineering', 'electrical'] },
+  { slug: 'anthropic', name: 'Anthropic', platform: 'greenhouse', tags: ['ai', 'ml', 'research', 'engineering', 'data center', 'hardware'] },
+  { slug: 'asteralabs', name: 'Astera Labs', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'data center', 'cloud infrastructure', 'electrical'] },
+  { slug: 'cerebrassystems', name: 'Cerebras Systems', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'ai', 'engineering', 'electrical'] },
+  { slug: 'lightmatter', name: 'Lightmatter', platform: 'greenhouse', tags: ['hardware', 'semiconductor', 'chip', 'photonics', 'engineering', 'electrical'] },
+  { slug: 'psiquantum', name: 'PsiQuantum', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
+  { slug: 'ionq', name: 'IonQ', platform: 'greenhouse', tags: ['hardware', 'quantum', 'research', 'engineering', 'electrical'] },
+  // Austin-HQ companies (verified 200 on 2026-04-19) — added to improve
+  // Austin-location coverage. The default SV-centric ATS list produced
+  // near-zero Austin results for non-semiconductor resumes.
+  { slug: 'indeed', name: 'Indeed', platform: 'greenhouse', tags: ['consumer', 'marketplace', 'hr tech', 'product', 'engineering', 'operations', 'marketing', 'community', 'austin'] },
+  { slug: 'indeedflex', name: 'Indeed Flex', platform: 'greenhouse', tags: ['marketplace', 'staffing', 'operations', 'product', 'community', 'austin'] },
+  { slug: 'alertmedia', name: 'AlertMedia', platform: 'greenhouse', tags: ['saas', 'b2b', 'operations', 'customer success', 'communications', 'austin'] },
+  { slug: 'icon', name: 'ICON', platform: 'greenhouse', tags: ['hardware', 'construction', 'real estate', 'manufacturing', 'operations', 'engineering', 'austin'] },
+  { slug: 'homeward', name: 'Homeward', platform: 'greenhouse', tags: ['real estate', 'proptech', 'operations', 'product', 'growth', 'austin'] },
+  { slug: 'brex', name: 'Brex', platform: 'greenhouse', tags: ['fintech', 'saas', 'b2b', 'product', 'engineering', 'growth', 'austin'] },
+  { slug: 'opendoor', name: 'Opendoor', platform: 'greenhouse', tags: ['real estate', 'proptech', 'marketplace', 'operations', 'product', 'growth', 'austin'] },
+  { slug: 'aceable', name: 'Aceable', platform: 'greenhouse', tags: ['edtech', 'consumer', 'product', 'operations', 'marketing', 'austin'] },
+  { slug: 'zenbusiness', name: 'ZenBusiness', platform: 'greenhouse', tags: ['saas', 'b2b', 'consumer', 'operations', 'product', 'growth', 'austin'] },
 ];
 
-// ── Ghost Job Detection Data ─────────────────────────────────────
-const RECENT_LAYOFFS = [
-  { company: 'meta', date: '2025-11' },
-  { company: 'amazon', date: '2025-09' },
-  { company: 'google', date: '2025-10' },
-  { company: 'microsoft', date: '2025-08' },
-  { company: 'salesforce', date: '2025-10' },
-  { company: 'snap', date: '2025-07' },
-  { company: 'spotify', date: '2025-06' },
-  { company: 'discord', date: '2025-09' },
-  { company: 'twitch', date: '2025-08' },
-  { company: 'bumble', date: '2025-11' },
-  { company: 'zillow', date: '2025-07' },
-  { company: 'redfin', date: '2025-08' },
-  { company: 'opendoor', date: '2025-09' },
-  { company: 'compass', date: '2025-10' },
-  { company: 'sonder', date: '2025-11' },
-  { company: 'vacasa', date: '2025-06' },
-  { company: 'wayfair', date: '2025-07' },
-  { company: 'robinhood', date: '2025-08' },
-  { company: 'coinbase', date: '2025-09' },
-  { company: 'block', date: '2025-10' },
-];
+// Ghost-job layoff signal removed 2026-04-18: the hardcoded RECENT_LAYOFFS
+// array decayed as its 2025 dates fell out of the 6-month window, producing
+// a silently-dead signal. Ghost risk is now based on freshness + reposts only.
+// A future owner-approved reintroduction could wire a live source (layoffs.fyi)
+// with a short TTL cache. See handoff docs §7.2 [B10].
 
-function getLayoffMatch(company) {
-  if (!company) return false;
-  const norm = company.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  return RECENT_LAYOFFS.some(l => {
-    const lNorm = l.company.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (!norm.includes(lNorm) && !lNorm.includes(norm)) return false;
-    const layoffDate = new Date(l.date + '-01');
-    return layoffDate >= sixMonthsAgo;
-  });
-}
-
-function selectCompaniesForResume(keywords) {
+function selectCompaniesForResume(keywords, location) {
   const allKw = [
     ...keywords.titles,
     ...keywords.domainSkills,
@@ -203,7 +453,57 @@ function selectCompaniesForResume(keywords) {
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, 15);
+  let picked = scored.slice(0, 15);
+
+  // When the user has chosen Austin as their location pill, force-include
+  // every Austin-HQ company so there's something to filter against — the
+  // SV-heavy default list produced near-zero Austin-located jobs.
+  if (location === 'austin') {
+    const have = new Set(picked.map(c => c.slug));
+    const austin = scored.filter(c => c.tags.includes('austin') && !have.has(c.slug));
+    picked = picked.concat(austin);
+  }
+  return picked;
+}
+
+// Pull Austin-located jobs from The Muse's public API across a broad set
+// of categories. Used only when the user has picked the Austin pill, to
+// pad out the candidate pool — the default general-APIs feed is heavily
+// remote / SF / NYC and rarely surfaces Austin.
+async function fetchAustinMuseJobs() {
+  const fetch = (await import('node-fetch')).default;
+  const cats = [
+    'Business%20Operations', 'Project%20Management', 'Marketing%20%26%20PR',
+    'Customer%20Service', 'Sales', 'Account%20Management', 'Human%20Resources',
+    'Finance', 'Data%20Science', 'Engineering', 'Design%20%26%20UX', 'Product',
+    'Creative%20%26%20Design', 'Retail', 'Education'
+  ];
+  const out = [];
+  const seen = new Set();
+  await Promise.all(cats.map(async (cat) => {
+    try {
+      const r = await fetch(`https://www.themuse.com/api/public/jobs?category=${cat}&location=Austin%2C+TX&page=0`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      (data.results || []).forEach(j => {
+        const loc = (j.locations || []).map(l => l.name).join(', ') || 'Austin, TX';
+        const id = 'muse-austin-' + j.id;
+        if (seen.has(id)) return; seen.add(id);
+        const d = j.publication_date ? new Date(j.publication_date) : null;
+        out.push({
+          id, title: j.name, company: (j.company || {}).name || 'Unknown',
+          location: loc, remote: loc.toLowerCase().includes('remote'),
+          url: j.refs && j.refs.landing_page ? j.refs.landing_page : '',
+          logo: '', salary: '',
+          postedDate: d, posted: d ? timeAgo(d) : '',
+          type: (j.levels || []).map(l => l.name).join(', ') || 'Full-time',
+          description: (j.contents || '').replace(/<[^>]+>/g, '').substring(0, 1500),
+          tags: (j.categories || []).map(c => c.name), source: 'The Muse'
+        });
+      });
+    } catch (_) {}
+  }));
+  return out;
 }
 
 async function fetchATSJobs(companies, keywords) {
@@ -214,15 +514,9 @@ async function fetchATSJobs(companies, keywords) {
     ...keywords.domainSkills.slice(0, 10)
   ].map(t => t.toLowerCase());
 
-  function isTitleRelevant(title) {
-    if (!title) return false;
-    const t = title.toLowerCase();
-    // Broad match: any resume keyword word (4+ chars) in the title
-    if (titleTerms.some(term => t.includes(term) || term.split(/\s+/).some(w => w.length >= 4 && t.includes(w)))) return true;
-    // Also match common business roles that most resumes relate to
-    const broadRoles = ['manager', 'director', 'lead', 'coordinator', 'specialist', 'analyst', 'associate', 'operations', 'strategy', 'growth', 'marketing', 'product', 'community', 'customer', 'success', 'program', 'project', 'sales', 'account', 'business', 'experience'];
-    return broadRoles.some(r => t.includes(r));
-  }
+  // 2026-04-18 [B4]: removed broad `isTitleRelevant` pre-filter; it matched
+  // ~95% of corporate titles (no-op) and obscured the trust boundary between
+  // fetching and scoring. scoreFit carries the full filtering weight now.
 
   // Process in batches of 10 concurrent
   for (let i = 0; i < companies.length; i += 10) {
@@ -233,60 +527,72 @@ async function fetchATSJobs(companies, keywords) {
         if (co.platform === 'greenhouse') {
           url = `https://boards-api.greenhouse.io/v1/boards/${co.slug}/jobs`;
           parseJobs = (data) => {
-            return (data.jobs || []).filter(j => isTitleRelevant(j.title)).map(j => ({
-              id: `gh-${co.slug}-${j.id}`,
-              title: j.title || '',
-              company: co.name,
-              location: (j.location && j.location.name) || 'Unknown',
-              remote: /remote/i.test((j.location && j.location.name) || ''),
-              url: j.absolute_url || '',
-              logo: '',
-              salary: '',
-              posted: j.updated_at ? timeAgo(new Date(j.updated_at)) : '',
-              type: 'Full-time',
-              description: '',
-              tags: co.tags || [],
-              source: 'Greenhouse'
-            }));
+            return (data.jobs || []).map(j => {
+              const d = j.updated_at ? new Date(j.updated_at) : null;
+              return {
+                id: `gh-${co.slug}-${j.id}`,
+                title: j.title || '',
+                company: co.name,
+                location: (j.location && j.location.name) || 'Unknown',
+                remote: /remote/i.test((j.location && j.location.name) || ''),
+                url: j.absolute_url || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: '',
+                tags: co.tags || [],
+                source: 'Greenhouse'
+              };
+            });
           };
         } else if (co.platform === 'ashby') {
           url = `https://api.ashbyhq.com/posting-api/job-board/${co.slug}`;
           parseJobs = (data) => {
-            return (data.jobs || []).filter(j => isTitleRelevant(j.title)).map(j => ({
-              id: `ab-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
-              title: j.title || '',
-              company: co.name,
-              location: j.location || 'Unknown',
-              remote: /remote/i.test(j.location || ''),
-              url: j.jobUrl || '',
-              logo: '',
-              salary: '',
-              posted: j.publishedAt ? timeAgo(new Date(j.publishedAt)) : '',
-              type: 'Full-time',
-              description: (j.descriptionPlain || '').substring(0, 1500),
-              tags: co.tags || [],
-              source: 'Ashby'
-            }));
+            return (data.jobs || []).map(j => {
+              const d = j.publishedAt ? new Date(j.publishedAt) : null;
+              return {
+                id: `ab-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
+                title: j.title || '',
+                company: co.name,
+                location: j.location || 'Unknown',
+                remote: /remote/i.test(j.location || ''),
+                url: j.jobUrl || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: (j.descriptionPlain || '').substring(0, 1500),
+                tags: co.tags || [],
+                source: 'Ashby'
+              };
+            });
           };
         } else if (co.platform === 'lever') {
           url = `https://api.lever.co/v0/postings/${co.slug}`;
           parseJobs = (data) => {
             if (!Array.isArray(data)) return [];
-            return data.filter(j => isTitleRelevant(j.text)).map(j => ({
-              id: `lv-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
-              title: j.text || '',
-              company: co.name,
-              location: (j.categories && j.categories.location) || 'Unknown',
-              remote: /remote/i.test((j.categories && j.categories.location) || ''),
-              url: j.hostedUrl || '',
-              logo: '',
-              salary: '',
-              posted: j.createdAt ? timeAgo(new Date(j.createdAt)) : '',
-              type: 'Full-time',
-              description: (j.descriptionPlain || '').substring(0, 1500),
-              tags: co.tags || [],
-              source: 'Lever'
-            }));
+            return data.map(j => {
+              const d = j.createdAt ? new Date(j.createdAt) : null;
+              return {
+                id: `lv-${co.slug}-${j.id || Math.random().toString(36).slice(2)}`,
+                title: j.text || '',
+                company: co.name,
+                location: (j.categories && j.categories.location) || 'Unknown',
+                remote: /remote/i.test((j.categories && j.categories.location) || ''),
+                url: j.hostedUrl || '',
+                logo: '',
+                salary: '',
+                postedDate: d,
+                posted: d ? timeAgo(d) : '',
+                type: 'Full-time',
+                description: (j.descriptionPlain || '').substring(0, 1500),
+                tags: co.tags || [],
+                source: 'Lever'
+              };
+            });
           };
         } else {
           return;
@@ -316,16 +622,19 @@ app.post('/api/find-jobs', async (req, res) => {
     const keywords = extractResumeKeywords(resumeText);
 
     // Fetch general APIs + ATS portals in parallel
-    const selectedCompanies = selectCompaniesForResume(keywords);
+    const selectedCompanies = selectCompaniesForResume(keywords, location);
     console.log('ATS: scanning', selectedCompanies.length, 'companies:', selectedCompanies.map(c => c.name).join(', '));
-    const [generalJobs, atsJobs] = await Promise.all([
+    const [generalJobs, atsJobs, austinJobs] = await Promise.all([
       fetchAllJobs(),
-      fetchATSJobs(selectedCompanies, keywords).catch(e => { console.error('ATS scan error:', e.message); return []; })
+      fetchATSJobs(selectedCompanies, keywords).catch(e => { console.error('ATS scan error:', e.message); return []; }),
+      location === 'austin'
+        ? fetchAustinMuseJobs().catch(e => { console.error('Austin Muse error:', e.message); return []; })
+        : Promise.resolve([])
     ]);
-    console.log('Found', generalJobs.length, 'general +', atsJobs.length, 'ATS jobs');
+    console.log('Found', generalJobs.length, 'general +', atsJobs.length, 'ATS +', austinJobs.length, 'Austin Muse jobs');
 
     // Merge and deduplicate
-    const merged = [...generalJobs, ...atsJobs];
+    const merged = [...generalJobs, ...atsJobs, ...austinJobs];
     const seen = new Set();
     const allJobs = merged.filter(j => {
       const key = (j.title + '|' + j.company).toLowerCase().replace(/\s+/g, ' ');
@@ -334,34 +643,109 @@ app.post('/api/find-jobs', async (req, res) => {
       return true;
     });
 
-    let scored = allJobs
-      .map(job => ({ ...job, fit: scoreFit(job, keywords) }))
-      .sort((a, b) => b.fit - a.fit);
+    const { scoreJobsWithLLM, MAX_JOBS_PER_CALL } = require('./lib/llm-scorer');
 
-    // Filter out clearly non-English-market jobs from all results
-    const nonEnglishMarket = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france|paris|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|s[aã]o paulo|nigeria|lagos|philippines|manila|pakistan|karachi|latam|latin america|asia|africa|middle east|emea|apac|europe|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|mexico|colombia|bogota|argentina|buenos aires|chile|santiago|peru|lima|egypt|cairo|turkey|istanbul|dubai|uae|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal)\b/i;
+    // Phase 3 (hoisted) — location filtering. The pill labels in the UI
+    // ("Anywhere", "Remote", "Austin, TX") are categorical, not soft
+    // preferences, so we treat them as hard filters: "austin" keeps only
+    // Austin-located jobs; "remote" keeps only remote-tagged jobs;
+    // "anywhere" keeps everything. This filter is used twice below —
+    // before Phase 1 (to focus LLM budget) and after Phase 2 (as the
+    // final guarantee that no off-location jobs leak through).
+    function locationMatches(job) {
+      if (location === 'anywhere' || !location) return true;
+      const loc = (job.location || '').toLowerCase();
+      const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
+      // Austin = Austin-located only. Earlier passes also admitted remote
+      // jobs on the theory "remote can be worked from Austin", but that
+      // surfaced Donorbox Europe and Stripe Chicago-Remote under an
+      // "Austin, TX" pill, which was confusing. Use Remote pill for that.
+      if (location === 'austin') return /austin/i.test(loc);
+      if (location === 'remote') return isRemote;
+      return true;
+    }
+
+    // Phase 1 — coarse keyword pre-filter. The LLM is expensive per job
+    // and the job universe is large; keyword scoring narrows ~500 jobs
+    // to MAX_JOBS_PER_CALL candidates.
+    //
+    // Location handling: for narrow pills (Austin, Remote) we apply the
+    // location filter BEFORE the keyword pre-filter. Earlier we let the
+    // full 500-job pool through and filtered post-scoring, but that
+    // spent the LLM's ~60-candidate budget on jobs that would then be
+    // dropped — leaving e.g. zero Austin-located jobs in the final set
+    // even when we'd fetched ~150 Austin candidates. Applying the
+    // filter here focuses the LLM budget on jobs that can actually
+    // survive the final filter.
+    let scored = allJobs
+      .map(job => ({
+        ...job,
+        keywordFit: scoreFit(job, keywords),
+        matchedTerms: matchedTermsForJob(job, keywords)
+      }))
+      .sort((a, b) => b.keywordFit - a.keywordFit);
+
     scored = scored.filter(j => {
-      const loc = (j.location || '').toLowerCase();
-      const title = (j.title || '').toLowerCase();
-      // Filter location
-      if (nonEnglishMarket.test(loc)) return false;
-      // Filter titles with non-English markers
-      if (/\b(all genders|m\/w\/d|m\/f\/d)\b/i.test(title)) return false;
+      if (!isAllowedMarketLocation(j.location)) return false;
+      if (!isAllowedMarketTitle(j.title)) return false;
       return true;
     });
 
-    if (location === 'remote') {
-      scored = scored.filter(j => {
-        const loc = (j.location || '').toLowerCase();
-        return /remote/i.test(loc) || j.remote;
-      });
-    } else if (location === 'austin') {
-      scored = scored.filter(j => /austin/i.test(j.location || ''));
+    // Pre-filter by location so the LLM candidate budget is spent on
+    // jobs that survive the final hard filter.
+    const preFiltered = (location === 'austin' || location === 'remote')
+      ? scored.filter(locationMatches)
+      : scored;
+
+    const llmCandidates = preFiltered.slice(0, MAX_JOBS_PER_CALL);
+
+    // Phase 2 — LLM scoring (global, location-agnostic).
+    let llmScores = null;
+    let llmFailed = false;
+    try {
+      if (process.env.ANTHROPIC_API_KEY) {
+        const t0 = Date.now();
+        llmScores = await scoreJobsWithLLM(resumeText, llmCandidates);
+        console.log('LLM scored', llmScores.length, 'jobs in', Date.now() - t0, 'ms');
+      } else {
+        console.warn('ANTHROPIC_API_KEY missing — falling back to keyword scoring');
+        llmFailed = true;
+      }
+    } catch (e) {
+      console.error('LLM scoring failed:', e.message, '— falling back to keyword');
+      llmFailed = true;
     }
 
-    // Only show jobs with meaningful relevance (40%+ fit)
-    scored = scored.filter(j => j.fit >= 40);
-    const top = scored.slice(0, 40);
+    const scoresById = new Map((llmScores || []).map(s => [s.id, s]));
+    let top = llmCandidates
+      .filter(locationMatches)
+      .map(j => {
+        const llm = scoresById.get(j.id);
+        const rawFit = llm ? llm.fit : j.keywordFit;
+        // Small nudge for exact-Austin over remote when Austin is selected,
+        // so local listings outrank "work from anywhere" roles.
+        const loc = (j.location || '').toLowerCase();
+        const boost = location === 'austin' && /austin/i.test(loc) ? 6 : 0;
+        return {
+          ...j,
+          rawFit,
+          locationBoost: boost,
+          fit: Math.min(100, rawFit + boost),
+          fitReason: llm ? llm.reason : null,
+          scoredBy: llm ? 'llm' : 'keyword'
+        };
+      })
+      .sort((a, b) => b.fit - a.fit);
+
+    // Minimum fit threshold. LLM scores are calibrated differently from
+    // keyword scores — use 55 for LLM, 40 for keyword fallback. Narrow
+    // location pills get a lower threshold so that tight geographic
+    // filters don't collapse to zero results; the pill already says
+    // "Austin, TX" so a 48% "maybe relevant" Austin job is more useful
+    // than an empty page.
+    let minFit = llmFailed ? 40 : 55;
+    if (location === 'austin') minFit = llmFailed ? 30 : 45;
+    top = top.filter(j => j.fit >= minFit).slice(0, 20);
     // Score-based tiers matching stat card labels
     top.forEach((j, i) => {
       if (j.fit >= 75) j.tier = 'hot';
@@ -380,15 +764,15 @@ app.post('/api/find-jobs', async (req, res) => {
       j.source = String(j.source || '');
       j.tags = Array.isArray(j.tags) ? j.tags.map(String) : [];
 
-      // Ghost detection fields
-      j.daysAgo = parseDaysAgo(j.posted);
+      // Ghost detection fields — prefer real Date, fall back to parseDaysAgo
+      j.daysAgo = daysAgoFromJob(j);
       if (j.daysAgo === null) j.freshness = 'unknown';
       else if (j.daysAgo <= 7) j.freshness = 'fresh';
       else if (j.daysAgo <= 14) j.freshness = 'normal';
       else if (j.daysAgo <= 30) j.freshness = 'aging';
       else j.freshness = 'stale';
 
-      j.layoffSignal = getLayoffMatch(j.company);
+      j.layoffSignal = false; // [B10] removed 2026-04-18; see note above
     });
 
     // Repost detection: group by company, flag if same company appears 2+ times
@@ -402,13 +786,24 @@ app.post('/api/find-jobs', async (req, res) => {
       j.reposted = companyCount[co] >= 2;
     });
 
-    // Ghost risk assessment
+    // Ghost risk assessment (freshness + reposts only; layoff signal removed)
     top.forEach(j => {
       let signals = 0;
-      if (j.freshness === 'stale' || j.freshness === 'aging') signals++;
-      if (j.layoffSignal) signals++;
-      if (j.reposted) signals++;
+      const reasons = [];
+      if (j.freshness === 'stale') {
+        signals += 2;
+        reasons.push(`posted ${j.daysAgo}d ago`);
+      } else if (j.freshness === 'aging') {
+        signals += 1;
+        reasons.push(`posted ${j.daysAgo}d ago`);
+      }
+      if (j.reposted) {
+        signals++;
+        reasons.push(`${j.company} has multiple open reqs`);
+      }
       j.ghostRisk = signals === 0 ? 'low' : signals === 1 ? 'medium' : 'high';
+      j.ghostRiskReason = reasons.join(' · ') || 'fresh posting, single req';
+      j.ghostRiskReasons = reasons.length ? reasons : ['Fresh posting, single open req'];
     });
 
     res.json({ jobs: top, keywords: keywords.titles.concat(keywords.domainSkills).slice(0, 10) });
@@ -433,13 +828,14 @@ async function fetchAllJobs() {
         const data = await r.json();
         data.slice(1).forEach(j => {
           if (!j.position) return;
+          const d = j.date ? new Date(j.date) : null;
           results.push({
             id: 'rok-' + (j.id || j.slug), title: j.position, company: j.company || 'Unknown',
             location: j.location || 'Remote', remote: true,
             url: j.url || ('https://remoteok.com/remote-jobs/' + j.slug),
             logo: j.company_logo || j.logo || '',
             salary: j.salary_min && j.salary_max ? '$' + Math.round(j.salary_min / 1000) + 'k\u2013$' + Math.round(j.salary_max / 1000) + 'k' : '',
-            posted: j.date ? timeAgo(new Date(j.date)) : '', type: 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'RemoteOK'
           });
@@ -453,11 +849,12 @@ async function fetchAllJobs() {
         const r = await fetch('https://www.arbeitnow.com/api/job-board-api', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.data || []).forEach(j => {
+          const d = j.created_at ? new Date(j.created_at * 1000) : null;
           results.push({
             id: 'abn-' + j.slug, title: j.title, company: j.company_name || 'Unknown',
             location: j.location || (j.remote ? 'Remote' : ''), remote: !!j.remote,
             url: j.url, logo: '', salary: '',
-            posted: j.created_at ? timeAgo(new Date(j.created_at * 1000)) : '', type: (j.job_types || []).join(', ') || 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: (j.job_types || []).join(', ') || 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'Arbeitnow'
           });
@@ -471,11 +868,12 @@ async function fetchAllJobs() {
         const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.jobs || []).forEach(j => {
+          const d = j.pubDate ? new Date(j.pubDate) : null;
           results.push({
             id: 'jcy-' + j.id, title: j.jobTitle, company: j.companyName || 'Unknown',
             location: j.jobGeo || 'Remote', remote: true,
             url: j.url, logo: j.companyLogo || '', salary: j.annualSalaryMin && j.annualSalaryMax ? '$' + Math.round(j.annualSalaryMin / 1000) + 'k\u2013$' + Math.round(j.annualSalaryMax / 1000) + 'k' : '',
-            posted: j.pubDate ? timeAgo(new Date(j.pubDate)) : '', type: j.jobType || 'Full-time',
+            postedDate: d, posted: d ? timeAgo(d) : '', type: j.jobType || 'Full-time',
             description: (j.jobDescription || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: [], source: 'Jobicy'
           });
@@ -489,11 +887,13 @@ async function fetchAllJobs() {
         const r = await fetch('https://remotive.com/api/remote-jobs?limit=100', { signal: AbortSignal.timeout(10000) });
         const data = await r.json();
         (data.jobs || []).forEach(j => {
+          const d = j.publication_date ? new Date(j.publication_date) : null;
           results.push({
             id: 'rmt-' + j.id, title: j.title, company: j.company_name || 'Unknown',
             location: j.candidate_required_location || 'Remote', remote: true,
             url: j.url, logo: j.company_logo_url || j.company_logo || '',
-            salary: j.salary || '', posted: j.publication_date ? timeAgo(new Date(j.publication_date)) : '',
+            salary: j.salary || '',
+            postedDate: d, posted: d ? timeAgo(d) : '',
             type: j.job_type || 'Full-time',
             description: (j.description || '').replace(/<[^>]+>/g, '').substring(0, 1500),
             tags: j.tags || [], source: 'Remotive',
@@ -513,12 +913,13 @@ async function fetchAllJobs() {
             const data = await r.json();
             (data.results || []).forEach(j => {
               const loc = (j.locations || []).map(l => l.name).join(', ') || 'Various';
+              const d = j.publication_date ? new Date(j.publication_date) : null;
               results.push({
                 id: 'muse-' + j.id, title: j.name, company: (j.company || {}).name || 'Unknown',
                 location: loc, remote: loc.toLowerCase().includes('remote'),
                 url: j.refs && j.refs.landing_page ? j.refs.landing_page : '',
                 logo: '', salary: '',
-                posted: j.publication_date ? timeAgo(new Date(j.publication_date)) : '',
+                postedDate: d, posted: d ? timeAgo(d) : '',
                 type: (j.levels || []).map(l => l.name).join(', ') || 'Full-time',
                 description: (j.contents || '').replace(/<[^>]+>/g, '').substring(0, 1500),
                 tags: (j.categories || []).map(c => c.name), source: 'The Muse'
@@ -581,13 +982,15 @@ function extractResumeKeywords(text) {
   const lower = text.toLowerCase();
 
   // 1. Extract job titles from resume (multiple patterns)
-  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of|founder)?\s*(?:product|program|project|engineering|software|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate|leader|owner|operator)\b/gi;
+  const titleRe = /\b(?:senior|staff|lead|principal|chief|head|junior|associate|director|vp of|founder)?\s*(?:product|program|project|engineering|software|hardware|firmware|systems|silicon|chip|asic|fpga|electrical|mechanical|data|marketing|sales|operations|finance|design|ux|ui|research|business|customer|growth|content|community|full[- ]?stack|front[- ]?end|back[- ]?end|devops|cloud|security|general|account|event|member|experience|hospitality|coworking|real estate|quality|reliability|yield|test|validation|verification|characterization|integration|applications|field|customer quality)\s*(?:manager|engineer|designer|analyst|director|specialist|coordinator|developer|architect|scientist|lead|officer|strategist|consultant|planner|associate|leader|owner|operator|technologist)\b/gi;
   const titles = [...new Set([...text.matchAll(titleRe)].map(m => m[0].trim().toLowerCase()))];
-  // Also extract "X & Y" compound titles like "Product & Operations"
-  const compoundRe = /\b(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\s*[&+]\s*(?:product|operations|community|growth|strategy|marketing|revenue|hospitality)\b/gi;
-  [...text.matchAll(compoundRe)].forEach(m => {
-    const parts = m[0].toLowerCase().split(/\s*[&+]\s*/);
-    parts.forEach(p => { if (p.length >= 4 && !titles.includes(p)) titles.push(p); });
+  // "X & Y Manager" — extract the compound as a full title ("product & operations manager").
+  // Previous version added bare "product" / "operations" which polluted titleKeywords
+  // with LOW_SIGNAL words and gave no useful signal.
+  const compoundTitleRe = /\b(product|operations|community|growth|strategy|marketing|revenue|hospitality|member|resident|experience)\s*[&+]\s*(product|operations|community|growth|strategy|marketing|revenue|hospitality|member|resident|experience)\s+(manager|director|lead|specialist|coordinator|leader)\b/gi;
+  [...text.matchAll(compoundTitleRe)].forEach(m => {
+    const t = m[0].trim().toLowerCase();
+    if (!titles.includes(t)) titles.push(t);
   });
   // If no titles found, infer from section headers and key phrases
   if (titles.length === 0) {
@@ -624,6 +1027,24 @@ function extractResumeKeywords(text) {
     'property management','tenant','resident','amenities','lease',
     'startup','founder','entrepreneurship','incubator','accelerator',
     'saas','b2b','b2c','crm','erp','api','automation',
+    // Hardware / semiconductor / EE / data-center infrastructure
+    'electrical engineering','electrical','electronics','semiconductor','semiconductors',
+    'silicon','chip','chips','chipset','asic','fpga','soc','ic design','vlsi','rtl',
+    'hardware','firmware','embedded','circuit','circuits','pcb','analog','digital design',
+    'signal integrity','power integrity','rf','mixed signal','analog design',
+    'verilog','systemverilog','vhdl','cadence','synopsys','mentor graphics',
+    'foundry','fabrication','wafer','lithography','photolithography','yield','tape-out','tapeout',
+    'process technology','7nm','5nm','14nm','10nm','3nm','cmos','finfet',
+    'memory','dram','nand','nor','flash','hbm','ddr','lpddr','ssd','nvme','storage',
+    'quality engineering','customer quality','failure analysis','fa','reliability',
+    'validation','verification','characterization','test engineering','ate',
+    'eight disciplines','8d','root cause','six sigma','lean','lean manufacturing',
+    'continuous improvement','spc','dfmea','pfmea','iso9001','iatf',
+    'cloud infrastructure','cloud computing','data center','datacenter','hyperscale',
+    'on-prem','colocation','networking','compute','power systems',
+    'odm','oem','supply chain engineering','manufacturing','operations engineering',
+    'phd','doctorate','research engineer','applied research',
+    // /Hardware
     'supply chain','inventory','warehouse','fulfillment','distribution',
     'healthcare','biotech','fintech','edtech','cleantech','insurtech',
     'nonprofit','social impact','sustainability','esg',
@@ -668,12 +1089,14 @@ function extractResumeKeywords(text) {
     .slice(0, 20)
     .map(([bg]) => bg);
 
-  console.log('Resume keywords:', {
-    titles: titles.slice(0, 5),
-    domain: matchedDomain.slice(0, 10),
-    words: specificWords.slice(0, 10),
-    bigrams: specificBigrams.slice(0, 5)
-  });
+  if (process.env.NODE_ENV !== 'test') {
+    console.log('Resume keywords:', {
+      titles: titles.slice(0, 5),
+      domain: matchedDomain.slice(0, 10),
+      words: specificWords.slice(0, 10),
+      bigrams: specificBigrams.slice(0, 5)
+    });
+  }
 
   return { titles, domainSkills: matchedDomain, specificWords, specificBigrams };
 }
@@ -689,6 +1112,65 @@ function parseDaysAgo(posted) {
   return null;
 }
 
+// [B6] Prefer a real Date on the job (set by every fetcher as `postedDate`)
+// so ghost-freshness isn't limited by the lossy `Nd ago` / `Nmo ago` string
+// bucket. Falls back to parseDaysAgo for legacy jobs.
+function daysAgoFromJob(job) {
+  if (job && job.postedDate instanceof Date && !Number.isNaN(job.postedDate.getTime())) {
+    return Math.max(0, Math.floor((Date.now() - job.postedDate.getTime()) / 86400000));
+  }
+  return parseDaysAgo(job && job.posted);
+}
+
+// [B3] English-speaking-market ALLOWLIST (2026-04-18 rewrite).
+// The previous blocklist dropped legitimate US-headquartered remote jobs whose
+// location string mentioned "US / EMEA" or "Remote (Americas / EMEA)" and also
+// leaked through Rome, Phnom Penh, Costa Rica, etc. because those were not in
+// the list. The allowlist keeps a job iff its location clearly references a
+// primary English-speaking market OR remote/worldwide/anywhere. Empty or
+// missing locations pass (benefit of doubt — many ATS portals leave it blank).
+const ALLOWED_MARKET_RE = /\b(united states|u\.s\.a?\.?|usa|us(?=[-/\s,(]|$)|north america|americas|canada|canadian|united kingdom|u\.k\.?|uk(?=[-/\s,(]|$)|england|scotland|wales|ireland|irish|republic of ireland|australia|australian|new zealand|anywhere|worldwide|global|remote|remote-first|remote friendly|work from home|wfh|distributed|austin|dallas|houston|san antonio|san francisco|sf\b|oakland|san jose|silicon valley|los angeles|l\.a\.|san diego|sacramento|seattle|portland|denver|boulder|new york|nyc|ny\b|brooklyn|manhattan|queens|bronx|boston|cambridge(?!,\s*uk)|philadelphia|philly|pittsburgh|washington|d\.c\.|dc\b|baltimore|atlanta|miami|orlando|tampa|jacksonville|charlotte|raleigh|durham|nashville|memphis|louisville|cincinnati|cleveland|columbus|indianapolis|detroit|chicago|milwaukee|minneapolis|st\.? paul|madison|st\.? louis|kansas city|omaha|oklahoma city|phoenix|tucson|albuquerque|salt lake|las vegas|reno|toronto|vancouver|montreal|montr[eé]al|calgary|edmonton|ottawa|london|manchester|leeds|edinburgh|dublin|belfast|cork|sydney|melbourne|brisbane|perth|adelaide|auckland|wellington)\b/i;
+
+// Locations that override the allowlist: an otherwise matching location that
+// also names an unambiguously non-English-market country is dropped. Keeps
+// "Remote - USA / India" off the board while letting "Remote (US/EMEA)" in
+// (EMEA alone is not an exclusive match).
+// Bare country/city names deliberately avoid US collisions:
+//   - `mexico` → negative lookbehind on "new " so "New Mexico, NM" passes
+//     ("mexico city" still drops because it's not preceded by "new ").
+//   - `paris`, `lima` removed as bare alternatives — France / Peru already
+//     catch the country-level match and US towns (Paris TX, Lima OH) were
+//     getting filtered out.
+//   - `turkey`, `panama` require a known non-US context so Turkey, TX and
+//     Panama City, FL don't get dropped.
+const EXCLUSIVE_NON_ENGLISH_RE = /\b(india|bengaluru|bangalore|hyderabad|mumbai|pune|chennai|delhi|noida|gurgaon|china|shanghai|beijing|shenzhen|japan|tokyo|korea|seoul|france(?!\s+st)|parisian|lyon|germany|berlin|munich|karlsruhe|hamburg|spain|madrid|barcelona|brazil|brasil|s[aã]o paulo|rio de janeiro|nigeria|lagos|philippines|manila|pakistan|karachi|cambodia|phnom penh|singapore|hong kong|taiwan|thailand|bangkok|vietnam|indonesia|jakarta|malaysia|kuala lumpur|(?<!new\s)mexico|colombia|bogota|argentina|buenos aires|chile|santiago|peru|peruvian|egypt|cairo|turkey(?!,\s*(tx|texas|nc|north\s+carolina))|istanbul|dubai|u\.a\.e\.|uae|saudi arabia|saudi|qatar|russia|moscow|poland|warsaw|czech|prague|romania|hungary|budapest|ukraine|kyiv|bangladesh|sri lanka|nepal|costa rica|panama(?!\s*city,?\s*(fl|florida))|ecuador|bolivia|paraguay|uruguay|venezuela)\b/i;
+
+function isAllowedMarketLocation(location) {
+  if (!location) return true; // empty → keep
+  const loc = String(location).toLowerCase();
+  // Drop only when the location names an unambiguously non-English-primary
+  // market (e.g. Bengaluru, Paris, Tokyo). Everything else passes — US
+  // state names, US cities not in the small curated allowlist (Palo Alto,
+  // Mountain View, Santa Clara, Redmond, …), ATS placeholders ("Various",
+  // "Unknown", "Hybrid"), and remote/anywhere.
+  //
+  // Previous implementation used ALLOWED_MARKET_RE as a hard allowlist and
+  // silently dropped every US location not in the ~60-entry list, including
+  // the exact semiconductor-company HQs (SambaNova, Astera Labs, Cerebras,
+  // Lightmatter, PsiQuantum, IonQ) that the EE-resume golden path depends
+  // on. That regression is covered by tests in test/filters.test.js.
+  if (EXCLUSIVE_NON_ENGLISH_RE.test(loc)) return false;
+  return true;
+}
+
+// Titles in non-English postings (German "m/w/d" etc.) are dropped regardless
+// of the location string, since the job ad itself isn't written for an
+// English-speaking audience.
+function isAllowedMarketTitle(title) {
+  if (!title) return true;
+  return !/\b(all genders|m\/w\/d|m\/f\/d|w\/m\/d|h\/f|h\/m\/f)\b/i.test(String(title));
+}
+
 function parseSalaryMid(salary) {
   if (!salary) return null;
   const nums = salary.match(/\$?\s*(\d+)\s*k/gi);
@@ -696,6 +1178,37 @@ function parseSalaryMid(salary) {
   const values = nums.map(n => parseInt(n.replace(/[^0-9]/g, ''), 10) * 1000);
   if (values.length >= 2) return (values[0] + values[1]) / 2;
   return values[0];
+}
+
+// Returns up to 5 human-readable terms from the resume that appear in the job
+// posting — used by the UI to show "why this matches" on each user-search card.
+function matchedTermsForJob(job, keywords) {
+  const jobText = ((job.title || '') + ' ' + (job.description || '') + ' ' +
+    (Array.isArray(job.tags) ? job.tags.join(' ') : '') + ' ' +
+    (job.category || '')).toLowerCase();
+  const LOW_SIGNAL = new Set(['marketing','sales','operations','strategy','analytics','growth',
+    'finance','leadership','management','consulting','accounting','education',
+    'reporting','training','research','analysis','stakeholder','pipeline',
+    'acquisition','onboarding','retention','budget','startup','founder',
+    'community','brand','communications']);
+  const hits = new Set();
+  // Prefer bigrams first (more specific), then domain skills, then titles
+  (keywords.specificBigrams || []).forEach(bg => {
+    if (hits.size >= 5) return;
+    if (bg.length >= 8 && jobText.includes(bg)) hits.add(bg);
+  });
+  (keywords.domainSkills || []).forEach(s => {
+    if (hits.size >= 5) return;
+    // Skip 2-char abbreviations like 'fa' (Failure Analysis) that match random
+    // substrings in job descriptions ("manufacturing", "california", etc.).
+    if (s.length < 3) return;
+    if (!LOW_SIGNAL.has(s) && jobText.includes(s)) hits.add(s);
+  });
+  (keywords.titles || []).forEach(t => {
+    if (hits.size >= 5) return;
+    if (jobText.includes(t)) hits.add(t);
+  });
+  return [...hits].slice(0, 5);
 }
 
 function scoreFit(job, keywords) {
@@ -706,31 +1219,65 @@ function scoreFit(job, keywords) {
     (job.category || '')).toLowerCase();
 
   // ═══ STEP 1: Does the job title match the resume's career field? ═══
+  // Generic words that match too many unrelated jobs ("Customer Success Manager"
+  // shouldn't score on "customer" from "Customer Quality Engineer").
   const LOW_SIGNAL = new Set(['marketing','sales','operations','strategy','analytics','growth',
     'finance','leadership','management','consulting','accounting','education',
     'reporting','training','research','analysis','stakeholder','pipeline',
-    'acquisition','onboarding','retention','budget','startup','founder']);
+    'acquisition','onboarding','retention','budget','startup','founder',
+    'customer','senior','junior','principal','staff','team','lead','manager',
+    'director','engineer','analyst','specialist','coordinator','associate',
+    'partner','executive','assistant','intern','project','product','program',
+    'global','international','regional','national','chief','head','vp',
+    'business','corporate','service','support','success','experience','process']);
 
-  // Gather title-relevant words from resume
+  // Gather title-relevant words from resume (single words, weaker signal)
   const titleKeywords = new Set();
-  keywords.titles.forEach(t => t.split(/\s+/).filter(w => w.length >= 4).forEach(w => titleKeywords.add(w)));
+  keywords.titles.forEach(t => t.split(/\s+/).filter(w => w.length >= 5 && !LOW_SIGNAL.has(w)).forEach(w => titleKeywords.add(w)));
   keywords.domainSkills.forEach(s => {
-    if (!LOW_SIGNAL.has(s)) s.split(/\s+/).filter(w => w.length >= 4).forEach(w => titleKeywords.add(w));
+    if (!LOW_SIGNAL.has(s) && s.length >= 3) {
+      s.split(/\s+/).filter(w => w.length >= 5 && !LOW_SIGNAL.has(w)).forEach(w => titleKeywords.add(w));
+    }
   });
-  // Also add resume-specific words that appear 2+ times
-  keywords.specificWords.slice(0, 10).forEach(w => { if (w.length >= 5) titleKeywords.add(w); });
+  keywords.specificWords.slice(0, 10).forEach(w => { if (w.length >= 5 && !LOW_SIGNAL.has(w)) titleKeywords.add(w); });
+
+  // Multi-word phrases from resume titles — stronger signal. Used to require
+  // real alignment on e.g. "customer quality" or "yield engineer" rather than
+  // matching individual generic words.
+  // (Intentionally uses em-dash literal, not escaped.)
+  const titlePhrases = new Set();
+  keywords.titles.forEach(t => {
+    const words = t.split(/\s+/).filter(Boolean);
+    for (let i = 0; i + 1 < words.length; i++) {
+      const bg = words[i] + ' ' + words[i + 1];
+      // Skip bigrams composed entirely of LOW_SIGNAL words
+      if (LOW_SIGNAL.has(words[i]) && LOW_SIGNAL.has(words[i + 1])) continue;
+      if (bg.length >= 8) titlePhrases.add(bg);
+    }
+  });
 
   const titleHits = [...titleKeywords].filter(w => jobTitle.includes(w));
+  const phraseHits = [...titlePhrases].filter(p => jobTitle.includes(p));
   let titleRelevance = 0;
-  if (titleHits.length >= 2) titleRelevance = 2;
-  else if (titleHits.length === 1) titleRelevance = 1;
+  if (phraseHits.length >= 1 || titleHits.length >= 2) titleRelevance = 2;
+  else if (titleHits.length >= 1) titleRelevance = 1;
 
   // ═══ STEP 2: Wrong career field detection ═══
   let wrongField = false;
-  const resumeIsTech = keywords.domainSkills.some(s =>
-    ['javascript','python','java','react','node','aws','kubernetes','docker',
-     'machine learning','data science','ci/cd','devops','sql','terraform',
-     'golang','rust','typescript','c++','ruby','php'].includes(s));
+  // True SWE signal — must include code/framework terms, not just cloud provider
+  // names. An EE resume mentioning "AWS" as a customer shouldn't read as SWE.
+  // `'node'` used to appear in both the software and semiconductor sections of
+  // domainTerms. The duplicate has been removed (it now lives only in the
+  // software section), so including it in resumeIsSoftware is fine again —
+  // a true Node.js developer's resume will still trip this check via
+  // co-occurring 'javascript' / 'express' / 'typescript'.
+  const resumeIsSoftware = keywords.domainSkills.some(s =>
+    ['javascript','python','java','react','angular','vue','node','express',
+     'kubernetes','docker','machine learning','data science','ci/cd','devops',
+     'sql','terraform','golang','rust','typescript','c++','ruby','php'].includes(s));
+  const resumeIsCloudUser = keywords.domainSkills.some(s =>
+    ['aws','azure','gcp'].includes(s));
+  const resumeIsTech = resumeIsSoftware || resumeIsCloudUser;
   const resumeIsFinance = keywords.domainSkills.some(s =>
     ['accounting','finance','financial reporting','budgeting','forecasting'].includes(s));
   const resumeIsDesign = keywords.domainSkills.some(s =>
@@ -739,27 +1286,85 @@ function scoreFit(job, keywords) {
     ['sales','account management','business development'].includes(s));
   const resumeIsContent = keywords.domainSkills.some(s =>
     ['seo','content marketing','copywriting','editorial'].includes(s));
-  const resumeIsOps = keywords.domainSkills.some(s =>
-    ['supply chain','inventory','warehouse','fulfillment','distribution','logistics','procurement'].includes(s));
+  // True ops signal needs an actual ops title. Passing mentions of
+  // "supply chain", "distribution", etc. in an EE/semi resume shouldn't make
+  // them an ops/supply-chain professional.
+  const resumeIsOps = keywords.titles.some(t =>
+      /\b(supply chain|logistics|warehouse|fulfillment|distribution|procurement|operations)\s+(manager|director|lead|analyst|specialist|coordinator|planner|associate)\b/i.test(t))
+    || keywords.titles.some(t => /\b(supply chain|logistics|warehouse|fulfillment|procurement)\b/i.test(t));
+  // Hardware / semiconductor / EE signal — if any of these hit, hardware jobs are
+  // in-field and cloud-infrastructure jobs get treated as on-domain.
+  const resumeIsHardware = keywords.domainSkills.some(s =>
+    ['electrical engineering','electrical','electronics','semiconductor','semiconductors',
+     'silicon','chip','chips','chipset','asic','fpga','soc','vlsi','rtl','hardware',
+     'firmware','embedded','analog','mixed signal','foundry','wafer','yield',
+     'tape-out','tapeout','cmos','finfet','memory','dram','nand','hbm','ddr','ssd',
+     'customer quality','failure analysis','reliability','characterization',
+     'data center','datacenter','hyperscale','cloud infrastructure','7nm','5nm',
+     '14nm','10nm','3nm'].includes(s))
+    || keywords.titles.some(t =>
+        /(customer quality|yield|product|hardware|firmware|electrical|semiconductor|applications|systems|reliability|test|validation|silicon)\s+engineer/i.test(t));
+  const resumeIsHR = keywords.domainSkills.some(s =>
+    ['recruiting','talent acquisition','human resources','people operations'].includes(s));
+  // "Communications" alone is too permissive (matches journal names like
+  // "Nature Communications"). Require an actual comms role / context.
+  const resumeIsComms = keywords.domainSkills.some(s =>
+    ['public relations','copywriting','editorial','journalism'].includes(s))
+    || keywords.titles.some(t => /\b(internal|corporate|employee|external|brand)\s+communications\b/i.test(t))
+    || keywords.titles.some(t => /\bcommunications\s+(manager|director|lead|specialist|strategist|officer)\b/i.test(t));
+  // Same pattern for marketing — a "Persuasive Marketing" adjunct course
+  // shouldn't make someone a marketer. Only trust an actual marketing title
+  // in the extracted titles list.
+  // Marketing detection — require an actual marketing title (not "growth manager"
+  // alone, which can be fabricated from a domain mention of "growth"). The
+  // last-resort fallback in extractResumeKeywords adds "growth manager" /
+  // "product manager" etc. for any domain word in the resume, so trusting
+  // that as a marketing signal flips Kyle (community/ops) to marketer.
+  const resumeIsMarketing = keywords.domainSkills.some(s =>
+    ['content marketing','seo','demand generation','go-to-market','gtm'].includes(s))
+    || keywords.titles.some(t => /\bmarketing\b/i.test(t))
+    || keywords.titles.some(t => /\b(demand generation|lifecycle marketing|performance marketing|product marketing|brand manager|brand director)\b/i.test(t));
 
-  // Engineering/tech roles for non-tech resumes
-  if (!resumeIsTech && /\b(software|data|ml|ai|backend|frontend|full.?stack|devops|cloud|platform|infrastructure|security|systems|site reliability|sre|analytics)\s*(engineer|developer|scientist|architect)\b/i.test(jobTitle)) wrongField = true;
-  if (!resumeIsTech && /\b(engineering manager|tech lead|cto|vp engineering|head of engineering)\b/i.test(jobTitle)) wrongField = true;
+  // Engineering/tech roles for non-tech, non-hardware resumes
+  if (!resumeIsTech && !resumeIsHardware && /\b(software|data|ml|ai|backend|frontend|full.?stack|devops|cloud|platform|infrastructure|security|systems|site reliability|sre|analytics)\s*(engineer|developer|scientist|architect)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsTech && !resumeIsHardware && /\b(engineering manager|tech lead|cto|vp engineering|head of engineering)\b/i.test(jobTitle)) wrongField = true;
+  // Hardware resume without true SWE signal: pure software roles are off-field
+  // (AWS/Azure mentions alone don't qualify a customer-quality EE as a coder).
+  if (resumeIsHardware && !resumeIsSoftware) {
+    if (/\b(software|front.?end|back.?end|full.?stack|ios|android|mobile|web|application|backend|frontend|ml|ai|data|site reliability|sre|infrastructure|platform|devops)\s*(engineer|developer|scientist|architect|engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(staff|principal|senior|lead|distinguished)\s+(software|backend|frontend|platform|systems|app|application|web)\s+(engineer|developer|engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\bpartner\s+(engineer|solutions)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(engineering manager|tech lead|cto|vp engineering|head of engineering|director of engineering)\b/i.test(jobTitle)) wrongField = true;
+    if (/\bdeveloper\s+(advocate|relations|experience)\b/i.test(jobTitle)) wrongField = true;
+    if (/\b(search quality rater|data labeler|annotation specialist)\b/i.test(jobTitle)) wrongField = true;
+  }
   // Finance roles for non-finance resumes
   if (!resumeIsFinance && /\b(fp&a|financial analyst|controller|accountant|bookkeeper|tax|audit|treasury|accounts payable|accounts receivable|payroll|stock administrator)\b/i.test(jobTitle)) wrongField = true;
   // Design roles for non-design resumes
   if (!resumeIsDesign && /\b(product designer|ux designer|ui designer|graphic designer|creative director|visual designer|brand designer|design lead)\b/i.test(jobTitle)) wrongField = true;
   // Sales roles for non-sales resumes
-  if (!resumeIsSales && /\b(account executive|sales development|sales representative|bdr|sdr|business development representative|territory account|inside sales|outside sales)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsSales && /\b(account executive|sales development|sales representative|bdr|sdr|business development representative|territory account|inside sales|outside sales|international sales|regional sales|enterprise sales|sales manager|sales director|head of sales|vp sales|chief revenue officer|revenue operations)\b/i.test(jobTitle)) wrongField = true;
   // Content/SEO for non-content resumes
   if (!resumeIsContent && /\b(seo manager|seo specialist|content marketing manager|content strategist|copywriter|editorial director)\b/i.test(jobTitle)) wrongField = true;
+  // HR / employee communications / recruiting for non-HR, non-comms resumes (Avinash miss)
+  if (!resumeIsHR && !resumeIsComms && /\b(employee communications|internal communications|people partner|hr business partner|hrbp|talent acquisition|recruiter|recruiting manager|head of people|chief people officer|people operations manager)\b/i.test(jobTitle)) wrongField = true;
+  // Generic "Communications Manager/Director" — off-field for non-comms resumes
+  if (!resumeIsComms && /\b(communications|pr|public relations)\s+(manager|director|lead|specialist)\b/i.test(jobTitle)) wrongField = true;
+  // Marketing roles for non-marketing resumes (product marketing manager, growth marketing, etc.)
+  if (!resumeIsMarketing && /\b(product marketing manager|pmm|growth marketing manager|marketing manager|marketing director|brand manager|brand director|head of marketing|demand generation|lifecycle marketing|performance marketing|content marketing manager|marketing lead|marketing strategist)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsMarketing && /\b(vp|svp|evp|vice president|chief|head|director)[\s,]+(of\s+)?marketing\b/i.test(jobTitle)) wrongField = true;
   // Legal roles for non-legal resumes
   if (/\b(counsel|attorney|paralegal|legal director|general counsel|litigation|compliance counsel)\b/i.test(jobTitle)) wrongField = true;
-  // Always wrong field regardless of resume
-  if (/\b(nurse|pharmacist|physician|dental|veterinary|actuary|underwriter|truck driver|forklift|custodian|janitor|security guard|receptionist|data center|footwear|apparel|solar|electrical|mechanical|civil|chemical)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
-  // Ops/supply-chain roles wrong only for non-ops resumes
-  if (!resumeIsOps && /\b(warehouse|supply chain|procurement)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
-  if (/\b(it security|it director|network engineer|database administrator|helpdesk|desktop support)\b/i.test(jobTitle)) wrongField = true;
+  // Always wrong field regardless of resume — but NOT electrical/mechanical if the resume has
+  // a hardware/EE signal, since those are the exact roles Avinash/hardware resumes want.
+  if (/\b(nurse|pharmacist|physician|dental|veterinary|actuary|underwriter|truck driver|forklift|custodian|janitor|security guard|receptionist|footwear|apparel)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsHardware && /\b(solar|electrical|mechanical|civil|chemical)\s*(engineer|technician|specialist|outreach)?\b/i.test(jobTitle)) wrongField = true;
+  // Ops/supply-chain roles wrong only for non-ops resumes. Hardware resume IS NOT
+  // exempt — "Warehouse Management Systems Consultant" at a SaaS company is not a
+  // semiconductor ops role, even if the resume mentions ODM supply chain.
+  if (!resumeIsOps && /\b(warehouse|supply chain|procurement|logistics|fulfillment)\s*(engineer|technician|specialist|outreach|strategy|analyst|consultant|manager)?\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsOps && /\b(dashmart|grocery|last[- ]mile|delivery operations)\b/i.test(jobTitle)) wrongField = true;
+  if (!resumeIsHardware && /\b(it security|it director|network engineer|database administrator|helpdesk|desktop support)\b/i.test(jobTitle)) wrongField = true;
 
   // ═══ STEP 3: Content match score ═══
   let contentScore = 0;
@@ -832,19 +1437,44 @@ const COMPANY_INFO = {
 
 app.get('/api/company-info', (req, res) => {
   const company = (req.query.company || '').trim().toLowerCase();
-  if (!company) return res.json({ size: 'Unknown', industry: 'Technology' });
+  // [A8] `mapped` tells the client whether this is real data or a placeholder.
+  // Unmapped companies used to render a misleading "Industry: Technology ·
+  // Size: Unknown" panel that looked like signal. The client now hides the
+  // panel entirely when `mapped: false`.
+  if (!company) return res.json({ mapped: false, size: 'Unknown', industry: 'Technology' });
 
   // Exact match
-  if (COMPANY_INFO[company]) return res.json(COMPANY_INFO[company]);
+  if (COMPANY_INFO[company]) return res.json({ mapped: true, ...COMPANY_INFO[company] });
 
   // Partial match fallback
   const partial = Object.keys(COMPANY_INFO).find(k =>
     k.includes(company) || company.includes(k)
   );
-  if (partial) return res.json(COMPANY_INFO[partial]);
+  if (partial) return res.json({ mapped: true, ...COMPANY_INFO[partial] });
 
-  res.json({ size: 'Unknown', funding: 'Unknown', glassdoor: 'N/A', industry: 'Technology', news: '' });
+  res.json({ mapped: false, size: 'Unknown', funding: 'Unknown', glassdoor: 'N/A', industry: 'Technology', news: '' });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
+// Export pure helpers for the test suite. `require.main === module` guards
+// the listen() call so tests can `require('./server')` without opening a port.
+module.exports = {
+  app,
+  scoreFit,
+  matchedTermsForJob,
+  extractResumeKeywords,
+  parseDaysAgo,
+  daysAgoFromJob,
+  isAllowedMarketLocation,
+  isAllowedMarketTitle,
+  looksLikePdf,
+  selectCompaniesForResume,
+  timeAgo,
+  rankHunterContacts,
+  ATS_COMPANIES,
+  COMPANY_INFO,
+};
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Your Job Board running on port ${PORT}`));
+}

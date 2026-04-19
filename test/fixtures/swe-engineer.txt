@@ -1,0 +1,35 @@
+JANE DEVELOPER
+Senior Software Engineer | Backend, Distributed Systems, SRE
+San Francisco, CA | jane.dev@example.com | github.com/jane-dev
+
+SUMMARY
+Senior software engineer with 9 years building scalable backend services,
+distributed systems, and developer tooling. Expert in Go, Python, Kubernetes,
+AWS, and observability. Strong track record shipping production services
+at high scale.
+
+EXPERIENCE
+
+Senior Software Engineer — Cloudflare
+Remote | 2022 – Present
+- Designed and shipped a Go service handling 500k RPS on Kubernetes.
+- Built Prometheus + Grafana observability stack, reduced on-call pages 60%.
+- Mentored 5 engineers; led cross-team API design reviews.
+- Tech: Go, gRPC, Kafka, Postgres, Redis, Kubernetes, Terraform, AWS.
+
+Software Engineer — Stripe
+San Francisco, CA | 2018 – 2022
+- Backend engineer on the payments platform; shipped idempotency framework.
+- Python + Ruby services, MySQL, Kafka. On-call SRE rotation.
+- Built CI/CD pipelines (GitHub Actions, Buildkite).
+
+Software Engineer — Datadog
+New York, NY | 2015 – 2018
+- Metrics pipeline engineer; worked on Go + Cassandra ingest service.
+- API design, gRPC, Protobuf, distributed tracing.
+
+SKILLS
+Software engineering, backend engineering, distributed systems,
+Go, Python, Ruby, Kubernetes, Docker, Terraform, AWS, GCP,
+Postgres, MySQL, Redis, Kafka, gRPC, REST APIs, Prometheus, Grafana,
+observability, SRE, CI/CD, GitHub Actions, site reliability engineering.

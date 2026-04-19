@@ -1,2 +1,17 @@
 node_modules/
 .env
+.env.local
+.env.*.local
+.claude/
+
+# Local analytics state (emails + visitor hashes). Lives on Railway volume in prod.
+data/
+*.jsonl
+test/fixtures/avinash-*.txt
+test/fixtures/avinash-*.pdf
+KyleGaarder_Resume_*.pdf
+session_logs/
+output/
+.DS_Store
+test-plan.md
+test-report.md

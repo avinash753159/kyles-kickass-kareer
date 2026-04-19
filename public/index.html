@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Your Job Board – A Kyle-Avi Project</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
@@ -29,9 +31,10 @@
   --amber-bg:rgba(217,119,6,0.06);
   --orange:#ea580c;
   --red:#dc2626;
-  --mono:'IBM Plex Mono',monospace;
-  --sans:'Inter',system-ui,sans-serif;
-  --radius:16px;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace;
+  --sans:'Geist',system-ui,-apple-system,sans-serif;
+  --display:'Bricolage Grotesque','Geist',system-ui,sans-serif;
+  --radius:14px;
   --radius-sm:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -48,15 +51,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .header-inner{max-width:1200px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--green),#22d3ee);border-radius:10px;display:flex;align-items:center;justify-content:center;}
-.brand-icon svg{width:20px;height:20px;fill:#fff;}
-.brand-text{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
-.brand-text em{color:var(--green);font-style:normal;}
+/* Wordmark-first brand: no square icon, just typography. The green
+   bullet between words replaces the old logo mark — smaller, quieter,
+   more confident. Reduces the "generic SaaS with square app icon" look. */
+.brand-icon{display:none;}
+.brand-text{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.6px;display:inline-flex;align-items:baseline;gap:8px;}
+.brand-text::before{content:"●";color:var(--green);font-size:11px;line-height:0;transform:translateY(-1px);}
+.brand-text em{color:var(--text);font-style:normal;}
 .header-right{display:flex;align-items:center;gap:14px;}
 .cmd-btn{font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);transition:all .2s;display:flex;align-items:center;gap:6px;}
 .cmd-btn:hover{border-color:#c1c5ce;color:var(--text-secondary);}
 .cmd-btn kbd{font-size:10px;background:var(--card);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:var(--mono);}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;box-shadow:0 0 6px rgba(22,163,74,0.4);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .live-label{font-family:var(--mono);font-size:11px;color:var(--green);display:flex;align-items:center;gap:6px;}
 
@@ -68,18 +74,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
 @media(max-width:900px){.tab-inner{padding:0 16px;}.tab-btn{padding:12px 12px;font-size:12px;}}
 
-/* === USER BOARD EMPTY + UI === */
-.user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:36px 32px;margin-bottom:24px;text-align:center;border:1px solid var(--border);}
-.user-hero h1{font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;color:var(--text);}
-.user-hero p{font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;}
-.user-hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+/* === USER BOARD EMPTY + UI ===
+   Hero is left-aligned (impeccable: "Don't center everything. Left-aligned
+   text with asymmetric layouts feels more designed."). Wider max-width so
+   the headline can breathe and the subtitle doesn't wrap awkwardly. */
+.user-hero{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:44px 40px 36px;margin-bottom:24px;text-align:left;border:1px solid var(--border);}
+.user-hero h1{font-family:var(--display);font-size:clamp(28px,3.2vw,38px);font-weight:700;letter-spacing:-1.4px;margin-bottom:12px;color:var(--text);line-height:1.02;max-width:22ch;}
+.user-hero p{font-size:15px;color:var(--text-secondary);max-width:58ch;margin:0 0 24px;line-height:1.55;}
+.user-hero-actions{display:flex;gap:10px;flex-wrap:wrap;}
 .primary-btn{background:var(--green);color:#fff;border:none;padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
-.primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 4px 12px rgba(22,163,74,0.25);}
+.primary-btn:hover{background:#15803d;transform:translateY(-1px);box-shadow:0 3px 10px rgba(20,40,30,0.12);}
 .secondary-btn{background:var(--card);color:var(--text);border:1px solid var(--border);padding:11px 22px;font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--sans);transition:all .2s;}
 .secondary-btn:hover{border-color:#c1c5ce;background:var(--bg);}
-.resume-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-bg);color:var(--green);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:var(--mono);margin:6px 4px 0 0;}
-.resume-chip button{background:none;border:none;color:var(--green);cursor:pointer;padding:0;font-size:14px;opacity:0.6;}
-.resume-chip button:hover{opacity:1;}
+.resume-chip{display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:10px;font-size:12.5px;font-weight:500;font-family:var(--mono);margin:8px 6px 0 0;letter-spacing:-0.1px;}
+.resume-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.resume-chip a{color:var(--text);text-decoration:none;}
+.resume-chip a:hover{color:var(--text-secondary);}
+.resume-chip button{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 0 0 4px;font-size:14px;line-height:1;margin-left:2px;transition:color .15s;}
+.resume-chip button:hover{color:var(--red);}
 .add-job-form{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:20px 22px;margin-bottom:16px;border:1px solid var(--border);}
 .add-job-form h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text);}
 .add-job-form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
@@ -87,7 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .add-job-form input:focus,.add-job-form textarea:focus,.add-job-form select:focus{border-color:var(--green);}
 .add-job-form textarea{resize:vertical;min-height:60px;margin-bottom:10px;}
 .add-job-form .actions{display:flex;justify-content:flex-end;gap:8px;}
-.user-job-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 22px;margin-bottom:10px;border:1px solid var(--border);border-left:3px solid var(--green);display:flex;align-items:center;gap:16px;}
+.user-job-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:18px 22px;margin-bottom:10px;border:1px solid var(--border);display:flex;align-items:center;gap:16px;}
 .user-job-card .ujc-main{flex:1;min-width:0;}
 .user-job-card .ujc-title{font-size:14px;font-weight:600;margin-bottom:3px;}
 .user-job-card .ujc-title a{color:var(--text);text-decoration:none;}
@@ -99,41 +111,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .icon-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px 6px;border-radius:6px;font-size:14px;}
 .icon-btn:hover{background:var(--bg);color:var(--red);}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;}
-.loc-opt{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);}
-.loc-opt:hover{border-color:#c1c5ce;color:var(--text);}
-.loc-opt input{accent-color:var(--blue);margin:0;}
-.loc-opt:has(input:checked){background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
-.loc-chip{display:inline-flex;align-items:center;padding:8px 14px;border:1px solid var(--border);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);font-family:var(--sans);}
-.loc-chip:hover{border-color:#c1c5ce;color:var(--text);}
-.loc-chip.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue);}
+/* Location chips — two class names (.loc-opt is a radio label, .loc-chip
+   is a button) for the same visual. Selected state is neutral-dark (not
+   blue) to keep the palette restrained. */
+.loc-opt,.loc-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .15s;background:var(--card);font-family:var(--sans);letter-spacing:-0.1px;}
+.loc-opt:hover,.loc-chip:hover{border-color:var(--text-muted);color:var(--text);}
+.loc-opt input{accent-color:var(--text);margin:0;}
+.loc-opt:has(input:checked),.loc-chip.active{background:var(--text);border-color:var(--text);color:var(--card);font-weight:600;}
 
 /* === LAYOUT === */
 .layout{max-width:1200px;margin:0 auto;padding:24px 32px 60px;display:grid;grid-template-columns:1fr 320px;gap:24px;}
 .main{min-width:0;}
 .sidebar{display:flex;flex-direction:column;gap:16px;}
 
-/* === STAT CARDS === */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;}
-.stat-card{
-  background:var(--card);
-  border-radius:var(--radius);
-  padding:20px 22px;
-  box-shadow:var(--card-shadow);
-  position:relative;
-  overflow:hidden;
-  transition:all .3s;
-  border:1px solid transparent;
+/* === SUMMARY STRIP (replaces the hero-metric 2x2 grid) === */
+.results-summary{
+  display:flex;align-items:baseline;gap:20px;flex-wrap:wrap;
+  padding:6px 2px 22px;margin-bottom:18px;
+  border-bottom:1px solid var(--border);
 }
+.results-summary .ttl-num{font-family:var(--display);font-size:52px;font-weight:700;line-height:0.95;letter-spacing:-2px;color:var(--text);}
+.results-summary .ttl-label{font-size:15px;color:var(--text-secondary);font-weight:500;letter-spacing:-0.1px;align-self:center;}
+.results-summary .ttl-breakdown{font-family:var(--mono);font-size:11.5px;color:var(--text-muted);letter-spacing:0.2px;align-self:center;margin-left:auto;}
+.results-summary .ttl-breakdown .pip{color:var(--text);font-weight:600;}
+.results-summary .ttl-breakdown .dot{color:var(--text-muted);margin:0 8px;opacity:0.6;}
+@media(max-width:680px){
+  .results-summary{gap:12px;}
+  .results-summary .ttl-num{font-size:42px;}
+  .results-summary .ttl-breakdown{margin-left:0;flex-basis:100%;}
+}
+/* Legacy stat-card rules retained only for Kyle's board (view-examples); the user board uses results-summary above */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--card-shadow);position:relative;overflow:hidden;transition:all .3s;border:1px solid transparent;}
 .stat-card:hover{box-shadow:var(--card-shadow-lg);transform:translateY(-2px);}
-.stat-card.primary{background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;}
-.stat-card.primary .stat-label{color:rgba(255,255,255,0.7);}
-.stat-card.primary .stat-sub{color:rgba(255,255,255,0.5);}
-.stat-value{font-size:36px;font-weight:800;line-height:1;letter-spacing:-1px;margin-bottom:4px;}
+.stat-card.primary{background:#15803d;color:#fff;}
+.stat-card.primary .stat-label{color:rgba(255,255,255,0.78);}
+.stat-card.primary .stat-sub{color:rgba(255,255,255,0.58);}
+.stat-value{font-family:var(--display);font-size:42px;font-weight:700;line-height:1;letter-spacing:-1.6px;margin-bottom:4px;}
 .stat-label{font-size:12px;color:var(--text-secondary);font-weight:500;}
 .stat-sub{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:8px;display:flex;align-items:center;gap:4px;}
 .stat-sub .up{color:var(--green);}
 .stat-chart{position:absolute;bottom:0;right:0;width:120px;height:50px;opacity:.2;}
-.stat-card.primary .stat-chart{opacity:.15;}
 .mini-pills{display:flex;gap:6px;margin-top:12px;}
 .mini-pill{font-size:10px;padding:3px 10px;border-radius:6px;font-family:var(--mono);font-weight:500;}
 .mini-pill.g{background:var(--green-light);color:var(--green);}
@@ -155,11 +173,38 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   overflow:hidden;
   transition:all .3s;
   border:1px solid transparent;
+  animation:card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+/* Staggered reveal — one well-orchestrated entrance per impeccable's motion
+   principles (not scattered micro-interactions). transform+opacity only,
+   never layout props. Respects prefers-reduced-motion via CSS below. */
+@keyframes card-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.job-list .job-card:nth-child(1){animation-delay:0ms}
+.job-list .job-card:nth-child(2){animation-delay:60ms}
+.job-list .job-card:nth-child(3){animation-delay:110ms}
+.job-list .job-card:nth-child(4){animation-delay:150ms}
+.job-list .job-card:nth-child(5){animation-delay:185ms}
+.job-list .job-card:nth-child(6){animation-delay:215ms}
+.job-list .job-card:nth-child(7){animation-delay:240ms}
+.job-list .job-card:nth-child(n+8){animation-delay:260ms}
+@media(prefers-reduced-motion:reduce){.job-card{animation:none}}
 .job-card:hover{box-shadow:var(--card-shadow-lg);transform:translateY(-1px);}
-.job-card.hot{border-left:3px solid var(--green);}
-.job-card.strong{border-left:3px solid var(--blue);}
-.job-card.good{border-left:3px solid var(--amber);}
+/* tier is conveyed by the fit-ring stroke color and status-tag chip — no side-tab borders (AI slop tell) */
+.job-card.hot{border-color:color-mix(in oklch, var(--green) 25%, transparent);}
+.job-card.strong{border-color:color-mix(in oklch, var(--blue) 20%, transparent);}
+.job-card.good{border-color:color-mix(in oklch, var(--amber) 18%, transparent);}
+
+/* The single best match gets a richer shape — bigger padding, bigger title,
+   and a visible "top match" eyebrow. Not identical to every other card. */
+.job-card.hot-hero{background:#f6fef9;border-color:color-mix(in oklch, var(--green) 35%, transparent);}
+.job-card.hot-hero .jc-header{padding:22px 26px;}
+.job-card.hot-hero .jc-title{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-0.4px;line-height:1.2;margin-bottom:4px;}
+.job-card.hot-hero .company-logo{width:52px;height:52px;}
+.job-card.hot-hero .fit-ring{width:60px;height:60px;}
+.job-card.hot-hero .fit-ring svg{width:60px;height:60px;}
+.job-card.hot-hero .fit-num{font-size:14px;}
+.job-card.hot-hero .top-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.9px;color:var(--green);margin-bottom:6px;}
+.job-card.hot-hero .top-eyebrow::before{content:"";width:14px;height:1px;background:var(--green);display:inline-block;}
 
 .jc-header{padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;user-select:none;}
 .company-logo{width:42px;height:42px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:var(--bg);border:1px solid var(--border);}
@@ -195,11 +240,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .jc-body.open{display:block;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
-.why-box{border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.7;font-weight:450;}
-.why-g{background:var(--green-bg);border-left:3px solid var(--green);color:#15803d;}
-.why-b{background:var(--blue-bg);border-left:3px solid var(--blue);color:#1d4ed8;}
-.why-y{background:var(--amber-bg);border-left:3px solid var(--amber);color:#92400e;}
-.co-blurb{font-size:12.5px;color:var(--text-secondary);line-height:1.7;padding:12px 16px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:16px;}
+.why-box{border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.65;font-weight:450;}
+.why-g{background:var(--green-bg);color:#14532d;}
+.why-b{background:var(--blue-bg);color:#1e3a8a;}
+.why-y{background:var(--amber-bg);color:#78350f;}
+.co-blurb{font-size:13.5px;color:var(--text-secondary);line-height:1.65;padding:0 2px;margin-bottom:16px;max-width:68ch;}
 
 /* === TIMELINE === */
 .timeline{display:flex;align-items:center;gap:0;margin:16px 0;padding:14px 16px;background:var(--bg);border-radius:var(--radius-sm);overflow-x:auto;}
@@ -210,11 +255,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .tl-label.active{color:var(--green);font-weight:600;}
 .tl-line{width:32px;height:2px;background:#e2e8f0;flex-shrink:0;margin:0 6px;border-radius:1px;}
 
-/* === FIT METER === */
-.fit-meter-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.fit-bar-bg{flex:1;height:6px;background:var(--bg);border-radius:99px;overflow:hidden;}
-.fit-bar-fill{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1);}
-.fit-pct-live{font-family:var(--mono);font-size:13px;font-weight:700;min-width:38px;text-align:right;}
+/* (removed unused .fit-meter-row / .fit-bar-fill — dead code, plus width transitions cause layout thrash) */
 
 /* === CHECKBOXES === */
 .gap-item{
@@ -256,10 +297,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .mutual-link:hover{background:rgba(37,99,235,0.1);}
 
 /* === BUTTONS === */
-.last-run-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--text-secondary);}
-.last-run-bar .run-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
-.last-run-bar .run-again{font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:var(--mono);font-weight:500;transition:all .2s;margin-left:auto;}
-.last-run-bar .run-again:hover{background:var(--bg);color:var(--text);}
+.last-run-bar{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px;font-size:12.5px;color:var(--text-secondary);flex-wrap:wrap;}
+.last-run-bar .run-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;}
+.last-run-bar .run-again{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:inherit;font-weight:500;transition:all .2s;margin-left:auto;letter-spacing:-0.1px;}
+.last-run-bar .run-again:hover{background:var(--text);color:var(--card);border-color:var(--text);}
 .sources-section{margin-top:24px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);}
 .sources-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;}
 .sources-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
@@ -267,11 +308,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .source-tag:hover{color:var(--blue);border-color:var(--blue);background:var(--blue-light);}
 .sources-note{font-size:10.5px;color:var(--text-muted);font-family:var(--mono);line-height:1.5;}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
-.abtn{font-size:12px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text-secondary);cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .2s;}
-.abtn:hover{box-shadow:0 1px 3px rgba(0,0,0,0.06);color:var(--text);transform:translateY(-1px);}
-.abtn.g{background:var(--green);color:#fff;border-color:var(--green);}.abtn.g:hover{background:#15803d;}
-.abtn.b{background:var(--blue);color:#fff;border-color:var(--blue);}.abtn.b:hover{background:#1d4ed8;}
-.abtn.y{background:var(--amber);color:#fff;border-color:var(--amber);}.abtn.y:hover{background:#b45309;}
+/* Primary action button — neutral dark rather than tier-colored. The card
+   already carries its tier (ring color, optional hero styling); firing the
+   CTA in green/blue/amber just makes every card's footer shout. One color
+   across all cards reads as "the CTA," the ring reads as "the fit." */
+.abtn{font-size:13px;padding:9px 18px;border-radius:var(--radius-sm);border:1px solid var(--text);background:var(--text);color:var(--card);cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .18s;letter-spacing:-0.1px;}
+.abtn:hover{background:transparent;color:var(--text);transform:translateY(-1px);}
+/* .abtn.g/.b/.y kept as no-op overrides so the existing class attribute
+   doesn't break — color is neutral regardless of tier now. */
+.abtn.g,.abtn.b,.abtn.y{background:var(--text);color:var(--card);border-color:var(--text);}
+.abtn.g:hover,.abtn.b:hover,.abtn.y:hover{background:transparent;color:var(--text);}
 
 /* === SIDEBAR CARDS === */
 .side-card{
@@ -321,22 +367,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   font-size:12px;padding:10px 20px;border-radius:var(--radius-sm);border:none;
   cursor:pointer;font-family:var(--mono);margin:12px 0;transition:all .2s;
   display:inline-flex;align-items:center;gap:8px;font-weight:600;
-  background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;
-  box-shadow:0 2px 8px rgba(124,58,237,0.25);
+  background:var(--text);color:var(--card);
   width:100%;justify-content:center;
 }
-.view-resume-btn:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 4px 16px rgba(124,58,237,0.35);}
+.view-resume-btn:hover{opacity:0.85;transform:translateY(-1px);}
 .view-resume-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;}
 
-/* === GHOST BADGES === */
-.ghost-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-.ghost-badge{font-size:9.5px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
-.ghost-fresh{background:#dcfce7;color:#16a34a;}
-.ghost-normal{background:#f1f5f9;color:#64748b;}
-.ghost-aging{background:#fef3c7;color:#d97706;}
-.ghost-stale{background:#fef2f2;color:#dc2626;}
-.ghost-repost{background:#fef3c7;color:#d97706;}
-.ghost-layoff{background:#fef2f2;color:#dc2626;}
+/* (ghost-badge band deleted — freshness + reposted now ride inline as pills) */
 .ghost-risk{font-size:10px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-weight:600;margin-top:8px;}
 .ghost-risk-low{background:#dcfce7;color:#16a34a;}
 .ghost-risk-medium{background:#fef3c7;color:#d97706;}
@@ -369,13 +406,36 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   .layout{grid-template-columns:1fr;padding:16px;}
   .stats-grid{grid-template-columns:1fr 1fr;}
   .header-inner{padding:14px 16px;}
+  #view-user-results{padding:16px !important;}
+  .last-run-bar{gap:8px;}
+  .last-run-bar .run-again{margin-left:0;}
 }
 @media(max-width:500px){
   .stats-grid{grid-template-columns:1fr;}
+  .user-hero{padding:24px 20px;}
+  .user-hero h1{font-size:26px;letter-spacing:-0.8px;}
+  .jc-header{padding:14px 14px;gap:10px;}
+  .company-logo{width:36px;height:36px;}
+  .fit-ring{width:42px;height:42px;}
+  .fit-ring svg{width:42px;height:42px;}
+  .results-summary .ttl-num{font-size:40px;letter-spacing:-1.4px;}
+  .results-summary{gap:10px;padding-bottom:16px;}
 }
 </style>
 </head>
 <body>
+
+<!-- Email gate popup. Shown once per browser (LS flag yjb_email_v1) before
+     the user can search jobs. Skippable with a tongue-in-cheek button. -->
+<div id="email-gate" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:22px;">
+    <h2 style="font-size:17px;font-weight:700;color:#0f172a;margin:0 0 10px;letter-spacing:-0.2px;">Email? We won't bug you, pinky promise.</h2>
+    <input id="email-gate-input" type="email" placeholder="you@somewhere.com" autocomplete="email" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;font-family:var(--mono);outline:none;margin-bottom:6px;" />
+    <div id="email-gate-err" style="display:none;font-size:11px;color:#dc2626;margin-bottom:6px;">That email looks off. Try again?</div>
+    <button id="email-gate-submit" onclick="submitEmailGate()" style="width:100%;background:var(--blue);color:#fff;border:0;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;">Let me in</button>
+    <button onclick="skipEmailGate()" style="width:100%;background:transparent;color:#64748b;border:0;padding:8px;font-size:11.5px;cursor:pointer;margin-top:2px;text-decoration:underline;">nah, I'm a mystery</button>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-inner">
@@ -390,17 +450,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
   <div class="tab-bar">
     <div class="tab-inner">
-      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">My Board</button>
-      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Example · Kyle's Board</button>
+      <button class="tab-btn active" id="tab-user" onclick="switchTab('user')">Your search</button>
+      <button class="tab-btn" id="tab-example" onclick="switchTab('example')">Curated example · Kyle's board</button>
     </div>
   </div>
 </div>
 
 <!-- USER: Upload Screen (before search) -->
 <div id="view-user-upload" style="max-width:680px;margin:40px auto;padding:0 32px;">
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:12.5px;color:var(--text-secondary);line-height:1.5;">
+    Drop your resume or LinkedIn. We score live jobs by <strong style="color:var(--text);">career fit</strong>, not keyword matches.
+  </div>
   <div class="user-hero">
-    <h1>Welcome to Your Job Board</h1>
-    <p style="font-size:13px;color:var(--text-secondary);max-width:520px;margin:0 auto 20px;line-height:1.6;">Upload your resume and we'll find matching roles from live job boards.</p>
+    <h1>Jobs that actually fit your resume.</h1>
+    <p style="font-size:14px;color:var(--text-secondary);max-width:520px;margin:0 auto 22px;line-height:1.55;">Upload your resume. We score live postings by <em style="font-style:normal;font-weight:500;color:var(--text);">career fit</em> — the roles you've actually held — not keyword overlap. Each match comes with a one-line explanation of <em style="font-style:normal;font-weight:500;color:var(--text);">why it fits you.</em></p>
     <div class="user-hero-actions">
       <label class="primary-btn" style="cursor:pointer;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -408,26 +471,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
         <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="userUploadResume(event)" multiple>
       </label>
     </div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:0.6px;">OR</div>
+    <div style="margin-top:10px;max-width:520px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;text-align:left;">Paste a few lines about your background and what you want next:</div>
+      <textarea id="paste-text-input" rows="4" placeholder="e.g. 3 years in marketing at a mid-size tech company. Ran email campaigns and social. Looking for a senior marketing role, open to remote." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-family:var(--mono);outline:none;resize:vertical;line-height:1.5;"></textarea>
+      <button class="primary-btn" style="margin-top:8px;padding:10px 16px;font-size:13px;width:100%;justify-content:center;" onclick="submitPastedText()">Use this text</button>
+    </div>
+    <div id="linkedin-status" style="display:none;font-size:11.5px;line-height:1.5;margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;"></div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text-muted);text-align:center;">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#f1f5f9;border:1px solid #e2e8f0;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#0a66c2" aria-hidden="true"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2ZM8 19H5v-9h3Zm-1.5-10.3a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4ZM19 19h-3v-4.7c0-1.1 0-2.6-1.6-2.6s-1.8 1.2-1.8 2.5V19h-3v-9h2.9v1.2h.04A3.17 3.17 0 0 1 15.3 9.7c3 0 3.7 2 3.7 4.6Z"/></svg>
+        LinkedIn import · coming soon
+      </span>
+    </div>
     <div id="user-resume-list" style="margin-top:18px;"></div>
-    <div id="go-panel" style="display:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:center;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;" id="loc-options">
+    <div id="go-panel" style="display:none;margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px;">Location</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;" id="loc-options">
         <label class="loc-opt"><input type="radio" name="loc" value="anywhere" checked onchange="setLoc('anywhere')"><span>Anywhere</span></label>
         <label class="loc-opt"><input type="radio" name="loc" value="remote" onchange="setLoc('remote')"><span>Remote</span></label>
         <label class="loc-opt"><input type="radio" name="loc" value="austin" onchange="setLoc('austin')"><span>Austin, TX</span></label>
       </div>
-      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:14px;padding:13px 20px;background:var(--blue);" onclick="searchJobs()">Search Jobs</button>
+      <button class="primary-btn" id="search-jobs-btn" style="width:100%;justify-content:center;font-size:15px;padding:14px 20px;font-family:var(--display);font-weight:600;letter-spacing:-0.3px;" onclick="searchJobs()">Search jobs</button>
     </div>
   </div>
   <div style="text-align:center;margin-top:16px;">
-    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Or check the <strong style="color:var(--green);">Example tab</strong> to see what results look like</span>
+    <span style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="switchTab('example')">Curious what results look like? See <strong style="color:var(--green);">Kyle's curated example →</strong></span>
+    <div id="user-upload-msg" role="status" aria-live="polite" style="display:none;margin-top:14px;padding:10px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:12px;line-height:1.5;"></div>
   </div>
 </div>
 
-<!-- USER: Results Dashboard (after search, same layout as Kyle's) -->
-<div class="layout" id="view-user-results" style="display:none;">
-  <div class="main">
+<!-- USER: Results view — single column. Sidebar chrome (donut + Top 5) was removed; Sources pulled inline below the job list as a disclosure. -->
+<div id="view-user-results" style="display:none;max-width:820px;margin:0 auto;padding:24px 32px 60px;">
     <!-- Compact resume bar -->
-    <div class="last-run-bar" style="margin-bottom:16px;">
+    <div class="last-run-bar" style="margin-bottom:18px;">
       <div class="run-dot"></div>
       <span id="ur-resume-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <div style="display:flex;gap:6px;align-items:center;" id="loc-bar">
@@ -441,93 +518,45 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </label>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card primary">
-        <div class="stat-value" id="ur-total">0</div>
-        <div class="stat-label">Jobs Matched</div>
-        <div class="stat-sub">Updated just now</div>
-        <svg class="stat-chart" viewBox="0 0 120 50"><polyline points="0,40 20,35 40,38 60,25 80,28 100,15 120,8" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/><polygon points="0,40 20,35 40,38 60,25 80,28 100,15 120,8 120,50 0,50" fill="rgba(255,255,255,0.1)"/></svg>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--green);" id="ur-hot">0</div>
-        <div class="stat-label">Hot Matches</div>
-        <div class="stat-sub"><span class="up">&#9650;</span> <span class="up">75%+ fit</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--blue);" id="ur-strong">0</div>
-        <div class="stat-label">Strong Fit</div>
-        <div class="stat-sub">60–74% fit</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="color:var(--amber);" id="ur-good">0</div>
-        <div class="stat-label">Good Fit</div>
-        <div class="stat-sub">Below 60%</div>
-      </div>
+    <!-- Summary strip (replaces 4-card hero-metric grid) -->
+    <div class="results-summary" role="status" aria-live="polite">
+      <span class="ttl-num" id="ur-total">0</span>
+      <span class="ttl-label">roles match your resume</span>
+      <span class="ttl-breakdown"><span class="pip" id="ur-hot">0</span> hot<span class="dot">·</span><span class="pip" id="ur-strong">0</span> strong<span class="dot">·</span><span class="pip" id="ur-good">0</span> good</span>
     </div>
 
-    <!-- Last run -->
-    <div class="last-run-bar">
-      <div class="run-dot"></div>
-      <span>Last searched: <strong id="ur-run-time">just now</strong></span>
-      <button class="run-again" onclick="searchJobs()">Run again</button>
+    <!-- Quiet timestamp (re-run is available in the top bar) -->
+    <div style="margin-bottom:14px;">
+      <span style="font-size:12px;color:var(--text-muted);" id="ur-run-time"></span>
     </div>
 
     <!-- Job list -->
-    <div class="sec-header">
-      <div>
-        <div class="sec-title">All Matches</div>
-        <div class="sec-subtitle">real postings · matched to your resume</div>
-      </div>
-      <div class="sec-badge" id="ur-count">0 roles</div>
-    </div>
     <div class="job-list" id="ur-job-list"></div>
-  </div>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="side-card" id="ur-donut-card">
-      <h3>Fit Distribution</h3>
-      <div class="donut-wrap">
-        <svg width="100" height="100" viewBox="0 0 100 100" id="ur-donut"><circle cx="50" cy="50" r="38" fill="none" stroke="#f0f2f7" stroke-width="12"/></svg>
-        <div class="donut-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Hot match<span class="legend-val" id="ur-leg-hot">0</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div>Strong fit<span class="legend-val" id="ur-leg-strong">0</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--amber);"></div>Good fit<span class="legend-val" id="ur-leg-good">0</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="side-card" id="ur-top5-card">
-      <h3>Top 5 Matches</h3>
-      <div class="top-companies" id="ur-top5"></div>
-    </div>
-    <div class="side-card">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSources()">
-        <span>Add more for better fit</span>
-        <span id="sources-chev" style="font-size:10px;color:var(--text-muted);transition:transform .2s;">▼</span>
-      </h3>
-      <div id="sources-body" style="display:none;">
-        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Optional. More docs = better matches.</div>
+    <!-- Add more: inline disclosure below the list (was a lonely sidebar card) -->
+    <details style="margin-top:32px;padding:0;">
+      <summary style="list-style:none;cursor:pointer;font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:-0.2px;color:var(--text);padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;"><span>Results not quite right? Add more context.</span><span style="font-size:11px;color:var(--text-muted);font-weight:400;">Optional</span></summary>
+      <div style="padding:16px 18px;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);margin-top:-1px;">
+        <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;line-height:1.55;">Add a LinkedIn URL, a few notes on what you want, or extra docs — the next search will weigh them in.</div>
         <div id="user-sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
-            + Upload file
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label style="display:block;font-size:12px;color:var(--text-secondary);cursor:pointer;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:8px;text-align:center;">
+            + Add a file
             <input type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg" style="display:none;" onchange="addUserSourceFile(event)" multiple>
           </label>
-          <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
-          <textarea id="user-src-text" placeholder="Strengths, what you're looking for..." rows="3" style="padding:8px 10px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;resize:vertical;font-family:inherit;"></textarea>
-          <button onclick="addUserSourceText()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;">+ Save notes</button>
+          <input type="url" id="user-src-linkedin" placeholder="LinkedIn URL" style="padding:10px 12px;font-size:12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;" onkeydown="if(event.key==='Enter')addUserSourceLinkedIn()">
         </div>
+        <textarea id="user-src-text" placeholder="What you're looking for — dream companies, strengths to emphasize, deal-breakers..." rows="3" style="width:100%;margin-top:8px;padding:10px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:8px;resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+        <button onclick="addUserSourceText()" style="margin-top:8px;background:var(--bg);border:1px solid var(--border);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;">Save notes</button>
       </div>
-    </div>
-  </div>
+    </details>
 </div>
 
 <!-- LOADING overlay -->
 <div id="user-loading" style="display:none;max-width:680px;margin:80px auto;text-align:center;padding:40px 20px;">
   <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 16px;"></div>
-  <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Scanning job boards...</div>
-  <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">Matching your resume against live postings</div>
+  <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;font-family:var(--display);letter-spacing:-0.2px;">Scoring jobs by career fit</div>
+  <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">Fetching 5 job APIs · ranking candidates · ≈ 15s</div>
 </div>
 
 <!-- EXAMPLE BOARD VIEW (Kyle's) -->
@@ -617,7 +646,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <!-- Sources of Me -->
     <div class="side-card">
       <h3>Sources of Me</h3>
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>My Board</strong> tab to get live matches from an uploaded resume.</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Saved locally for reference. Use the <strong>Your Board</strong> tab to get live matches from an uploaded resume.</div>
       <div id="sources-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="display:block;font-size:11px;color:var(--text-secondary);cursor:pointer;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:6px;text-align:center;">
@@ -968,17 +997,107 @@ function findEmail(firstName,lastName,domain,id){
   result.textContent='Email lookup available on the online version';
 }
 
+// Hunter contact lookup for user-tab cards. Calls /api/company-contacts which
+// ranks results toward recruiter / hiring-manager / Head-of titles and away
+// from CEO / founder / executive-assistant. Renders up to 3 contacts inline.
+const __huntCache = {};
+const __huntInflight = {};
+function loadHunterContacts(jobId, company){
+  const box = document.getElementById('ucontacts-'+jobId);
+  if (!box || box.dataset.loaded) return;
+  box.dataset.loaded = '1';
+  const job = (window.__lastJobs || []).find(j => j.id === jobId);
+  if (!job) return;
+  const domain = job.companyDomain || guessDomainFromCompany(company);
+  if (!domain) {
+    box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">No company domain — can\'t look up contacts.</div>';
+    return;
+  }
+  const cacheKey = domain + '|' + (job.title||'');
+  if (__huntCache[cacheKey]) { renderHunterContacts(box, __huntCache[cacheKey], domain, company); return; }
+  if (__huntInflight[cacheKey]) return;
+  __huntInflight[cacheKey] = true;
+  box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Looking for hiring-side contacts at '+escapeHtml(domain)+'\u2026</div>';
+  fetch('/api/company-contacts?domain='+encodeURIComponent(domain)+'&jobTitle='+encodeURIComponent(job.title||''))
+    .then(r => r.json())
+    .then(d => {
+      __huntCache[cacheKey] = d.contacts || [];
+      __huntInflight[cacheKey] = false;
+      renderHunterContacts(box, d.contacts || [], domain, company);
+    })
+    .catch(() => {
+      __huntInflight[cacheKey] = false;
+      box.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Contact lookup unavailable right now.</div>';
+    });
+}
+function guessDomainFromCompany(company){
+  if (!company) return '';
+  const slug = String(company).toLowerCase().replace(/[^a-z0-9]+/g,'');
+  return slug ? slug + '.com' : '';
+}
+function renderHunterContacts(box, contacts, domain, company){
+  if (!contacts.length){
+    box.innerHTML = `<div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+      No public hiring-side contacts found at <strong>${escapeHtml(domain)}</strong>.
+      <a href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company+' recruiter')}" target="_blank" style="color:var(--blue);">Search LinkedIn for recruiters \u2197</a>
+    </div>`;
+    return;
+  }
+  const rows = contacts.map(c => {
+    const li = c.linkedin || ('https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(c.name+' '+company));
+    const conf = (c.confidence || c.confidence === 0) ? `<span style="font-family:var(--mono);font-size:10px;color:#64748b;">${c.confidence}%</span>` : '';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(c.name)}</div>
+        <div style="font-size:11px;color:var(--text-secondary);line-height:1.4;">${escapeHtml(c.role)}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;align-items:center;flex-wrap:wrap;">
+          <a href="mailto:${escapeHtml(c.email)}" style="font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;">${escapeHtml(c.email)}</a>
+          ${conf}
+          <a href="${li}" target="_blank" style="font-size:11px;color:var(--text-muted);text-decoration:none;">linkedin \u2197</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div>
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#64748b;margin-bottom:6px;">Hiring-side contacts (ranked)</div>
+    ${rows}
+    <div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;">Hunter ranks these by recruiter/Head-of/Director title and same-discipline overlap with the role.</div>
+  </div>`;
+}
+
 function findMoreEmails(domain,id){
   const box=document.getElementById('hunter-more-'+id);
-  box.innerHTML='<span style="color:#94a3b8;">Searching '+domain+'...</span>';
+  // [S5] escape Hunter's response before injecting it into the DOM. Hunter
+  // occasionally returns user-supplied fields (position titles, etc) that
+  // have historically included angle brackets; without escaping this is an
+  // XSS vector on any company domain search.
+  box.innerHTML='<span style="color:#94a3b8;">Searching '+escapeHtml(domain)+'...</span>';
   fetch('/api/domain-search?domain='+encodeURIComponent(domain))
     .then(r=>r.json())
     .then(d=>{
       const emails=(d.data&&d.data.emails)||[];
       if(!emails.length){box.innerHTML='<span style="color:#94a3b8;">No public emails found. Try LinkedIn search above.</span>';return;}
-      box.innerHTML='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;">'+emails.slice(0,5).map(e=>`<div style="padding:3px 0;"><strong>${e.first_name||''} ${e.last_name||''}</strong> <span style="color:#64748b;">${e.position||''}</span><br><a href="mailto:${e.value}" style="font-family:var(--mono);font-size:10.5px;color:#2563eb;">${e.value}</a></div>`).join('')+'</div>';
+      box.innerHTML='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;">'+emails.slice(0,5).map(e=>{
+        const first=escapeHtml(e.first_name||'');
+        const last=escapeHtml(e.last_name||'');
+        const position=escapeHtml(e.position||'');
+        const value=escapeHtml(e.value||'');
+        return `<div style="padding:3px 0;"><strong>${first} ${last}</strong> <span style="color:#64748b;">${position}</span><br><a href="mailto:${value}" style="font-family:var(--mono);font-size:10.5px;color:#2563eb;">${value}</a></div>`;
+      }).join('')+'</div>';
     })
     .catch(()=>{box.innerHTML='<span style="color:#94a3b8;">Email lookup requires the server running (npm start).</span>';});
+}
+
+// [U1] In-page status message on the upload screen. Replaces alert() for
+// empty-resume, no-results, and search-error states — alerts block the page
+// and are especially jarring on mobile.
+function showUploadMsg(html){
+  const el=document.getElementById('user-upload-msg');
+  if(!el){return;}
+  el.innerHTML=html;
+  el.style.display='block';
+  clearTimeout(showUploadMsg._t);
+  showUploadMsg._t=setTimeout(()=>{el.style.display='none';},9000);
 }
 
 function openCmd(){document.getElementById('cmdOverlay').classList.add('open');document.getElementById('cmdInput').value='';document.getElementById('cmdInput').focus();filterCmd();}
@@ -996,7 +1115,61 @@ function filterCmd(){
   });
 }
 
-window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoard();});
+window.addEventListener('DOMContentLoaded',()=>{init();loadLastRun();initUserBoard();bootAnalytics();});
+
+// ── Email gate + visitor ticker ───────────────────────────────────
+const EMAIL_LS_KEY='yjb_email_v1';
+function bootAnalytics(){
+  // Fire-and-forget visit ping (server dedupes by IP+UA hash). Ticker will
+  // poll the count back so we don't have to round-trip /api/visit-count.
+  fetch('/api/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>r.json()).then(d=>{
+      const t=document.getElementById('visitor-ticker');
+      const n=document.getElementById('visitor-count');
+      if(d&&typeof d.count==='number'&&t&&n){t.style.display='flex';n.textContent=d.count.toLocaleString();}
+    }).catch(()=>{ /* silent — analytics never blocks the UI */ });
+  // Show gate once per browser. localStorage keyed (we ignore prior dismissals
+  // so people don't get spammed across sessions but anyone clearing storage
+  // re-sees it — fine).
+  try {
+    if(!localStorage.getItem(EMAIL_LS_KEY)){
+      const g=document.getElementById('email-gate');
+      if(g){g.style.display='flex'; setTimeout(()=>{const i=document.getElementById('email-gate-input');if(i)i.focus();},50);}
+    }
+  } catch(e){ /* private mode — skip */ }
+}
+function submitEmailGate(){
+  const inp=document.getElementById('email-gate-input');
+  const err=document.getElementById('email-gate-err');
+  const btn=document.getElementById('email-gate-submit');
+  const v=(inp&&inp.value||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){if(err)err.style.display='block';return;}
+  if(err)err.style.display='none';
+  if(btn){btn.disabled=true;btn.textContent='Saving\u2026';}
+  fetch('/api/capture-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:v})})
+    .then(r=>r.json()).then(d=>{
+      if(d&&d.ok){
+        try { localStorage.setItem(EMAIL_LS_KEY, v); } catch(e){}
+        closeEmailGate();
+      } else {
+        if(err){err.style.display='block';err.textContent=(d&&d.error)||'Couldn\u2019t save that. Try again?';}
+        if(btn){btn.disabled=false;btn.textContent='Continue \u2192';}
+      }
+    })
+    .catch(()=>{
+      // Don't trap the user if our server hiccups — just close the gate.
+      try { localStorage.setItem(EMAIL_LS_KEY, '__skipped'); } catch(e){}
+      closeEmailGate();
+    });
+}
+function skipEmailGate(){
+  try { localStorage.setItem(EMAIL_LS_KEY, '__skipped'); } catch(e){}
+  closeEmailGate();
+}
+function closeEmailGate(){
+  const g=document.getElementById('email-gate');
+  if(g)g.style.display='none';
+}
 
 // ── Tabs ──────────────────────────────────────────────────────────
 const TAB_KEY='yjb_active_tab_v1';
@@ -1103,9 +1276,12 @@ async function searchJobs(){
 
   if(!lastResumeText||lastResumeText.length<50){
     const resumes=lsGet(U_RESUMES_KEY);
-    if(resumes.length&&resumes[0].data){
+    // Use the NEWEST resume on fallback, not the oldest — otherwise a stale
+    // prior-session upload at index 0 overrides the one the user just added.
+    const latest=resumes.length?resumes[resumes.length-1]:null;
+    if(latest&&latest.data){
       try{
-        const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:resumes[0].data,fileName:resumes[0].name})});
+        const resp=await fetch('/api/extract-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileData:latest.data,fileName:latest.name})});
         const result=await resp.json();
         if(result.text&&result.text.trim().length>50)lastResumeText=result.text.trim();
       }catch(_){}
@@ -1114,7 +1290,7 @@ async function searchJobs(){
 
   if(!lastResumeText||lastResumeText.length<20){
     isSearching=false;
-    alert('Please upload a resume first.');
+    showUploadMsg('Please upload a resume first.');
     return;
   }
 
@@ -1134,13 +1310,13 @@ async function searchJobs(){
     if(data.error)throw new Error(data.error);
     if(!data.jobs||!data.jobs.length){
       showUserScreen('upload');
-      alert('No jobs found for "'+loc+'" location. Try "Anywhere".');
+      showUploadMsg('No matches passed the 55% career-fit threshold for "'+loc+'". Try <strong>Anywhere</strong>, or add extra context (LinkedIn URL, what you want) below — that usually opens the search.');
     }else{
       renderUserResults(data.jobs);
     }
   }catch(e){
     showUserScreen('upload');
-    alert('Search error: '+e.message);
+    showUploadMsg('Search error: '+escapeHtml(e.message||'unknown'));
   }finally{
     isSearching=false;
     if(btn){btn.disabled=false;btn.textContent='Search Jobs';}
@@ -1176,16 +1352,26 @@ async function loadInterviewPrep(job) {
   try {
     const r = await fetch('/api/company-info?company=' + encodeURIComponent(job.company || ''));
     const info = await r.json();
-    let factsHtml = '<div class="prep-facts">';
-    if (info.size) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Size</div><div class="prep-fact-value">${escapeHtml(info.size)}</div></div>`;
-    if (info.funding) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Funding</div><div class="prep-fact-value">${escapeHtml(info.funding)}</div></div>`;
-    if (info.glassdoor && info.glassdoor !== 'N/A') factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Glassdoor</div><div class="prep-fact-value">${escapeHtml(info.glassdoor)}/5</div></div>`;
-    if (info.industry) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">${escapeHtml(info.industry)}</div></div>`;
-    if (info.news) factsHtml += `<div class="prep-fact" style="grid-column:span 2"><div class="prep-fact-label">Recent News</div><div class="prep-fact-value">${escapeHtml(info.news)}</div></div>`;
-    factsHtml += '</div>';
-    factsEl.innerHTML = factsHtml;
+    // [A8] Hide the facts panel when the company isn't in COMPANY_INFO.
+    // The server returns a sentinel { size: 'Unknown', industry: 'Technology' }
+    // payload in that case (or sets `mapped: false`); showing generic
+    // 'Technology · Unknown' copy on unmapped companies was misleading users
+    // into treating it as real data.
+    const isMapped = info && info.mapped !== false && info.size && info.size !== 'Unknown';
+    if (!isMapped) {
+      factsEl.innerHTML = '';
+    } else {
+      let factsHtml = '<div class="prep-facts">';
+      if (info.size) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Size</div><div class="prep-fact-value">${escapeHtml(info.size)}</div></div>`;
+      if (info.funding) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Funding</div><div class="prep-fact-value">${escapeHtml(info.funding)}</div></div>`;
+      if (info.glassdoor && info.glassdoor !== 'N/A') factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Glassdoor</div><div class="prep-fact-value">${escapeHtml(info.glassdoor)}/5</div></div>`;
+      if (info.industry) factsHtml += `<div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">${escapeHtml(info.industry)}</div></div>`;
+      if (info.news) factsHtml += `<div class="prep-fact" style="grid-column:span 2"><div class="prep-fact-label">Recent News</div><div class="prep-fact-value">${escapeHtml(info.news)}</div></div>`;
+      factsHtml += '</div>';
+      factsEl.innerHTML = factsHtml;
+    }
   } catch (e) {
-    factsEl.innerHTML = '<div class="prep-facts"><div class="prep-fact"><div class="prep-fact-label">Industry</div><div class="prep-fact-value">Technology</div></div></div>';
+    factsEl.innerHTML = '';
   }
 
   const prompts = generateStarPrompts(job);
@@ -1225,6 +1411,9 @@ function generateStarPrompts(job) {
 
 function renderUserResults(jobs){
   jobs.sort((a,b)=>b.fit-a.fit);
+  // Stash for loadHunterContacts() — async per-card lookup needs the job's
+  // company / domain / title without re-fetching.
+  window.__lastJobs = jobs;
   showUserScreen('results');
   const resumes=lsGet(U_RESUMES_KEY);
   const rn=document.getElementById('ur-resume-name');
@@ -1235,45 +1424,32 @@ function renderUserResults(jobs){
   const good=jobs.filter(j=>j.tier==='good').length;
 
   animCount('ur-total',jobs.length);animCount('ur-hot',hot);animCount('ur-strong',strong);animCount('ur-good',good);
-  document.getElementById('ur-count').textContent=jobs.length+' roles';
-  document.getElementById('ur-leg-hot').textContent=hot;
-  document.getElementById('ur-leg-strong').textContent=strong;
-  document.getElementById('ur-leg-good').textContent=good;
-  document.getElementById('ur-run-time').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-
-  // Donut
-  const svg=document.getElementById('ur-donut');
-  svg.querySelectorAll('circle:not(:first-child)').forEach(c=>c.remove());
-  const circ=2*Math.PI*38;let offset=0;
-  [[hot,'var(--green)'],[strong,'var(--blue)'],[good,'var(--amber)']].forEach(([n,color])=>{
-    if(!n)return;const len=circ*n/jobs.length;
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx','50');c.setAttribute('cy','50');c.setAttribute('r','38');
-    c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width','12');
-    c.setAttribute('stroke-dasharray',len+' '+(circ-len));c.setAttribute('stroke-dashoffset',-offset);
-    c.setAttribute('transform','rotate(-90 50 50)');svg.appendChild(c);offset+=len;
-  });
-
-  // Top 5
-  const top5=document.getElementById('ur-top5');top5.innerHTML='';
-  jobs.slice(0,5).forEach(j=>{
-    const bg=j.tier==='hot'?'var(--green-light)':j.tier==='strong'?'var(--blue-light)':'var(--amber-light)';
-    const col=j.tier==='hot'?'var(--green)':j.tier==='strong'?'var(--blue)':'var(--amber)';
-    const domain=safeDomain(j.url);
-    const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
-    const co2=escapeHtml(String(j.company||'').substring(0,2).toUpperCase());
-    const logoHtml=logoSrc?`<img src="${logoSrc}" onerror="this.parentElement.textContent='${co2}'">`:(co2||'??');
-    top5.innerHTML+=`<div class="tc-row" onclick="document.getElementById('ucard-${j.id}').scrollIntoView({behavior:'smooth',block:'center'})"><div class="tc-logo">${logoHtml}</div><span class="tc-name">${escapeHtml(j.company)}</span><span class="tc-fit" style="background:${bg};color:${col};">${j.fit}%</span></div>`;
-  });
+  const runTime=document.getElementById('ur-run-time');
+  if(runTime)runTime.textContent='Searched '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 
   // Job cards
   const list=document.getElementById('ur-job-list');list.innerHTML='';
-  jobs.forEach(j=>{
+  // Narrow-result nudge: when the user picked a strict location (austin/
+  // remote) and we came back with few matches, tell them why and offer the
+  // one-click widen. Quiet banner — not an alert, not an error.
+  const locSel=document.querySelector('input[name="loc"]:checked');
+  const locKey=locSel?locSel.value:'anywhere';
+  if(jobs.length<5 && (locKey==='austin'||locKey==='remote')){
+    const locLabel=locKey==='austin'?'Austin':'remote';
+    list.innerHTML=`<div style="margin-bottom:14px;padding:14px 18px;background:#fffbeb;border-radius:12px;font-size:13px;line-height:1.55;color:#78350f;"><strong style="font-weight:600;">Only ${jobs.length} ${locLabel} ${jobs.length===1?'match':'matches'}.</strong> Your resume is a strong fit for more roles elsewhere. <button onclick="document.querySelector('input[name=loc][value=anywhere]').click();searchJobs()" style="background:none;border:none;color:#78350f;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:0;font-size:13px;">See Anywhere →</button></div>`;
+  }
+  // The single highest-fit hot-tier card gets visible elevation. One card,
+  // not three — scarcity is what makes the distinction read.
+  let heroAssigned=false;
+  jobs.forEach((j,idx)=>{
     const R=21,crc=2*Math.PI*R,off=crc*(1-j.fit/100);
     const colorVar=j.color==='g'?'var(--green)':j.color==='b'?'var(--blue)':'var(--amber)';
-    const tierClass=j.tier;
+    const isHero=!heroAssigned && j.tier==='hot' && idx===0;
+    if(isHero)heroAssigned=true;
+    const tierClass=j.tier+(isHero?' hot-hero':'');
     const tagClass=j.tier==='hot'?'tag-hot':j.tier==='strong'?'tag-strong':'tag-good';
     const tagLabel=j.tier==='hot'?'hot match':j.tier==='strong'?'strong fit':'good fit';
+    const eyebrow=isHero?`<div class="top-eyebrow">Top match for your resume</div>`:'';
     const locPill=j.location.includes('Remote')?'b':j.location.includes('Austin')?'g':'';
     const domain=safeDomain(j.url);
     const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
@@ -1283,14 +1459,37 @@ function renderUserResults(jobs){
     const sourceBadge = j.source ? `<span class="source-pill">${escapeHtml(j.source)}</span>` : '';
     const freshnessClass = j.freshness === 'fresh' ? 'ghost-fresh' : j.freshness === 'normal' ? 'ghost-normal' : j.freshness === 'aging' ? 'ghost-aging' : j.freshness === 'stale' ? 'ghost-stale' : 'ghost-normal';
     const freshnessLabel = j.daysAgo !== null && j.daysAgo !== undefined ? (j.daysAgo === 0 ? 'Today' : j.daysAgo + 'd ago') : (j.posted || 'recent');
-    const ghostBadges = `<div class="ghost-badges">
-      <span class="ghost-badge ${freshnessClass}">${freshnessLabel}</span>
-      ${j.reposted ? '<span class="ghost-badge ghost-repost" title="Multiple similar roles at this company">Reposted</span>' : ''}
-      ${j.layoffSignal ? '<span class="ghost-badge ghost-layoff" title="Recent layoffs reported">⚠ Layoffs</span>' : ''}
-    </div>`;
-    const ghostRiskHtml = j.ghostRisk && j.ghostRisk !== 'low' ? `<div class="ghost-risk ghost-risk-${j.ghostRisk}">Ghost risk: ${j.ghostRisk}</div>` : '';
+    // ghostBadges band removed — freshness + repost now ride inline in the .jc-pills row.
+    // Plain-English ghost-risk: explain what it means and what drives the score.
+    let ghostRiskHtml = '';
+    if (j.ghostRisk && j.ghostRisk !== 'low') {
+      const riskLabel = j.ghostRisk === 'high' ? 'Likely a ghost listing' : 'Possible ghost listing';
+      const riskExplain = (j.ghostRiskReasons && j.ghostRiskReasons.length)
+        ? j.ghostRiskReasons.map(escapeHtml).join(' · ')
+        : 'Posting age + repost signals suggest the role may not be actively interviewing.';
+      ghostRiskHtml = `<div class="ghost-risk ghost-risk-${j.ghostRisk}" title="What this means: this listing shows signs of being inactive — old posting age, multiple reposts, or recent layoffs at the company.">${riskLabel}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">${riskExplain}</div>`;
+    }
+    // "Why this fits" — LLM-generated one-liner. This IS the card's primary
+    // signal (the whole reason LLM scoring replaced keyword matching), so it
+    // gets display-font weight and real breathing room, not a side-panel chip.
+    const matchedTermsHtml = j.fitReason
+      ? `<div style="margin-top:4px;padding:16px 18px;background:#f0fdf4;border-radius:12px;color:#14532d;line-height:1.55;"><div style="font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#15803d;margin-bottom:6px;">Why this fits</div><div style="font-size:14.5px;font-weight:500;letter-spacing:-0.1px;">${escapeHtml(j.fitReason)}</div></div>`
+      : (j.matchedTerms && j.matchedTerms.length)
+        ? `<div style="margin-top:4px;padding:12px 16px;background:var(--bg);border-radius:10px;color:var(--text-secondary);line-height:1.55;"><div style="font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px;">Resume overlap</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:var(--card);border-radius:4px;padding:2px 8px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:var(--text-secondary);">${escapeHtml(t)}</span>`).join('')}</div>`
+        : '';
+    // Hiring-manager contact block (filled async by loadHunterContacts)
+    const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
 
-    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open')"><div class="company-logo">${logoHtml}</div><div class="jc-meta"><div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill ${locPill}">${escapeHtml(j.location.split('(')[0].trim())}</span><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}<span class="pill">${escapeHtml(j.posted||'recent')}</span>${sourceBadge}</div>${ghostBadges}</div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="status-tag ${tagClass}">${tagLabel}</span><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}"><div class="co-blurb">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}<div class="actions" style="margin-top:12px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
+    // Card pills — tightened: location pill dropped (already in .jc-co line);
+    // posted pill dropped (ghost-badge freshness covers it, no more dup
+    // "3d ago / 3d ago"); freshness inlined here so it reads with the other
+    // meta chips instead of in a separate band.
+    const freshnessInline = `<span class="pill ${freshnessClass==='ghost-fresh'?'g':freshnessClass==='ghost-stale'?'y':''}" title="How recent the posting is">${freshnessLabel}</span>`;
+    const repostPill = j.reposted ? '<span class="pill y" title="Multiple similar roles open at this company">Reposted</span>' : '';
+    // Right side: just the fit ring + chevron. Status tag ('hot match' /
+    // 'strong fit' / 'good fit') removed — the ring color + % already say
+    // the same thing. Two signals for one data point is cognitive overhead.
+    list.innerHTML+=`<div class="job-card ${tierClass}" id="ucard-${j.id}"><div class="jc-header" onclick="document.getElementById('ubody-${j.id}').classList.toggle('open');document.getElementById('uchev-${j.id}').classList.toggle('open');loadHunterContacts('${j.id}', ${JSON.stringify(j.company)})"><div class="company-logo">${logoHtml}</div><div class="jc-meta">${eyebrow}<div class="jc-title"><a href="${j.url}" target="_blank" onclick="event.stopPropagation()">${escapeHtml(j.title)}</a></div><div class="jc-co">${escapeHtml(j.company)} · ${escapeHtml(j.location)}</div><div class="jc-pills"><span class="pill">${escapeHtml(j.type)}</span>${j.salary?`<span class="pill">${escapeHtml(j.salary)}</span>`:''}${freshnessInline}${repostPill}${sourceBadge}</div></div><div class="jc-right"><div class="fit-ring"><svg width="48" height="48" viewBox="0 0 54 54"><circle cx="27" cy="27" r="21" class="ring-bg"/><circle cx="27" cy="27" r="21" class="ring-fill" stroke="${colorVar}" stroke-dasharray="${crc}" stroke-dashoffset="${off}"/></svg><div class="fit-num" style="color:${colorVar};">${j.fit}%</div></div><span class="chevron" id="uchev-${j.id}">▼</span></div></div><div class="jc-body" id="ubody-${j.id}">${matchedTermsHtml}<div class="co-blurb" style="margin-top:12px;">${descShort}${descShort.length>=300?'...':''}</div>${ghostRiskHtml}${contactHtml}<div class="actions" style="margin-top:14px;"><a class="abtn ${j.color}" href="${j.url}" target="_blank" style="text-decoration:none;">View original posting ↗</a></div></div></div>`;
   });
 
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1321,14 +1520,50 @@ function renderSearchLinks(){
   wrap.innerHTML=boards.map(([n,u])=>`<a class="source-tag" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join('');
 }
 
+// Pasted-text alternative to file upload. Feeds straight into the same
+// scoring pipeline as an uploaded resume — we just skip the PDF extract
+// step and treat the textarea contents as resume text directly.
+function submitPastedText(){
+  const ta=document.getElementById('paste-text-input');
+  const status=document.getElementById('linkedin-status');
+  if(!ta||!status)return;
+  const txt=(ta.value||'').trim();
+  const show=(html,kind)=>{
+    const bg=kind==='err'?'#fef2f2':kind==='ok'?'#ecfdf5':'#f8fafc';
+    const bd=kind==='err'?'#fecaca':kind==='ok'?'#86efac':'#cbd5e1';
+    const fg=kind==='err'?'#991b1b':kind==='ok'?'#14532d':'#475569';
+    status.style.cssText='font-size:11.5px;line-height:1.5;margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto;padding:9px 12px;border-radius:8px;background:'+bg+';border:1px solid '+bd+';color:'+fg+';';
+    status.innerHTML=html;status.style.display='block';
+  };
+  if(txt.length<40){
+    show('Give us a little more — at least a couple sentences about roles you\'ve held or want next.','err');
+    return;
+  }
+  lastResumeText=txt;
+  extractionPromise=Promise.resolve(txt);
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
+  const chipResume={id:'r-paste-'+Date.now(),name:'Pasted text ('+txt.length.toLocaleString()+' chars)',size:txt.length,type:'text/plain',data:'data:text/plain;base64,'+btoa(unescape(encodeURIComponent(txt))),uploaded:new Date().toISOString()};
+  lsSet(U_RESUMES_KEY,[chipResume]);
+  renderUserResumes();
+  show('Got it. Choose a location and Search.','ok');
+  goFindJobs();
+}
 function userUploadResume(e){
   const files=Array.from(e.target.files||[]);
   if(!files.length)return;
   // Clear old text — new upload = fresh extraction
   lastResumeText='';
   extractionPromise=null;
+  // A new resume means a new search context: wipe any prior-user
+  // "Sources of Me" text that would otherwise silently contaminate scoring.
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
 
-  const r=lsGet(U_RESUMES_KEY);
+  // Replace the resume list (was: append) — the upload button reads
+  // "Upload another" but product intent is a fresh search; keeping old
+  // resumes in localStorage let the fallback re-extract the wrong one.
+  const r=[];
   let pending=files.length;
   files.forEach(f=>{
     const reader=new FileReader();
@@ -1380,6 +1615,10 @@ function removeUserResume(id){lsSet(U_RESUMES_KEY,lsGet(U_RESUMES_KEY).filter(x=
 async function userUploadAndSearch(e){
   const files=Array.from(e.target.files||[]);if(!files.length)return;
   lastResumeText='';extractionPromise=null;
+  // A new resume means a new search context: wipe any prior-user sources
+  // that would otherwise silently contaminate the next search.
+  lsSet(U_SOURCES_KEY,[]);
+  renderUserSources();
   // Replace old resumes — fresh search with new resume only
   const r=[];
   for(const f of files){
