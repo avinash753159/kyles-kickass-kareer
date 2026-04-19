@@ -490,41 +490,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       <span class="ttl-breakdown"><span class="pip" id="ur-hot">0</span> hot<span class="dot">·</span><span class="pip" id="ur-strong">0</span> strong<span class="dot">·</span><span class="pip" id="ur-good">0</span> good</span>
     </div>
 
-    <!-- Last run -->
-    <div class="last-run-bar">
-      <div class="run-dot"></div>
-      <span>Last searched: <strong id="ur-run-time">just now</strong></span>
-      <button class="run-again" onclick="searchJobs()">Run again</button>
+    <!-- Quiet re-run link (timestamp dropped — the summary strip says "roles match your resume" already) -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span style="font-size:12px;color:var(--text-muted);" id="ur-run-time"></span>
+      <button onclick="searchJobs()" style="background:none;border:none;color:var(--text-secondary);font-size:12px;font-weight:500;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;text-decoration-color:var(--border);transition:color .15s;" onmouseover="this.style.color='var(--text)';this.style.textDecorationColor='currentColor'" onmouseout="this.style.color='var(--text-secondary)';this.style.textDecorationColor='var(--border)'">Run again</button>
     </div>
 
     <!-- Job list -->
-    <div class="sec-header">
-      <div>
-        <div class="sec-title">All Matches</div>
-        <div class="sec-subtitle">real postings · matched to your resume</div>
-      </div>
-      <div class="sec-badge" id="ur-count">0 roles</div>
-    </div>
     <div class="job-list" id="ur-job-list"></div>
   </div>
 
-  <!-- Sidebar -->
+  <!-- Sidebar (donut + Top 5 removed — both were dashboard chrome; the summary strip + hero card convey the same information without duplication) -->
   <div class="sidebar">
-    <div class="side-card" id="ur-donut-card">
-      <h3>Fit Distribution</h3>
-      <div class="donut-wrap">
-        <svg width="100" height="100" viewBox="0 0 100 100" id="ur-donut"><circle cx="50" cy="50" r="38" fill="none" stroke="#f0f2f7" stroke-width="12"/></svg>
-        <div class="donut-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Hot match<span class="legend-val" id="ur-leg-hot">0</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div>Strong fit<span class="legend-val" id="ur-leg-strong">0</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--amber);"></div>Good fit<span class="legend-val" id="ur-leg-good">0</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="side-card" id="ur-top5-card">
-      <h3>Top 5 Matches</h3>
-      <div class="top-companies" id="ur-top5"></div>
-    </div>
     <div class="side-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSources()">
         <span>Add more for better fit</span>
@@ -1419,39 +1396,20 @@ function renderUserResults(jobs){
   const good=jobs.filter(j=>j.tier==='good').length;
 
   animCount('ur-total',jobs.length);animCount('ur-hot',hot);animCount('ur-strong',strong);animCount('ur-good',good);
-  document.getElementById('ur-count').textContent=jobs.length+' roles';
-  document.getElementById('ur-leg-hot').textContent=hot;
-  document.getElementById('ur-leg-strong').textContent=strong;
-  document.getElementById('ur-leg-good').textContent=good;
-  document.getElementById('ur-run-time').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-
-  // Donut
-  const svg=document.getElementById('ur-donut');
-  svg.querySelectorAll('circle:not(:first-child)').forEach(c=>c.remove());
-  const circ=2*Math.PI*38;let offset=0;
-  [[hot,'var(--green)'],[strong,'var(--blue)'],[good,'var(--amber)']].forEach(([n,color])=>{
-    if(!n)return;const len=circ*n/jobs.length;
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx','50');c.setAttribute('cy','50');c.setAttribute('r','38');
-    c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width','12');
-    c.setAttribute('stroke-dasharray',len+' '+(circ-len));c.setAttribute('stroke-dashoffset',-offset);
-    c.setAttribute('transform','rotate(-90 50 50)');svg.appendChild(c);offset+=len;
-  });
-
-  // Top 5
-  const top5=document.getElementById('ur-top5');top5.innerHTML='';
-  jobs.slice(0,5).forEach(j=>{
-    const bg=j.tier==='hot'?'var(--green-light)':j.tier==='strong'?'var(--blue-light)':'var(--amber-light)';
-    const col=j.tier==='hot'?'var(--green)':j.tier==='strong'?'var(--blue)':'var(--amber)';
-    const domain=safeDomain(j.url);
-    const logoSrc=j.logo||(domain?'https://logo.clearbit.com/'+domain:'');
-    const co2=escapeHtml(String(j.company||'').substring(0,2).toUpperCase());
-    const logoHtml=logoSrc?`<img src="${logoSrc}" onerror="this.parentElement.textContent='${co2}'">`:(co2||'??');
-    top5.innerHTML+=`<div class="tc-row" onclick="document.getElementById('ucard-${j.id}').scrollIntoView({behavior:'smooth',block:'center'})"><div class="tc-logo">${logoHtml}</div><span class="tc-name">${escapeHtml(j.company)}</span><span class="tc-fit" style="background:${bg};color:${col};">${j.fit}%</span></div>`;
-  });
+  const runTime=document.getElementById('ur-run-time');
+  if(runTime)runTime.textContent='Searched '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 
   // Job cards
   const list=document.getElementById('ur-job-list');list.innerHTML='';
+  // Narrow-result nudge: when the user picked a strict location (austin/
+  // remote) and we came back with few matches, tell them why and offer the
+  // one-click widen. Quiet banner — not an alert, not an error.
+  const locSel=document.querySelector('input[name="loc"]:checked');
+  const locKey=locSel?locSel.value:'anywhere';
+  if(jobs.length<5 && (locKey==='austin'||locKey==='remote')){
+    const locLabel=locKey==='austin'?'Austin':'remote';
+    list.innerHTML=`<div style="margin-bottom:14px;padding:14px 18px;background:#fffbeb;border-radius:12px;font-size:13px;line-height:1.55;color:#78350f;"><strong style="font-weight:600;">Only ${jobs.length} ${locLabel} ${jobs.length===1?'match':'matches'}.</strong> Your resume is a strong fit for more roles elsewhere. <button onclick="document.querySelector('input[name=loc][value=anywhere]').click();searchJobs()" style="background:none;border:none;color:#78350f;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:0;font-size:13px;">See Anywhere →</button></div>`;
+  }
   // The single highest-fit hot-tier card gets visible elevation. One card,
   // not three — scarcity is what makes the distinction read.
   let heroAssigned=false;
