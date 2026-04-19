@@ -495,11 +495,16 @@ app.post('/api/find-jobs', async (req, res) => {
       return true;
     });
 
-    const { scoreJobsWithLLM } = require('./lib/llm-scorer');
+    const { scoreJobsWithLLM, MAX_JOBS_PER_CALL } = require('./lib/llm-scorer');
 
     // Phase 1 — coarse keyword pre-filter. The LLM is expensive per job
     // and the job universe is large; keyword scoring narrows ~500 jobs
-    // to ~60 candidates cheaply, then the LLM ranks those 60 by career fit.
+    // to MAX_JOBS_PER_CALL candidates. Location is NOT filtered here —
+    // it's applied as a soft preference AFTER LLM scoring so a narrow
+    // location (e.g. Austin) doesn't collapse the candidate pool before
+    // the LLM ever sees it. A resume may produce 3 Austin-listed jobs
+    // but 50 remote+US-wide jobs that are equally applicable; the LLM
+    // should rank all 53 and the location preference shapes the top 20.
     let scored = allJobs
       .map(job => ({
         ...job,
@@ -514,19 +519,9 @@ app.post('/api/find-jobs', async (req, res) => {
       return true;
     });
 
-    if (location === 'remote') {
-      scored = scored.filter(j => /remote/i.test((j.location || '').toLowerCase()) || j.remote);
-    } else if (location === 'austin') {
-      scored = scored.filter(j => /austin/i.test(j.location || ''));
-    }
+    const llmCandidates = scored.slice(0, MAX_JOBS_PER_CALL);
 
-    // Take up to 60 candidates for the LLM to rank. Keep keyword-top-20
-    // plus a mid-tier sample to give the LLM enough diversity to surface
-    // jobs the keyword scorer under-ranked (the whole point of this system).
-    const llmCandidates = scored.slice(0, 60);
-
-    // Phase 2 — LLM scoring. Fall back to keyword scores if the call fails
-    // or the API key is missing, so search never fully breaks.
+    // Phase 2 — LLM scoring (global, location-agnostic).
     let llmScores = null;
     let llmFailed = false;
     try {
@@ -543,20 +538,47 @@ app.post('/api/find-jobs', async (req, res) => {
       llmFailed = true;
     }
 
-    // Merge scores back onto job objects.
+    // Phase 3 — location-aware ranking. The LLM gave us career-fit scores;
+    // now we shape those scores by the user's location preference.
+    // "anywhere" → no change. "austin" → Austin jobs get a big boost so
+    // they surface when relevant (without hard-excluding great remote
+    // matches the user could work from Austin). Same idea for "remote".
+    // Scores are still clamped to 100 so a 95 doesn't become a 107.
+    function locationBoost(job) {
+      if (location === 'anywhere' || !location) return 0;
+      const loc = (job.location || '').toLowerCase();
+      const isRemote = /remote|anywhere|worldwide|work from home|wfh/i.test(loc) || job.remote;
+      if (location === 'austin') {
+        if (/austin/i.test(loc)) return 12;   // exact Austin listing
+        if (isRemote) return 4;               // remote — can work from Austin
+        return 0;
+      }
+      if (location === 'remote') {
+        if (isRemote) return 10;
+        return 0;
+      }
+      return 0;
+    }
+
     const scoresById = new Map((llmScores || []).map(s => [s.id, s]));
     let top = llmCandidates.map(j => {
       const llm = scoresById.get(j.id);
+      const rawFit = llm ? llm.fit : j.keywordFit;
+      const boost = locationBoost(j);
       return {
         ...j,
-        fit: llm ? llm.fit : j.keywordFit,
+        rawFit,
+        locationBoost: boost,
+        fit: Math.min(100, rawFit + boost),
         fitReason: llm ? llm.reason : null,
         scoredBy: llm ? 'llm' : 'keyword'
       };
     }).sort((a, b) => b.fit - a.fit);
 
     // Minimum fit threshold. LLM scores are calibrated differently from
-    // keyword scores — use 55 for LLM, 40 for keyword fallback.
+    // keyword scores — use 55 for LLM, 40 for keyword fallback. Threshold
+    // applies to boosted `fit` so a borderline (53) LLM match in Austin
+    // surfaces when Austin was selected (53 + 12 = 65).
     const minFit = llmFailed ? 40 : 55;
     top = top.filter(j => j.fit >= minFit).slice(0, 20);
     // Score-based tiers matching stat card labels
