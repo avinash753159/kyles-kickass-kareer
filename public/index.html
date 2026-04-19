@@ -1486,10 +1486,14 @@ function renderUserResults(jobs){
         : 'Posting age + repost signals suggest the role may not be actively interviewing.';
       ghostRiskHtml = `<div class="ghost-risk ghost-risk-${j.ghostRisk}" title="What this means: this listing shows signs of being inactive — old posting age, multiple reposts, or recent layoffs at the company.">${riskLabel}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">${riskExplain}</div>`;
     }
-    // "Why this matches" — concrete keyword overlap from the resume
-    const matchedTermsHtml = (j.matchedTerms && j.matchedTerms.length)
-      ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:var(--text);line-height:1.5;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this matches your resume</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:#fff;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:#166534;">${escapeHtml(t)}</span>`).join('')}</div>`
-      : '';
+    // "Why this fits" — LLM-generated one-liner citing actual career history.
+    // Falls back to keyword-overlap chips when scoring ran in fallback mode
+    // (ANTHROPIC_API_KEY missing or LLM call failed).
+    const matchedTermsHtml = j.fitReason
+      ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12.5px;color:var(--text);line-height:1.55;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this fits</div>${escapeHtml(j.fitReason)}</div>`
+      : (j.matchedTerms && j.matchedTerms.length)
+        ? `<div style="margin-top:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:var(--text);line-height:1.5;"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;margin-bottom:4px;">Why this matches your resume</div>${j.matchedTerms.slice(0,8).map(t => `<span style="display:inline-block;background:#fff;border:1px solid #bbf7d0;border-radius:4px;padding:2px 6px;margin:2px 4px 2px 0;font-family:var(--mono);font-size:11px;color:#166534;">${escapeHtml(t)}</span>`).join('')}</div>`
+        : '';
     // Hiring-manager contact block (filled async by loadHunterContacts)
     const contactHtml = `<div id="ucontacts-${j.id}" style="margin-top:12px;"></div>`;
 
